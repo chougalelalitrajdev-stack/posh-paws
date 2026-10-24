@@ -1,21 +1,36 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from './pages/home/home.component';
-import { ServicesComponent } from './pages/services/services.component';
-import { AboutComponent } from './pages/about/about.component';
-import { MembershipComponent } from './pages/membership/membership.component';
-import { GalleryComponent } from './pages/gallery/gallery.component';
-import { BookingComponent } from './pages/booking/booking.component';
-import { AccountComponent } from './pages/account/account.component';
 import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
-  { path: '',            component: HomeComponent },
-  { path: 'services',   component: ServicesComponent },
-  { path: 'about',      component: AboutComponent },
-  { path: 'membership', component: MembershipComponent },
-  { path: 'gallery',    component: GalleryComponent },
-  { path: 'book',       component: BookingComponent },
-  { path: 'account',    component: AccountComponent, canActivate: [authGuard] },
+  {
+    path: '',
+    loadComponent: () => import('./pages/home/home.component').then(m => m.HomeComponent),
+  },
+  {
+    path: 'services',
+    loadComponent: () => import('./pages/services/services.component').then(m => m.ServicesComponent),
+  },
+  {
+    path: 'about',
+    loadComponent: () => import('./pages/about/about.component').then(m => m.AboutComponent),
+  },
+  {
+    path: 'membership',
+    loadComponent: () => import('./pages/membership/membership.component').then(m => m.MembershipComponent),
+  },
+  {
+    path: 'gallery',
+    loadComponent: () => import('./pages/gallery/gallery.component').then(m => m.GalleryComponent),
+  },
+  {
+    path: 'book',
+    loadComponent: () => import('./pages/booking/booking.component').then(m => m.BookingComponent),
+  },
+  {
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/account/account.component').then(m => m.AccountComponent),
+  },
   {
     path: 'account/pets/:id',
     canActivate: [authGuard],
