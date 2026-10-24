@@ -1,10 +1,12 @@
 import {
   Component,
   HostListener,
+  inject,
   signal,
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { BookingDialogService } from '../../../core/services/booking-dialog.service';
 // import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
 
 @Component({
@@ -16,6 +18,8 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './navbar.component.scss',
 })
 export class NavbarComponent {
+  private bookingDialog = inject(BookingDialogService);
+
   protected scrolled = signal(false);
   protected menuOpen = signal(false);
 
@@ -30,5 +34,10 @@ export class NavbarComponent {
 
   closeMenu(): void {
     this.menuOpen.set(false);
+  }
+
+  openBookingDialog(): void {
+    this.bookingDialog.open();
+    this.closeMenu();
   }
 }

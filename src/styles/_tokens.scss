@@ -47,6 +47,31 @@
   --section-y-sm: clamp(3rem, 6vw, 4rem); //  48px → 64px
   --section-y: clamp(4rem, 8vw, 6rem); //  64px → 96px
   --section-y-lg: clamp(5rem, 10vw, 8rem); //  80px → 128px
+
+  // ── Mobile-first: touch targets & device safe areas ───────────
+  //    Minimum comfortable tap size (Apple HIG / Material both land
+  //    on ~44-48px). Use --tap-target-min on any icon-only or small
+  //    interactive element so it never falls below this.
+  --tap-target-min: 44px;
+
+  //    env() falls back to 0px on devices/browsers without notches/
+  //    home indicators, so these are safe to use unconditionally.
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  // ── Mobile chrome dimensions ───────────────────────────────────
+  --bottom-nav-height: 60px;
+  // Total space the fixed bottom nav occupies, incl. safe area —
+  // apply as scroll-padding/padding-bottom on page content so the
+  // last element isn't hidden behind the bar.
+  --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+
+  // ── Layering ────────────────────────────────────────────────────
+  --z-bottom-nav: 1050;
+  --z-sheet-backdrop: 1200;
+  --z-sheet: 1210;
 }
 
 // ══════════════════════════════════════════════════════════════

@@ -32,7 +32,7 @@
         <a class="btn-pp-ghost sign-in-btn" routerLink="/account">My account</a>
 
         <!-- CTA button -->
-        <a class="btn-pp-accent" routerLink="/book" (click)="closeMenu()">Reserve a slot</a>
+        <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot</button>
 
         <!-- Hamburger (visible below lg) -->
         <button class="hamburger" [class.open]="menuOpen()" (click)="toggleMenu()" aria-label="Toggle navigation"

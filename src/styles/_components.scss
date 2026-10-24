@@ -692,6 +692,159 @@
   border: 2px solid var(--pp-accent) !important;
 }
 
+// ── Mobile: touch targets ──────────────────────────────────────
+//    Apply to any icon-only / small control (close buttons, chips)
+//    so the hit area meets --tap-target-min without inflating the
+//    visible element.
+.pp-tap-target {
+  min-width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Bottom navigation (mobile) ──────────────────────────────────
+//    Fixed tab bar for phone widths. Hidden at tablet/desktop —
+//    pages add `--bottom-nav-total-height` as scroll/padding space
+//    only while this bar is visible (handled per-page, Task 3+).
+//
+//    Usage:
+//    <nav class="pp-bottom-nav">
+//      <a class="pp-bottom-nav-item" [class.active]="...">
+//        <span class="pp-bottom-nav-icon">🏠</span>
+//        <span class="pp-bottom-nav-label">Home</span>
+//      </a>
+//      ...
+//    </nav>
+.pp-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-bottom-nav);
+  display: flex;
+  background: var(--pp-navbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--pp-border);
+  height: var(--bottom-nav-total-height);
+  padding-bottom: var(--safe-bottom);
+
+  @media (min-width: 992px) {
+    display: none;
+  }
+}
+
+.pp-bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tap-target-min);
+  color: var(--pp-muted);
+  text-decoration: none;
+  font-family: var(--ff-sans);
+  transition: color var(--transition);
+
+  &.active,
+  &:hover { color: var(--pp-primary); }
+}
+
+.pp-bottom-nav-icon  { font-size: 20px; line-height: 1; }
+.pp-bottom-nav-label { font-size: 11px; font-weight: 500; }
+
+// ── Bottom sheet / modal dialog (mobile-first) ──────────────────
+//    Slides up from the bottom on phones; can be centered as a
+//    conventional dialog at tablet/desktop widths by the component
+//    (add/remove a modifier class there — this file only supplies
+//    the mobile sheet look, which also reads fine on larger screens).
+//
+//    Usage:
+//    <div class="pp-sheet-backdrop" (click)="close()">
+//      <div class="pp-sheet" (click)="$event.stopPropagation()">
+//        <div class="pp-sheet-handle"></div>
+//        <div class="pp-sheet-header">...</div>
+//        <div class="pp-sheet-body">...</div>
+//      </div>
+//    </div>
+.pp-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet-backdrop);
+  background: rgba(0, 0, 0, .45);
+  animation: fadeInUp .2s ease both;
+}
+
+.pp-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sheet);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--pp-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-6) calc(var(--space-6) + var(--safe-bottom));
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: sheetUp .25s ease both;
+
+  // On tablet/desktop, present as a centered dialog instead of a
+  // bottom sheet — same markup, no component-side variant needed.
+  @media (min-width: 768px) {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius-lg);
+    animation: dialogIn .2s ease both;
+  }
+}
+
+.pp-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--pp-border-strong);
+  margin: var(--space-2) auto var(--space-4);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.pp-sheet-header {
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+
+.pp-sheet-title { font-family: var(--ff-serif); font-size: 20px; font-weight: 500; color: var(--pp-text); margin-bottom: var(--space-1); }
+.pp-sheet-sub   { font-size: 13px; color: var(--pp-muted); }
+
+.pp-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+// ── Sticky CTA bar (mobile) ──────────────────────────────────────
+//    A single primary action pinned to the bottom of the viewport
+//    on a page/flow (e.g. above the bottom nav on a detail screen).
+.pp-sticky-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 900;
+  background: var(--pp-bg);
+  border-top: 1px solid var(--pp-border);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + var(--safe-bottom));
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, .05);
+}
+
 // ── Animations ────────────────────────────────────────────────
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -717,6 +870,16 @@
 @keyframes slideUp {
   from { transform: translateY(32px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 .animate-blob     { animation: morphBlob 8s ease-in-out infinite; }
