@@ -1,5 +1,6 @@
 import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { LoginDialogService } from '../../core/auth/login-dialog.service';
 import { SubscribeDialogService } from '../../core/services/subscribe-dialog.service';
 
@@ -127,7 +128,7 @@ const FAQ: FaqItem[] = [
 @Component({
   selector: 'pp-membership',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './membership.component.html',
   styleUrl:    './membership.component.scss',
