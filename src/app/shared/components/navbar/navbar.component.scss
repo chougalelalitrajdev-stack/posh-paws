@@ -1,0 +1,182 @@
+// ── Nav shell ──────────────────────────────────────────────
+:host {
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.pp-navbar {
+  background: var(--pp-navbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--pp-border);
+  transition: box-shadow var(--transition);
+}
+
+.pp-navbar.scrolled {
+  box-shadow: var(--shadow-md);
+}
+
+// ── Inner flex row ─────────────────────────────────────────
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  gap: 16px;
+}
+
+// ── Brand ──────────────────────────────────────────────────
+.navbar-brand-wrap {
+  flex-shrink: 0;
+  text-decoration: none;
+
+  .brand-logo {
+    height: 100px;
+    width: auto;
+    // display: block;
+    object-fit: contain;
+  }
+}
+
+// ── Desktop links ──────────────────────────────────────────
+.desktop-links {
+  display: none;
+  align-items: center;
+  gap: 4px;
+
+  @media (min-width: 992px) {
+    display: flex;
+  }
+}
+
+// ── Right actions ──────────────────────────────────────────
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+// hide theme switcher on xs
+.theme-sw {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: inline-block;
+  }
+}
+
+// hide sign-in on mobile
+.sign-in-btn {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: inline-flex;
+  }
+}
+
+// ── Hamburger button ───────────────────────────────────────
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  padding: 4px;
+  background: transparent;
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition);
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--pp-primary);
+  }
+
+  span {
+    display: block;
+    height: 1.5px;
+    background: var(--pp-text);
+    border-radius: 2px;
+    transition: transform .25s ease, opacity .2s ease;
+    transform-origin: center;
+  }
+
+  // X state
+  &.open {
+    span:nth-child(1) {
+      transform: translateY(6.5px) rotate(45deg);
+    }
+
+    span:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    span:nth-child(3) {
+      transform: translateY(-6.5px) rotate(-45deg);
+    }
+  }
+
+  // hide on desktop
+  @media (min-width: 992px) {
+    display: none;
+  }
+}
+
+// ── Mobile drawer ──────────────────────────────────────────
+.mobile-menu {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .35s ease;
+  border-top: 1px solid transparent;
+
+  &.open {
+    max-height: 480px;
+    border-top-color: var(--pp-border);
+  }
+
+  @media (min-width: 992px) {
+    display: none;
+  }
+}
+
+.mobile-links {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0 20px;
+}
+
+.mobile-nav-link {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--pp-muted);
+  text-decoration: none;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--pp-border);
+  transition: color var(--transition);
+  display: block;
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &:hover,
+  &.active {
+    color: var(--pp-primary);
+    font-weight: 500;
+  }
+}
+
+.mobile-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 1px solid var(--pp-border);
+}

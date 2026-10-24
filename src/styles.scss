@@ -1,0 +1,30 @@
+// ─────────────────────────────────────────────────────────────
+//  styles.scss  —  root stylesheet, import order matters
+//
+//  ORDER IS CRITICAL:
+//  1. Tokens first  → CSS variables defined
+//  2. BS overrides  → Bootstrap vars set with static hex values
+//  3. Bootstrap     → Bootstrap compiles with our overrides
+//  4. Typography    → fonts + text utils
+//  5. Components    → all shared component styles
+// ─────────────────────────────────────────────────────────────
+
+// 1. Design tokens (all themes live here)
+@import 'styles/tokens';
+
+// 2. Bootstrap variable overrides (must be before bootstrap)
+@import 'styles/bootstrap-overrides';
+
+// 3. Bootstrap CSS
+@import 'bootstrap/scss/bootstrap';
+
+// 4. Typography
+@import 'styles/typography';
+
+// 5. Shared component styles
+@import 'styles/components';
+
+// ── Global base resets ────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }

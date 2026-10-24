@@ -1,0 +1,224 @@
+// ─────────────────────────────────────────────────────────────
+//  about.component.scss
+//
+//  Section padding  →  section-pad utility class (global)
+//  Spacing          →  var(--space-*) / rem
+//  Section rhythm   →  var(--section-y-*) where custom needed
+//  Shared UI        →  trust-pill, stat-big, stat-label,
+//                      testimonial-card, testi-* from _components.scss
+// ─────────────────────────────────────────────────────────────
+
+:host {
+  display: block;
+  overflow-x: hidden;
+}
+
+// ── Page hero ─────────────────────────────────────────────────
+.page-hero {
+  background: var(--pp-bg);
+  padding: var(--section-y-sm) 0 var(--section-y) 0;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.hero-deco-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--pp-sand);
+  pointer-events: none;
+
+  &.c1 {
+    width:  min(560px, 75vw);
+    height: min(560px, 75vw);
+    left: 50%;
+    top: -140px;
+    transform: translateX(-50%);
+    opacity: .35;
+  }
+
+  &.c2 {
+    width:  min(340px, 50vw);
+    height: min(340px, 50vw);
+    left: 50%;
+    top: -40px;
+    transform: translateX(-50%);
+    opacity: .2;
+  }
+}
+
+.hero-inner {
+  position: relative;   // sits above decoration circles
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.hero-sub {
+  font-size: 1rem;
+  color: var(--pp-muted);
+  line-height: 1.8;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+// ── Our story ─────────────────────────────────────────────────
+.story-section {
+  background: var(--pp-surface);
+}
+
+.story-img-card {
+  background: var(--pp-surface-2);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--pp-border);
+  height: 460px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6.25rem;   // 100px — placeholder, intentionally fixed
+  color: var(--pp-muted);
+  overflow: hidden;
+}
+
+.story-body {
+  font-size: 0.9375rem;   // 15px
+  color: var(--pp-muted);
+  line-height: 1.9;
+  margin-bottom: var(--space-6);
+}
+
+.trust-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+}
+
+.stats-row {
+  display: flex;
+  gap: var(--space-8);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--pp-border);
+}
+
+.stat-item {
+  text-align: center;
+  flex: 1;
+}
+
+// ── Our values ────────────────────────────────────────────────
+.values-section {
+  background: var(--pp-bg);
+}
+
+.value-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--pp-border);
+  padding: var(--space-8) var(--space-6);
+  height: 100%;
+  transition: transform var(--transition), box-shadow var(--transition);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.value-icon {
+  width: 3rem;     // 48px
+  height: 3rem;
+  background: var(--pp-primary-light);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.375rem;   // 22px
+  margin-bottom: var(--space-6);
+}
+
+.value-title {
+  font-family: var(--ff-serif);
+  font-size: 1.125rem;   // 18px
+  font-weight: 500;
+  color: var(--pp-text);
+  margin-bottom: var(--space-3);
+}
+
+.value-desc {
+  font-size: 0.8125rem;  // 13px
+  color: var(--pp-muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+// ── Testimonials ──────────────────────────────────────────────
+// Card styles are global (.testimonial-card, .testi-*, .stars)
+.testimonials-section {
+  background: var(--pp-surface);
+}
+
+// ── CTA banner ────────────────────────────────────────────────
+.cta-section {
+  background: var(--pp-bg);
+}
+
+.cta-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--pp-border);
+  padding: var(--space-16) var(--space-14);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.cta-leaf {
+  position: absolute;
+  font-size: 11.25rem;   // 180px — decorative
+  opacity: .04;
+  pointer-events: none;
+  user-select: none;
+  right: -20px;
+  bottom: -30px;
+  transform: rotate(20deg);
+  line-height: 1;
+}
+
+.cta-title {
+  font-family: var(--ff-serif);
+  font-size: clamp(1.375rem, 3.5vw, 2.5rem);
+  font-weight: 500;
+  color: var(--pp-text);
+  line-height: 1.2;
+  margin-bottom: var(--space-3);
+
+  em { font-style: italic; color: var(--pp-primary); }
+}
+
+.cta-sub {
+  font-size: 0.875rem;
+  color: var(--pp-muted);
+  margin-bottom: 0;
+}
+
+// ── Responsive overrides ──────────────────────────────────────
+
+// xs — phones under 576px
+@media (max-width: 575px) {
+  .story-img-card { height: 280px; font-size: 4rem; }
+
+  .stats-row {
+    gap: var(--space-5);
+    flex-wrap: wrap;
+  }
+
+  .cta-card  { padding: var(--space-8) var(--space-6); }
+  .cta-leaf  { display: none; }
+}
+
+// tablet — 576px to 991px
+@media (min-width: 576px) and (max-width: 991px) {
+  .story-img-card { height: 360px; }
+
+  .cta-card { padding: var(--space-12) var(--space-10); }
+}

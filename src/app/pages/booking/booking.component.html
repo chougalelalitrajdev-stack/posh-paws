@@ -1,0 +1,281 @@
+<section class="section-pad bg-pp-surface">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-7">
+
+        <!-- Section header -->
+        <div class="text-center mb-5">
+          <div class="eyebrow d-inline-flex">Booking</div>
+          <h2 class="section-title">Reserve your <em>slot</em></h2>
+          <p class="booking-sub mt-2">Secure with ₹100 · Balance on arrival · Free cancellation 24 hrs prior</p>
+        </div>
+
+        <!-- Wizard card -->
+        <div class="wizard-wrap">
+
+          <!-- ── Wizard header (hidden on success) ── -->
+          @if (currentStep() < 4) {
+            <div class="wizard-header">
+              @for (step of wizardSteps; track step.num) {
+                <div class="wizard-step"
+                     [class.active]="stepStatus(step) === 'active'"
+                     [class.done]="stepStatus(step) === 'done'">
+                  <div class="step-circle">
+                    @if (stepStatus(step) === 'done') { ✓ } @else { {{ step.num }} }
+                  </div>
+                  <div class="step-label">{{ step.label }}</div>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- ══════════════════════════════
+               STEP 1 — Pet & Service
+          ══════════════════════════════ -->
+          @if (currentStep() === 1) {
+            <div class="wizard-body">
+              <div class="wizard-step-title">Who are we grooming?</div>
+              <div class="wizard-step-sub">Select your pet type and preferred service</div>
+
+              <!-- Pet type -->
+              <div class="pet-selector">
+                <div class="pet-option" [class.selected]="petType() === 'dog'" (click)="selectPet('dog')">
+                  <div class="pet-option-icon">🐶</div>
+                  <div class="pet-option-label">Dog</div>
+                </div>
+                <div class="pet-option" [class.selected]="petType() === 'cat'" (click)="selectPet('cat')">
+                  <div class="pet-option-icon">🐱</div>
+                  <div class="pet-option-label">Cat</div>
+                </div>
+              </div>
+
+              <!-- Pet name + breed side by side -->
+              <div class="row g-3">
+                <div class="col-sm-6">
+                  <div class="pp-input-group">
+                    <label class="pp-label">
+                      Pet's name <span class="required-dot">*</span>
+                    </label>
+                    <input
+                      class="pp-input"
+                      type="text"
+                      placeholder="e.g. Bruno, Coco, Luna"
+                      [value]="petName()"
+                      (input)="onPetNameChange($event)"
+                    />
+                  </div>
+                </div>
+                <div class="col-sm-6">
+                  <div class="pp-input-group">
+                    <label class="pp-label">Breed <span class="optional-tag">optional</span></label>
+                    <input
+                      class="pp-input"
+                      type="text"
+                      placeholder="e.g. Golden Retriever, Persian"
+                      [value]="breed()"
+                      (input)="onBreedChange($event)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Service -->
+              <div class="pp-input-group">
+                <label class="pp-label">Select service</label>
+                <select class="pp-input" [value]="serviceIndex()" (change)="onServiceChange($event)">
+                  @for (svc of serviceOptions(); track svc.label; let i = $index) {
+                    <option [value]="i">{{ svc.label }} — {{ svc.price }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Selected service summary pill -->
+              <div class="service-pill">
+                <span class="service-pill-name">{{ selectedService().label }}</span>
+                <span class="service-pill-price">{{ selectedService().price }}</span>
+              </div>
+
+              <div class="wizard-nav">
+                <a class="btn-pp-ghost" routerLink="/">← Back to home</a>
+                <button
+                  class="btn-pp-primary"
+                  [disabled]="!step1Valid()"
+                  [title]="!step1Valid() ? 'Please enter your pet\'s name' : ''"
+                  (click)="goToStep(2)"
+                >Next: Pick a slot →</button>
+              </div>
+
+              @if (!step1Valid()) {
+                <p class="field-hint">Enter your pet's name to continue</p>
+              }
+            </div>
+          }
+
+          <!-- ══════════════════════════════
+               STEP 2 — Date & Slot
+          ══════════════════════════════ -->
+          @if (currentStep() === 2) {
+            <div class="wizard-body">
+              <div class="wizard-step-title">Pick your date & time</div>
+              <div class="wizard-step-sub">Choose when you'd like to bring {{ petName() || 'your pet' }} in</div>
+
+              <!-- Context strip from step 1 -->
+              <div class="context-strip">
+                <span class="context-pet">{{ petType() === 'dog' ? '🐶' : '🐱' }} {{ petName() }}</span>
+                <span class="context-sep">·</span>
+                <span class="context-svc">{{ selectedService().label }}</span>
+                <span class="context-sep">·</span>
+                <span class="context-price">{{ selectedService().price }}</span>
+                <button class="context-edit" (click)="goToStep(1)">Edit</button>
+              </div>
+
+              <!-- Quick date shortcuts -->
+              <div class="pp-input-group">
+                <label class="pp-label">Select date</label>
+                <div class="date-shortcuts">
+                  @for (s of dateShortcuts; track s.label) {
+                    <button
+                      class="date-chip"
+                      [class.active]="selectedDate() === s.isoDate"
+                      (click)="setDate(s.isoDate)"
+                    >{{ s.label }}</button>
+                  }
+                </div>
+                <input
+                  class="pp-input"
+                  type="date"
+                  [min]="todayDate"
+                  [value]="selectedDate()"
+                  (input)="onDateChange($event)"
+                />
+              </div>
+
+              <!-- Slot groups -->
+              @for (group of slotGroups; track group.period) {
+                <div class="slot-group">
+                  <div class="slot-group-header">
+                    <span class="slot-group-label">{{ group.icon }} {{ group.period }}</span>
+                    <span class="slot-group-count">{{ availableCount(group) }} available</span>
+                  </div>
+                  <div class="slot-grid">
+                    @for (slot of group.slots; track slot.time) {
+                      <button
+                        class="slot-btn"
+                        [class.selected]="selectedSlot() === slot.time"
+                        [class.unavailable]="!slot.available"
+                        (click)="selectSlot(slot)"
+                      >
+                        @if (selectedSlot() === slot.time) { ✓ }
+                        {{ slot.time }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Legend -->
+              <div class="slot-legend">
+                <span class="legend-item"><span class="slot-sample">Open</span></span>
+                <span class="legend-item"><span class="slot-sample unavailable">Booked</span></span>
+                <span class="legend-item"><span class="slot-sample selected">✓ Yours</span></span>
+              </div>
+
+              <div class="wizard-nav">
+                <button class="btn-pp-ghost" (click)="goToStep(1)">← Back</button>
+                <button
+                  class="btn-pp-primary"
+                  [disabled]="!step2Valid()"
+                  [title]="!step2Valid() ? 'Select a date and time slot to continue' : ''"
+                  (click)="goToStep(3)"
+                >Next: Confirm →</button>
+              </div>
+
+              @if (!step2Valid()) {
+                <p class="field-hint">
+                  @if (!selectedDate()) { Select a date · }
+                  @if (selectedDate() && !selectedSlot()) { Now pick a time slot }
+                </p>
+              }
+            </div>
+          }
+
+          <!-- ══════════════════════════════
+               STEP 3 — Confirm & Pay
+          ══════════════════════════════ -->
+          @if (currentStep() === 3) {
+            <div class="wizard-body">
+              <div class="wizard-step-title">Confirm your booking</div>
+              <div class="wizard-step-sub">Review details and pay ₹100 to secure your slot</div>
+
+              <div class="confirm-summary">
+                <div class="confirm-row border-row">
+                  <span class="confirm-label">Pet</span>
+                  <span class="confirm-val">
+                    {{ petName() || 'Your pet' }}
+                    @if (breed()) { <span class="confirm-breed">({{ breed() }})</span> }
+                  </span>
+                </div>
+                <div class="confirm-row border-row">
+                  <span class="confirm-label">Service</span>
+                  <span class="confirm-val">{{ selectedService().label }}</span>
+                </div>
+                <div class="confirm-row border-row">
+                  <span class="confirm-label">Date & time</span>
+                  <span class="confirm-val">
+                    {{ selectedDate() || '—' }}
+                    @if (selectedSlot()) { · {{ selectedSlot() }} }
+                  </span>
+                </div>
+                <div class="confirm-row border-row">
+                  <span class="confirm-label">Service total</span>
+                  <span class="confirm-val">{{ selectedService().price }}</span>
+                </div>
+                <div class="confirm-row">
+                  <span class="confirm-pay-label">Pay now to confirm</span>
+                  <span class="confirm-pay-val">₹100</span>
+                </div>
+              </div>
+
+              <div class="refund-note">
+                💡 ₹100 is a refundable slot-hold. The remaining {{ remainingBalance() }} is payable at the salon.
+                Cancel 24 hrs before for a full refund.
+              </div>
+
+              <div class="wizard-nav">
+                <button class="btn-pp-ghost" (click)="goToStep(2)">← Change slot</button>
+                <button class="btn-pp-accent" (click)="confirmBooking()">Pay ₹100 & confirm →</button>
+              </div>
+            </div>
+          }
+
+          <!-- ══════════════════════════════
+               STEP 4 — Success
+          ══════════════════════════════ -->
+          @if (currentStep() === 4) {
+            <div class="wizard-body text-center">
+              <div class="success-emoji">🎉</div>
+              <div class="wizard-step-title">Booking confirmed!</div>
+              <p class="success-msg">
+                {{ petName() || 'Your pet' }}'s {{ selectedService().label }} is booked
+                @if (selectedDate()) { for <strong>{{ selectedDate() }}</strong> }
+                @if (selectedSlot()) { at <strong>{{ selectedSlot() }}</strong> }.<br>
+                A WhatsApp confirmation has been sent to your number.
+              </p>
+
+              <div class="success-address">
+                <div class="success-address-name">📍 Posh Paws, Koregaon Park, Pune</div>
+                <div class="success-address-note">Arrive 5 minutes before your slot. We'll take it from there.</div>
+              </div>
+
+              <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a class="btn-pp-primary" routerLink="/account">View my bookings</a>
+                <a class="btn-pp-outline" routerLink="/">Back to home</a>
+              </div>
+            </div>
+          }
+
+        </div><!-- /wizard-wrap -->
+      </div>
+    </div>
+  </div>
+</section>

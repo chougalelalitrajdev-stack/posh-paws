@@ -1,0 +1,317 @@
+// ── Typography ────────────────────────────────────────────────
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--pp-accent);
+  font-weight: 500;
+  margin-bottom: 10px;
+
+  &::before {
+    content: '';
+    width: 28px;
+    height: 1.5px;
+    background: var(--pp-accent);
+    border-radius: 2px;
+  }
+}
+
+.section-title {
+  font-family: var(--ff-serif);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 500;
+  color: var(--pp-text);
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  margin: 0;
+
+  em { font-style: italic; color: var(--pp-primary); }
+}
+
+// ── Page header ───────────────────────────────────────────────
+
+.acct-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+// ── Quick stats strip ─────────────────────────────────────────
+
+.stats-strip {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 20px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.stat-chip-icon  { font-size: 22px; line-height: 1; }
+.stat-chip-val   { font-family: var(--ff-serif); font-size: 22px; color: var(--pp-primary); font-weight: 500; line-height: 1.1; }
+.stat-chip-label { font-size: 11px; color: var(--pp-muted); margin-top: 2px; }
+
+// ── Booking tabs ──────────────────────────────────────────────
+
+.booking-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.booking-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pp-border);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pp-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--ff-sans);
+
+  &.active {
+    background: var(--pp-primary);
+    border-color: var(--pp-primary);
+    color: #fff;
+
+    .tab-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+  }
+
+  &:not(.active):hover {
+    border-color: var(--pp-primary);
+    color: var(--pp-primary);
+  }
+}
+
+.tab-count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--pp-surface);
+  color: var(--pp-muted);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+// ── Booking items ─────────────────────────────────────────────
+
+.booking-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pp-text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.booking-meta {
+  font-size: 12px;
+  color: var(--pp-muted);
+}
+
+.booking-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cancel-btn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: var(--pp-muted);
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover { color: #E07B39; }
+}
+
+// ── Empty state ───────────────────────────────────────────────
+
+.empty-state {
+  text-align: center;
+  padding: 24px 0 8px;
+}
+
+.empty-icon  { font-size: 48px; margin-bottom: 12px; }
+.empty-title { font-family: var(--ff-serif); font-size: 20px; color: var(--pp-text); margin-bottom: 6px; }
+.empty-sub   { font-size: 13px; color: var(--pp-muted); margin-bottom: 20px; }
+
+// ── Membership banner extras ──────────────────────────────────
+
+.membership-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 6px;
+}
+
+.membership-tier {
+  font-family: var(--ff-serif);
+  font-size: 26px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.membership-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 20px;
+}
+
+.session-progress-wrap {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.session-progress-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.session-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.session-progress-fill {
+  height: 100%;
+  background: var(--pp-accent);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.session-progress-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.membership-upgrade-link {
+  display: inline-block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--transition);
+
+  &:hover { color: #fff; }
+}
+
+// ── Pet profiles ──────────────────────────────────────────────
+
+.pet-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-border);
+  margin-bottom: 10px;
+}
+
+.pet-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--pp-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.pet-info   { flex: 1; min-width: 0; }
+.pet-name   { font-size: 14px; font-weight: 600; color: var(--pp-text); }
+.pet-breed  { font-size: 12px; color: var(--pp-muted); }
+
+.pet-book-btn {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pp-primary);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pp-primary);
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  transition: all var(--transition);
+
+  &:hover { background: var(--pp-primary); color: #fff; }
+}
+
+.add-pet-btn { margin-top: 4px; padding: 10px; font-size: 13px; }
+
+// ── Quick links ───────────────────────────────────────────────
+
+.quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 8px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--pp-text);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+
+  &:hover {
+    background: var(--pp-surface);
+    color: var(--pp-primary);
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+
+@media (max-width: 767.98px) {
+  .stats-strip { gap: 8px; }
+  .stat-chip   { min-width: calc(50% - 4px); }
+  .acct-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+}

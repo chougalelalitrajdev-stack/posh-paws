@@ -1,0 +1,277 @@
+// ─────────────────────────────────────────────────────────────
+//  membership.component.scss
+//
+//  Plan card styles (.plan-card, .plan-badge, .plan-feature, etc.)
+//  are all global in _components.scss — nothing duplicated here.
+//
+//  SECTION MAP
+//  1. Host
+//  2. Page hero
+//  3. Plans
+//  4. Member perks
+//  5. FAQ
+//  6. CTA banner
+//  7. Responsive overrides
+// ─────────────────────────────────────────────────────────────
+
+:host {
+  display: block;
+  overflow-x: hidden;
+}
+
+// ── 2. Page hero ──────────────────────────────────────────────
+.page-hero {
+  background: var(--pp-bg);
+  padding: var(--section-y-sm) 0 var(--section-y) 0;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.hero-deco-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--pp-sand);
+  pointer-events: none;
+
+  &.c1 {
+    width:  min(560px, 75vw);
+    height: min(560px, 75vw);
+    left: 50%;
+    top: -140px;
+    transform: translateX(-50%);
+    opacity: .35;
+  }
+
+  &.c2 {
+    width:  min(340px, 50vw);
+    height: min(340px, 50vw);
+    left: 50%;
+    top: -40px;
+    transform: translateX(-50%);
+    opacity: .2;
+  }
+}
+
+.hero-inner {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.hero-sub {
+  font-size: 1rem;
+  color: var(--pp-muted);
+  line-height: 1.8;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+// ── 3. Plans ──────────────────────────────────────────────────
+.plans-section {
+  background: var(--pp-surface);
+}
+
+.plans-sub {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// Extra top space on the featured card so the badge isn't clipped
+.plan-card.featured {
+  margin-top: var(--space-4);
+}
+
+// Push the CTA button to the bottom of every card regardless of
+// how many features are listed
+.plan-cta {
+  margin-top: auto;
+  padding-top: var(--space-8);
+}
+
+// ── 4. Member perks ───────────────────────────────────────────
+.perks-section {
+  background: var(--pp-bg);
+}
+
+.perk-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--pp-border);
+  padding: var(--space-8) var(--space-6);
+  height: 100%;
+  transition: transform var(--transition), box-shadow var(--transition);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.perk-icon {
+  width: 3rem;
+  height: 3rem;
+  background: var(--pp-primary-light);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.375rem;
+  margin-bottom: var(--space-6);
+}
+
+.perk-title {
+  font-family: var(--ff-serif);
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--pp-text);
+  margin-bottom: var(--space-3);
+}
+
+.perk-desc {
+  font-size: 0.8125rem;
+  color: var(--pp-muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+// ── 5. FAQ ────────────────────────────────────────────────────
+.faq-section {
+  background: var(--pp-surface);
+}
+
+.faq-list {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--pp-border);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--pp-border);
+
+  &:last-child { border-bottom: none; }
+
+  &.open .faq-question {
+    color: var(--pp-primary);
+    background: var(--pp-primary-light);
+  }
+}
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-8);
+  background: white;
+  border: none;
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--pp-text);
+  text-align: left;
+  transition: background var(--transition), color var(--transition);
+
+  &:hover {
+    background: var(--pp-surface);
+    color: var(--pp-primary);
+  }
+}
+
+.faq-icon {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pp-primary);
+  transition: transform var(--transition);
+
+  &.rotated { transform: rotate(180deg); }
+}
+
+.faq-answer {
+  padding: 0 var(--space-8) var(--space-6);
+  font-size: 0.875rem;
+  color: var(--pp-muted);
+  line-height: 1.8;
+  background: var(--pp-primary-light);
+}
+
+// ── 6. CTA banner ─────────────────────────────────────────────
+.cta-section {
+  background: var(--pp-surface);
+}
+
+.cta-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--pp-border);
+  padding: var(--space-16) var(--space-14);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.cta-leaf {
+  position: absolute;
+  font-size: 11.25rem;
+  opacity: .04;
+  pointer-events: none;
+  user-select: none;
+  right: -20px;
+  bottom: -30px;
+  transform: rotate(20deg);
+  line-height: 1;
+}
+
+.cta-title {
+  font-family: var(--ff-serif);
+  font-size: clamp(1.375rem, 3.5vw, 2.5rem);
+  font-weight: 500;
+  color: var(--pp-text);
+  line-height: 1.2;
+  margin-bottom: var(--space-3);
+
+  em { font-style: italic; color: var(--pp-primary); }
+}
+
+.cta-sub {
+  font-size: 0.875rem;
+  color: var(--pp-muted);
+  margin-bottom: 0;
+}
+
+// ── 7. Responsive overrides ───────────────────────────────────
+
+// xs — under 576px
+@media (max-width: 575px) {
+  // Remove featured card scale bump on small screens
+  .plan-card.featured {
+    transform: none;
+    margin-top: 0;
+  }
+
+  .faq-question { padding: var(--space-5) var(--space-6); font-size: 0.875rem; }
+  .faq-answer   { padding: 0 var(--space-6) var(--space-5); }
+
+  .cta-card { padding: var(--space-8) var(--space-6); }
+  .cta-leaf { display: none; }
+}
+
+// tablet — 576px to 991px
+@media (min-width: 576px) and (max-width: 991px) {
+  // featured card's scale(1.03) looks odd when 2-col — keep it flat
+  .plan-card.featured {
+    transform: none;
+    margin-top: 0;
+    border-color: var(--pp-primary);
+    box-shadow: 0 0 0 3px var(--pp-focus-ring), var(--shadow-md);
+  }
+
+  .cta-card { padding: var(--space-12) var(--space-10); }
+}

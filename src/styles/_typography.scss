@@ -1,0 +1,74 @@
+// ─────────────────────────────────────────────────────────────
+//  _typography.scss  —  fonts + text utilities
+//
+//  Font imports live here. All font references in components
+//  use var(--ff-serif) or var(--ff-sans) — never hardcoded.
+// ─────────────────────────────────────────────────────────────
+
+// Google Fonts — import once, shared globally
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+// ── Semantic text utilities ────────────────────────────────────
+.font-serif     { font-family: var(--ff-serif) !important; }
+.font-sans      { font-family: var(--ff-sans)  !important; }
+
+.text-primary-pp { color: var(--pp-primary)  !important; }
+.text-accent-pp  { color: var(--pp-accent)   !important; }
+.text-muted-pp   { color: var(--pp-muted)    !important; }
+.text-subtle-pp  { color: var(--pp-subtle)   !important; }
+
+// ── Eyebrow label (used above section titles) ─────────────────
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--pp-accent);
+  font-weight: 500;
+  margin-bottom: 14px;
+
+  &::before {
+    content: '';
+    width: 28px;
+    height: 1.5px;
+    background: var(--pp-accent);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  &.center {
+    justify-content: center;
+    &::before { display: none; }
+  }
+}
+
+// ── Section title (large serif heading) ───────────────────────
+.section-title {
+  font-family: var(--ff-serif);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 500;
+  color: var(--pp-text);
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+
+  em {
+    font-style: italic;
+    color: var(--pp-primary);
+  }
+}
+
+// ── Hero headline ─────────────────────────────────────────────
+.hero-headline {
+  font-family: var(--ff-serif);
+  font-size: clamp(38px, 5.5vw, 68px);
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--pp-text);
+  letter-spacing: -0.5px;
+  margin-bottom: 20px;
+
+  em    { font-style: italic; color: var(--pp-primary); }
+  span  { display: block; }
+}

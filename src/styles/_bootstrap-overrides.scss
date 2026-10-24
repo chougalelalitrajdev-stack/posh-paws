@@ -1,0 +1,57 @@
+// ─────────────────────────────────────────────────────────────
+//  _bootstrap-overrides.scss
+//
+//  Bootstrap SCSS variables need real hex values at compile time
+//  (Bootstrap functions like shade-color() can't use CSS vars).
+//
+//  These are seeded with the default "warm-natural" theme.
+//  Our custom components use var(--pp-*) for live theme switching.
+// ─────────────────────────────────────────────────────────────
+
+// Core colors — warm-natural defaults
+$primary:            #2D6A4F;
+$secondary:          #F4A261;
+$body-bg:            #FEFAF4;
+$body-color:         #1E1A16;
+$border-color:       #DDD0BC;
+
+// Radii — static values matching our CSS vars
+$border-radius:      12px;
+$border-radius-lg:   20px;
+$border-radius-pill: 50px;
+
+// Typography
+$font-family-sans-serif: 'DM Sans', sans-serif;
+$font-size-base:         0.9375rem;  // 15px
+$line-height-base:       1.7;
+$headings-font-weight:   500;
+
+// Form controls
+$input-bg:                 #EDE4D3;
+$input-border-color:       #DDD0BC;
+$input-focus-border-color: #2D6A4F;
+$input-focus-box-shadow:   0 0 0 3px rgba(45,106,79,.18);
+$input-color:              #1E1A16;
+$input-placeholder-color:  #B0A494;
+$input-border-radius:      12px;
+$input-padding-y:          .75rem;
+$input-padding-x:          1rem;
+
+// Cards
+$card-bg:            white;
+$card-border-color:  #DDD0BC;
+$card-border-radius: 20px;
+$card-cap-bg:        #F5EFE6;
+
+// Buttons
+$btn-border-radius:  50px;
+$btn-padding-y:      .75rem;
+$btn-padding-x:      2rem;
+$btn-font-size:      .8125rem;
+$btn-font-weight:    600;
+
+// Navbar
+$navbar-light-color:        #7A6E62;
+$navbar-light-hover-color:  #2D6A4F;
+$navbar-light-active-color: #2D6A4F;
+$navbar-padding-y:          .75rem;
