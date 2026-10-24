@@ -1,5 +1,6 @@
-import { Component, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { BookingDialogService } from '../../core/services/booking-dialog.service';
 
 export type PetType = 'dog' | 'cat';
 
@@ -156,6 +157,8 @@ const TRUST_PILLS = ['Certified groomers', 'Imported products', 'Fear-free certi
   styleUrl: './home.component.scss',
 })
 export class HomeComponent {
+  private bookingDialog = inject(BookingDialogService);
+
   protected activePet    = signal<PetType>('dog');
   protected services     = computed(() => this.activePet() === 'dog' ? DOG_SERVICES : CAT_SERVICES);
   protected howSteps     = HOW_STEPS;
@@ -167,5 +170,9 @@ export class HomeComponent {
 
   switchPet(pet: PetType): void {
     this.activePet.set(pet);
+  }
+
+  openBookingDialog(): void {
+    this.bookingDialog.open({ petType: this.activePet() });
   }
 }

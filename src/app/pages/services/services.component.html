@@ -19,7 +19,7 @@
           handled by certified groomers who genuinely love animals.
         </p>
         <div class="d-flex flex-wrap gap-3">
-          <a class="btn-pp-primary" routerLink="/book">Reserve a slot →</a>
+          <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
           <a class="btn-pp-outline" href="#how-section">How it works</a>
         </div>
       </div>
@@ -87,7 +87,7 @@
 
     <!-- Bottom CTA -->
     <div class="text-center mt-5 fade-in-up">
-      <a class="btn-pp-primary" routerLink="/book">Book any service →</a>
+      <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">Book any service →</button>
     </div>
 
   </div>
@@ -156,7 +156,7 @@
           </p>
         </div>
         <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-          <a class="btn-pp-accent" routerLink="/book">Reserve a slot →</a>
+          <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
-import { Component, ChangeDetectionStrategy, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, ChangeDetectionStrategy, OnInit, inject } from '@angular/core';
+import { BookingDialogService } from '../../core/services/booking-dialog.service';
 
 export interface Value {
   icon: string;
@@ -79,12 +79,13 @@ const TRUST_PILLS = [
 @Component({
   selector: 'pp-about',
   standalone: true,
-  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './about.component.html',
   styleUrl: './about.component.scss',
 })
 export class AboutComponent implements OnInit {
+  private bookingDialog = inject(BookingDialogService);
+
   protected values = VALUES;
   protected testimonials = TESTIMONIALS;
   protected stats = STATS;
@@ -94,5 +95,9 @@ export class AboutComponent implements OnInit {
   ngOnInit(): void {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  }
+
+  openBookingDialog(): void {
+    this.bookingDialog.open();
   }
 }

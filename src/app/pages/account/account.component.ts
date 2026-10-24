@@ -1,6 +1,7 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
+import { BookingDialogService } from '../../core/services/booking-dialog.service';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -68,6 +69,8 @@ const MEMBERSHIP = {
   styleUrl: './account.component.scss',
 })
 export class AccountComponent {
+  private bookingDialog = inject(BookingDialogService);
+
   protected upcomingBookings = UPCOMING_BOOKINGS;
   protected pastBookings     = PAST_BOOKINGS;
   protected pets             = PETS;
@@ -87,5 +90,9 @@ export class AccountComponent {
 
   setTab(tab: 'upcoming' | 'past'): void {
     this.activeTab.set(tab);
+  }
+
+  openBookingDialog(): void {
+    this.bookingDialog.open();
   }
 }

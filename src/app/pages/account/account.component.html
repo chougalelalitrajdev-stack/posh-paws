@@ -7,7 +7,7 @@
         <div class="eyebrow">My account</div>
         <h2 class="section-title">Welcome back, <em>{{ userName }}</em></h2>
       </div>
-      <a class="btn-pp-accent" routerLink="/book">+ New booking</a>
+      <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">+ New booking</button>
     </div>
 
     <!-- ── Quick stats strip ─────────────────────────── -->
@@ -51,7 +51,7 @@
                 <div class="empty-icon">📅</div>
                 <div class="empty-title">No upcoming bookings</div>
                 <p class="empty-sub">Book a grooming session for your pet today.</p>
-                <a class="btn-pp-primary" routerLink="/book">Reserve a slot →</a>
+                <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
               </div>
             } @else {
               @for (b of upcomingBookings; track b.label) {
@@ -127,7 +127,7 @@
                 <div class="pet-name">{{ pet.name }}</div>
                 <div class="pet-breed">{{ pet.breed }} · {{ pet.age }}</div>
               </div>
-              <button class="pet-book-btn" routerLink="/book">Book</button>
+              <button class="pet-book-btn" type="button" (click)="openBookingDialog()">Book</button>
             </div>
           }
 

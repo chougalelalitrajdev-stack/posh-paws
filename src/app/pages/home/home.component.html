@@ -32,9 +32,9 @@
         </p>
 
         <div class="d-flex flex-wrap gap-3">
-          <a class="btn-pp-primary" routerLink="/book">
+          <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">
             Reserve a slot <span>→</span>
-          </a>
+          </button>
           <a class="btn-pp-outline" routerLink="/services">
             Explore services
           </a>
@@ -121,7 +121,7 @@
     </div>
 
     <div class="text-center mt-5">
-      <a class="btn-pp-primary" routerLink="/book">Book any service →</a>
+      <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">Book any service →</button>
     </div>
 
   </div>

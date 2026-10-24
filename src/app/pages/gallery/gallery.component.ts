@@ -1,5 +1,5 @@
-import { Component, signal, computed, ChangeDetectionStrategy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { BookingDialogService } from '../../core/services/booking-dialog.service';
 
 export type GalleryFilter = 'all' | 'dog' | 'cat';
 
@@ -34,12 +34,13 @@ const STATS = [
 @Component({
   selector: 'pp-gallery',
   standalone: true,
-  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gallery.component.html',
   styleUrl:    './gallery.component.scss',
 })
 export class GalleryComponent {
+  private bookingDialog = inject(BookingDialogService);
+
   protected activeFilter = signal<GalleryFilter>('all');
   protected stats        = STATS;
 
@@ -52,5 +53,10 @@ export class GalleryComponent {
 
   setFilter(f: GalleryFilter): void {
     this.activeFilter.set(f);
+  }
+
+  openBookingDialog(): void {
+    const f = this.activeFilter();
+    this.bookingDialog.open(f === 'all' ? undefined : { petType: f });
   }
 }
