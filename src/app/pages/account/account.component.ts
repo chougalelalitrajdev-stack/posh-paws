@@ -1,6 +1,7 @@
-import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
+import { AuthService } from '../../core/auth/auth.service';
 import { BookingDialogService } from '../../core/services/booking-dialog.service';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -70,6 +71,8 @@ const MEMBERSHIP = {
 })
 export class AccountComponent {
   private bookingDialog = inject(BookingDialogService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
 
   protected upcomingBookings = UPCOMING_BOOKINGS;
   protected pastBookings     = PAST_BOOKINGS;
@@ -77,7 +80,7 @@ export class AccountComponent {
   protected quickStats       = QUICK_STATS;
   protected membership       = MEMBERSHIP;
 
-  protected userName = 'Priya';
+  protected userName = computed(() => this.auth.user()?.name.split(' ')[0] ?? '');
 
   // Progress bar width for membership sessions
   protected get sessionProgress(): string {
@@ -90,6 +93,11 @@ export class AccountComponent {
 
   setTab(tab: 'upcoming' | 'past'): void {
     this.activeTab.set(tab);
+  }
+
+  logout(): void {
+    this.auth.logout();
+    this.router.navigateByUrl('/');
   }
 
   openBookingDialog(): void {

@@ -1,5 +1,6 @@
 import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LoginDialogService } from '../../core/auth/login-dialog.service';
 import { SubscribeDialogService } from '../../core/services/subscribe-dialog.service';
 
 export interface PlanFeature {
@@ -133,6 +134,7 @@ const FAQ: FaqItem[] = [
 })
 export class MembershipComponent {
   private subscribeDialog = inject(SubscribeDialogService);
+  private login = inject(LoginDialogService);
 
   protected plans  = PLANS;
   protected perks  = PERKS;
@@ -145,7 +147,8 @@ export class MembershipComponent {
     this.openFaq.update(current => current === index ? null : index);
   }
 
-  subscribeToPlan(plan: Plan): void {
+  async subscribeToPlan(plan: Plan): Promise<void> {
+    if (!(await this.login.ensureLoggedIn())) return;
     this.subscribeDialog.open(plan);
   }
 }

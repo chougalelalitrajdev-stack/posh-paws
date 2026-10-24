@@ -5,9 +5,12 @@
     <div class="acct-header">
       <div>
         <div class="eyebrow">My account</div>
-        <h2 class="section-title">Welcome back, <em>{{ userName }}</em></h2>
+        <h2 class="section-title">Welcome back, <em>{{ userName() }}</em></h2>
       </div>
-      <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">+ New booking</button>
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">+ New booking</button>
+        <button class="btn-pp-ghost" type="button" (click)="logout()">Sign out</button>
+      </div>
     </div>
 
     <!-- ── Quick stats strip ─────────────────────────── -->

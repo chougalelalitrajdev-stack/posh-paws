@@ -6,6 +6,7 @@ import { MembershipComponent } from './pages/membership/membership.component';
 import { GalleryComponent } from './pages/gallery/gallery.component';
 import { BookingComponent } from './pages/booking/booking.component';
 import { AccountComponent } from './pages/account/account.component';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   { path: '',            component: HomeComponent },
@@ -14,5 +15,5 @@ export const routes: Routes = [
   { path: 'membership', component: MembershipComponent },
   { path: 'gallery',    component: GalleryComponent },
   { path: 'book',       component: BookingComponent },
-  { path: 'account',    component: AccountComponent },
+  { path: 'account',    component: AccountComponent, canActivate: [authGuard] },
 ];

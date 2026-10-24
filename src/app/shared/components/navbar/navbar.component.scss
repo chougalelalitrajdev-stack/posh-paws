@@ -77,6 +77,29 @@
   }
 }
 
+// account/login icon: mobile only (text button takes over at 768px+)
+.account-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-target-min, 44px);
+  height: var(--tap-target-min, 44px);
+  border: 1.5px solid var(--pp-border);
+  border-radius: 50%;
+  color: var(--pp-text);
+  transition: border-color var(--transition), color var(--transition);
+
+  &:hover,
+  &.active {
+    border-color: var(--pp-primary);
+    color: var(--pp-primary);
+  }
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
 // ── Hamburger button ───────────────────────────────────────
 .hamburger {
   display: flex;

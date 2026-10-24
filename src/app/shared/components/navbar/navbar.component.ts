@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 import { BookingDialogService } from '../../../core/services/booking-dialog.service';
 // import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
 
@@ -19,6 +20,7 @@ import { BookingDialogService } from '../../../core/services/booking-dialog.serv
 })
 export class NavbarComponent {
   private bookingDialog = inject(BookingDialogService);
+  protected auth = inject(AuthService);
 
   protected scrolled = signal(false);
   protected menuOpen = signal(false);

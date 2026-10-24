@@ -1,0 +1,121 @@
+@if (dialog.isOpen()) {
+  <div class="pp-sheet-backdrop" (click)="close()">
+    <div
+      class="pp-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Log in or sign up"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="pp-sheet-handle"></div>
+
+      <!-- ── Step: phone number ───────────────────────────── -->
+      @if (dialog.step() === 'phone') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">Log in or sign up</div>
+          <p class="pp-sheet-sub">Enter your mobile number — we'll text you a code.</p>
+        </div>
+
+        <form class="pp-sheet-body" (submit)="$event.preventDefault(); submitPhone()">
+          <div class="login-field">
+            <label class="pp-label" for="login-phone">Mobile number</label>
+            <input
+              id="login-phone"
+              class="pp-input"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="e.g. 98765 43210"
+              [value]="phoneInput()"
+              (input)="onPhoneChange($event)"
+            />
+          </div>
+
+          @if (error()) { <p class="login-error" role="alert">{{ error() }}</p> }
+
+          <button class="btn-pp-primary w-100 justify-content-center" type="submit" [disabled]="!phoneValid() || submitting()">
+            @if (submitting()) { Sending… } @else { Send code → }
+          </button>
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" (click)="close()">Cancel</button>
+        </form>
+      }
+
+      <!-- ── Step: OTP ────────────────────────────────────── -->
+      @if (dialog.step() === 'otp') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">Enter the code</div>
+          <p class="pp-sheet-sub">Sent to {{ dialog.phone() }}</p>
+        </div>
+
+        <form class="pp-sheet-body" (submit)="$event.preventDefault(); submitCode()">
+          <div class="login-field">
+            <label class="pp-label" for="login-code">{{ otpLength }}-digit code</label>
+            <input
+              id="login-code"
+              class="pp-input login-code-input"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              [attr.maxlength]="otpLength"
+              placeholder="······"
+              [value]="code()"
+              (input)="onCodeChange($event)"
+            />
+          </div>
+
+          @if (devHint) { <p class="pp-dialog-note">💡 {{ devHint }}</p> }
+          @if (error()) { <p class="login-error" role="alert">{{ error() }}</p> }
+
+          <button class="btn-pp-primary w-100 justify-content-center" type="submit" [disabled]="!codeValid() || submitting()">
+            @if (submitting()) { Verifying… } @else { Verify → }
+          </button>
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="resendCode()">Resend code</button>
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="changeNumber()">← Change number</button>
+        </form>
+      }
+
+      <!-- ── Step: new-user profile ───────────────────────── -->
+      @if (dialog.step() === 'profile') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">Welcome to Posh Paws!</div>
+          <p class="pp-sheet-sub">Just your name and we're done.</p>
+        </div>
+
+        <form class="pp-sheet-body" (submit)="$event.preventDefault(); submitProfile()">
+          <div class="login-field">
+            <label class="pp-label" for="login-name">Your name <span class="required-dot">*</span></label>
+            <input
+              id="login-name"
+              class="pp-input"
+              type="text"
+              autocomplete="name"
+              placeholder="e.g. Priya Sharma"
+              [value]="name()"
+              (input)="onNameChange($event)"
+            />
+          </div>
+
+          <div class="login-field">
+            <label class="pp-label" for="login-email">Email <span class="login-optional">(optional)</span></label>
+            <input
+              id="login-email"
+              class="pp-input"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+              [value]="email()"
+              (input)="onEmailChange($event)"
+            />
+          </div>
+
+          @if (error()) { <p class="login-error" role="alert">{{ error() }}</p> }
+
+          <button class="btn-pp-primary w-100 justify-content-center" type="submit" [disabled]="!profileValid() || submitting()">
+            @if (submitting()) { Creating account… } @else { Create account → }
+          </button>
+        </form>
+      }
+    </div>
+  </div>
+}

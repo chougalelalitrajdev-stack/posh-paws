@@ -29,10 +29,23 @@
         -->
 
         <!-- Sign in (hidden on mobile) -->
-        <a class="btn-pp-ghost sign-in-btn" routerLink="/account">My account</a>
+        <a class="btn-pp-ghost sign-in-btn" routerLink="/account">{{ auth.isLoggedIn() ? 'My account' : 'Log in' }}</a>
+
+        <!-- Account / login icon (mobile only) -->
+        <a class="account-icon-btn" routerLink="/account" routerLinkActive="active"
+          [attr.aria-label]="auth.isLoggedIn() ? 'My account' : 'Log in or sign up'">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4" />
+            <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+          </svg>
+        </a>
 
         <!-- CTA button -->
-        <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot</button>
+        <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">
+          <span class="d-none d-sm-inline">Reserve a slot</span>
+          <span class="d-sm-none">Book now</span>
+        </button>
 
         <!-- Hamburger (visible below lg) -->
         <button class="hamburger" [class.open]="menuOpen()" (click)="toggleMenu()" aria-label="Toggle navigation"
@@ -62,7 +75,7 @@
           <!-- Theme switcher is temporarily disabled; re-enable when themes load from the backend.
           <pp-theme-switcher />
           -->
-          <a class="btn-pp-ghost" routerLink="/account" (click)="closeMenu()">My account</a>
+          <a class="btn-pp-ghost" routerLink="/account" (click)="closeMenu()">{{ auth.isLoggedIn() ? 'My account' : 'Log in' }}</a>
         </div>
       </div>
     </div>

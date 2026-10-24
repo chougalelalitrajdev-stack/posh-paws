@@ -33,6 +33,23 @@ ng generate component path/to/name   # Scaffold new component
 - Component selector prefix is `pp-` (e.g. `pp-theme-switcher`).
 - New components go under `src/app/shared/components/` (reusable UI) or `src/app/core/` (singleton services/guards).
 
+### Code conventions (modern Angular only)
+
+- **Standalone components only**; omit `standalone: true` in new components (it is the default since v19).
+- **DI via `inject()`**, not constructor parameters.
+- **Signals for all state**: `signal`/`computed`/`effect`, `input()`/`output()`/`model()` instead of `@Input`/`@Output`, `viewChild()` instead of `@ViewChild`. Expose service state as `.asReadonly()` signals.
+- **Built-in control flow** (`@if`, `@for` with `track`, `@switch`), never `*ngIf`/`*ngFor`/`ngSwitch`. Don't import `CommonModule`.
+- **Functional guards/resolvers/interceptors** (`CanActivateFn` etc.), not class-based.
+- **`host: {}` metadata** for host bindings/listeners in new code, not `@HostBinding`/`@HostListener`.
+- **Async work**: prefer `async/await` with signals for one-shot calls; use RxJS only where streams are genuinely needed (e.g. `HttpClient`, router events).
+- **Decoupling**: depend on abstractions at boundaries (e.g. `AuthProvider` abstract class bound in `app.config.ts`), keep UI state services free of side effects, and never import from `pages/` into `core/` or `shared/`.
+
+### Folder & model organisation
+
+- **Group by feature, not by file type.** A feature's models, services, and guards live together (e.g. `core/auth/`). Don't create a global `models/` folder.
+- **Models stay with the feature that owns them**; promote one to `src/app/shared/models/` only when a second feature needs it.
+- **Future modules** (shop, doctor appointments) get their own `features/<module>/` folder and import only from `core/` and `shared/`, never from each other.
+
 ### Theme system
 
 Theming is CSS-variable-based, driven by `ThemeService` (`src/app/core/services/theme.service.ts`):
