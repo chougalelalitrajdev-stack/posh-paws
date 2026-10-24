@@ -281,6 +281,20 @@
   &:hover { background: var(--pp-primary); color: #fff; }
 }
 
+.pet-edit-btn {
+  width: var(--tap-target-min);
+  height: var(--tap-target-min);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+
+  &:hover { background: var(--pp-primary-light); }
+}
+
+.pet-empty { font-size: 13px; color: var(--pp-muted); margin: 0 0 var(--space-3); }
+
 .add-pet-btn { margin-top: 4px; padding: 10px; font-size: 13px; }
 
 // ── Quick links ───────────────────────────────────────────────

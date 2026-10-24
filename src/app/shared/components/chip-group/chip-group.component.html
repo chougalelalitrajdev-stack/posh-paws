@@ -1,0 +1,11 @@
+<div class="pp-chip-group" role="group">
+  @for (option of options(); track option.value) {
+    <button
+      class="pp-chip"
+      type="button"
+      [class.active]="isSelected(option.value)"
+      [attr.aria-pressed]="isSelected(option.value)"
+      (click)="toggle(option.value)"
+    >{{ option.label }}</button>
+  }
+</div>

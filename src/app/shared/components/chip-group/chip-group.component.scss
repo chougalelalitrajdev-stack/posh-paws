@@ -1,0 +1,26 @@
+.pp-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pp-chip {
+  min-height: var(--tap-target-min);
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius-pill);
+  background: var(--pp-bg);
+  color: var(--pp-text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+
+  &:hover { border-color: var(--pp-primary); }
+
+  &.active {
+    border-color: var(--pp-primary);
+    background: var(--pp-primary-light);
+    color: var(--pp-primary-dark);
+    font-weight: 600;
+  }
+}

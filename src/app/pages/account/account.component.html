@@ -123,18 +123,23 @@
         <div class="dash-card">
           <div class="dash-card-title">My pets</div>
 
-          @for (pet of pets; track pet.name) {
+          @for (pet of petsService.pets(); track pet.id) {
             <div class="pet-profile-card">
-              <div class="pet-avatar">{{ pet.icon }}</div>
+              <div class="pet-avatar">{{ petEmoji[pet.type] }}</div>
               <div class="pet-info">
                 <div class="pet-name">{{ pet.name }}</div>
-                <div class="pet-breed">{{ pet.breed }} · {{ pet.age }}</div>
+                <div class="pet-breed">{{ pet.breed ?? (pet.type === 'dog' ? 'Dog' : 'Cat') }}@if (petAgeLabel(pet.birthDate)) { · {{ petAgeLabel(pet.birthDate) }} }</div>
               </div>
+              <button class="pet-edit-btn" type="button" [attr.aria-label]="'Edit ' + pet.name" (click)="editPet(pet)">✏️</button>
               <button class="pet-book-btn" type="button" (click)="openBookingDialog()">Book</button>
             </div>
+          } @empty {
+            @if (!petsService.loading()) {
+              <p class="pet-empty">Add your pet so we can tailor every visit.</p>
+            }
           }
 
-          <button class="btn-pp-outline w-100 add-pet-btn">+ Add a pet</button>
+          <button class="btn-pp-outline w-100 add-pet-btn" type="button" (click)="addPet()">+ Add a pet</button>
         </div>
 
         <!-- Quick links -->
