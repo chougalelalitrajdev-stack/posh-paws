@@ -5,12 +5,12 @@ import {
   ChangeDetectionStrategy,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
+// import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
 
 @Component({
   selector: 'pp-navbar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, ThemeSwitcherComponent],
+  imports: [RouterLink, RouterLinkActive], // Add ThemeSwitcherComponent back when re-enabling the switcher.
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss',

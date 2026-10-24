@@ -24,8 +24,9 @@
 
       <!-- ── Right side actions ─────────────────────── -->
       <div class="nav-actions">
-        <!-- Theme switcher (hidden on xs) -->
+        <!-- Theme switcher is temporarily disabled; re-enable when themes load from the backend.
         <pp-theme-switcher class="theme-sw" />
+        -->
 
         <!-- Sign in (hidden on mobile) -->
         <a class="btn-pp-ghost sign-in-btn" routerLink="/account">My account</a>
@@ -58,7 +59,9 @@
         <a class="mobile-nav-link" routerLink="/gallery" routerLinkActive="active" (click)="closeMenu()">Gallery</a>
 
         <div class="mobile-footer">
+          <!-- Theme switcher is temporarily disabled; re-enable when themes load from the backend.
           <pp-theme-switcher />
+          -->
           <a class="btn-pp-ghost" routerLink="/account" (click)="closeMenu()">My account</a>
         </div>
       </div>

@@ -10,19 +10,19 @@
 // ─────────────────────────────────────────────────────────────
 
 // 1. Design tokens (all themes live here)
-@import 'styles/tokens';
+@use 'styles/tokens';
 
 // 2. Bootstrap variable overrides (must be before bootstrap)
-@import 'styles/bootstrap-overrides';
+@use 'styles/bootstrap-overrides' as *;
 
-// 3. Bootstrap CSS
+// 3. Typography
+@use 'styles/typography';
+
+// 4. Shared component styles
+@use 'styles/components';
+
+// 5. Bootstrap CSS (legacy Sass entry point; keep after its variable overrides)
 @import 'bootstrap/scss/bootstrap';
-
-// 4. Typography
-@import 'styles/typography';
-
-// 5. Shared component styles
-@import 'styles/components';
 
 // ── Global base resets ────────────────────────────────────────
 *, *::before, *::after { box-sizing: border-box; }
