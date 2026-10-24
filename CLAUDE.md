@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Roadmap
+
+This repo (PoshPaws) is **phase 1** of a larger multi-module product. Two more modules are planned:
+
+1. An **e-commerce module** (pet products/shop).
+2. A **doctor's-appointment module** (vet booking — structurally similar to the grooming booking flow).
+
+Favor architecture that stays easy to extend when those land — keep cross-cutting infrastructure (dialog/bottom-sheet primitives, the booking/subscribe-dialog service pattern, design tokens in `_tokens.scss`/`_components.scss`, the bottom-nav primitive) generic and reusable rather than grooming-specific, so a sibling module can be added rather than requiring a rework. Don't build those modules preemptively — just avoid coupling current routes/services/components tightly enough to grooming that adding one later becomes a rewrite.
+
 ## Commands
 
 ```bash

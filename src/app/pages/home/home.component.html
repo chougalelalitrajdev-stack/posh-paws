@@ -212,9 +212,9 @@
 
             <div class="mt-4">
               @if (plan.buttonType === 'primary') {
-                <a class="btn-pp-primary w-100 justify-content-center" routerLink="/membership">Get started →</a>
+                <button class="btn-pp-primary w-100 justify-content-center" type="button" (click)="subscribeToPlan(plan)">Subscribe →</button>
               } @else {
-                <a class="btn-pp-outline w-100 justify-content-center" routerLink="/membership">Get started</a>
+                <button class="btn-pp-outline w-100 justify-content-center" type="button" (click)="subscribeToPlan(plan)">Subscribe</button>
               }
             </div>
           </div>

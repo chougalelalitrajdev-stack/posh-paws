@@ -62,13 +62,13 @@
 
             <div class="plan-cta">
               @if (plan.buttonType === 'primary') {
-                <a class="btn-pp-primary w-100 justify-content-center" routerLink="/book">
-                  Get started →
-                </a>
+                <button class="btn-pp-primary w-100 justify-content-center" type="button" (click)="subscribeToPlan(plan)">
+                  Subscribe →
+                </button>
               } @else {
-                <a class="btn-pp-outline w-100 justify-content-center" routerLink="/book">
-                  Get started
-                </a>
+                <button class="btn-pp-outline w-100 justify-content-center" type="button" (click)="subscribeToPlan(plan)">
+                  Subscribe
+                </button>
               }
             </div>
 
@@ -162,7 +162,7 @@
           </p>
         </div>
         <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-          <a class="btn-pp-accent" routerLink="/book">Choose a plan →</a>
+          <a class="btn-pp-accent" href="#plans">Choose a plan →</a>
         </div>
       </div>
     </div>

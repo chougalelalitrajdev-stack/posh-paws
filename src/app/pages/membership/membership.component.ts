@@ -1,6 +1,6 @@
-import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { SubscribeDialogService } from '../../core/services/subscribe-dialog.service';
 
 export interface PlanFeature {
   text: string;
@@ -126,12 +126,14 @@ const FAQ: FaqItem[] = [
 @Component({
   selector: 'pp-membership',
   standalone: true,
-  imports: [RouterLink, CommonModule],
+  imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './membership.component.html',
   styleUrl:    './membership.component.scss',
 })
 export class MembershipComponent {
+  private subscribeDialog = inject(SubscribeDialogService);
+
   protected plans  = PLANS;
   protected perks  = PERKS;
   protected faq    = FAQ;
@@ -141,5 +143,9 @@ export class MembershipComponent {
 
   toggleFaq(index: number): void {
     this.openFaq.update(current => current === index ? null : index);
+  }
+
+  subscribeToPlan(plan: Plan): void {
+    this.subscribeDialog.open(plan);
   }
 }

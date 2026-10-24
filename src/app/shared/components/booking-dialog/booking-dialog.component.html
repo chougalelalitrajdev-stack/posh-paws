@@ -89,8 +89,8 @@
 
       <!-- ── Step: callback success ───────────────────────── -->
       @if (dialog.step() === 'callback-success') {
-        <div class="pp-sheet-body callback-success">
-          <div class="callback-success-emoji">🎉</div>
+        <div class="pp-sheet-body pp-dialog-success">
+          <div class="pp-dialog-success-emoji">🎉</div>
           <div class="pp-sheet-title">Got it{{ name() ? ', ' + name() : '' }}!</div>
           <p class="pp-sheet-sub">We'll call you back on {{ phone() }} shortly.</p>
           <button class="btn-pp-primary w-100 justify-content-center" type="button" (click)="close()">Done</button>

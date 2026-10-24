@@ -832,6 +832,28 @@
   gap: var(--space-3);
 }
 
+// Shared "success" state layout for any dialog (booking, subscribe, ...)
+.pp-dialog-success {
+  text-align: center;
+  align-items: center;
+}
+
+.pp-dialog-success-emoji {
+  font-size: 44px;
+  margin-bottom: var(--space-2);
+}
+
+// Shared inline info/note box for any dialog step
+.pp-dialog-note {
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  font-size: 13px;
+  color: var(--pp-muted);
+  line-height: 1.6;
+}
+
 // ── Sticky CTA bar (mobile) ──────────────────────────────────────
 //    A single primary action pinned to the bottom of the viewport
 //    on a page/flow (e.g. above the bottom nav on a detail screen).
