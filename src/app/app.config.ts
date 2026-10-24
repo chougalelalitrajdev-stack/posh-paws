@@ -1,5 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 
 import { routes } from './app.routes';
 import { AuthProvider } from './core/auth/auth.provider';
@@ -10,7 +10,7 @@ import { MockPetsProvider } from './core/pets/mock-pets.provider';
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
+    provideRouter(routes, withComponentInputBinding()),
     { provide: AuthProvider, useClass: MockAuthProvider },
     { provide: PetsProvider, useClass: MockPetsProvider },
   ]

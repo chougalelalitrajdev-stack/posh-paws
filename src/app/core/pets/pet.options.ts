@@ -57,3 +57,7 @@ export const BREEDS: Record<PetType, string[]> = {
 };
 
 export const PET_EMOJI: Record<PetType, string> = { dog: '🐶', cat: '🐱' };
+
+export function optionLabel<T extends string>(options: PetOption<T>[], value: T | undefined): string | undefined {
+  return options.find(o => o.value === value)?.label;
+}

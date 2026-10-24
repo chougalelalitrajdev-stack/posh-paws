@@ -125,11 +125,13 @@
 
           @for (pet of petsService.pets(); track pet.id) {
             <div class="pet-profile-card">
-              <div class="pet-avatar">{{ petEmoji[pet.type] }}</div>
-              <div class="pet-info">
-                <div class="pet-name">{{ pet.name }}</div>
-                <div class="pet-breed">{{ pet.breed ?? (pet.type === 'dog' ? 'Dog' : 'Cat') }}@if (petAgeLabel(pet.birthDate)) { · {{ petAgeLabel(pet.birthDate) }} }</div>
-              </div>
+              <a class="pet-link" [routerLink]="['/account/pets', pet.id]" [attr.aria-label]="'View ' + pet.name">
+                <div class="pet-avatar">{{ petEmoji[pet.type] }}</div>
+                <div class="pet-info">
+                  <div class="pet-name">{{ pet.name }}</div>
+                  <div class="pet-breed">{{ pet.breed ?? (pet.type === 'dog' ? 'Dog' : 'Cat') }}@if (petAgeLabel(pet.birthDate)) { · {{ petAgeLabel(pet.birthDate) }} }</div>
+                </div>
+              </a>
               <button class="pet-edit-btn" type="button" [attr.aria-label]="'Edit ' + pet.name" (click)="editPet(pet)">✏️</button>
               <button class="pet-book-btn" type="button" (click)="openBookingDialog()">Book</button>
             </div>

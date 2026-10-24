@@ -16,4 +16,9 @@ export const routes: Routes = [
   { path: 'gallery',    component: GalleryComponent },
   { path: 'book',       component: BookingComponent },
   { path: 'account',    component: AccountComponent, canActivate: [authGuard] },
+  {
+    path: 'account/pets/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./pages/pet-details/pet-details.component').then(m => m.PetDetailsComponent),
+  },
 ];

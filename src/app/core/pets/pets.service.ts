@@ -11,9 +11,12 @@ export class PetsService {
 
   private readonly _pets = signal<Pet[]>([]);
   private readonly _loading = signal(false);
+  private readonly _loaded = signal(false);
 
   readonly pets = this._pets.asReadonly();
   readonly loading = this._loading.asReadonly();
+  /** True once the current user's pets have been fetched at least once. */
+  readonly loaded = this._loaded.asReadonly();
 
   constructor() {
     effect(() => {
@@ -33,6 +36,7 @@ export class PetsService {
   }
 
   private async load(ownerId: string | undefined): Promise<void> {
+    this._loaded.set(false);
     if (!ownerId) {
       this._pets.set([]);
       return;
@@ -40,7 +44,10 @@ export class PetsService {
     this._loading.set(true);
     try {
       const pets = await this.provider.list(ownerId);
-      if (this.auth.user()?.id === ownerId) this._pets.set(pets);
+      if (this.auth.user()?.id === ownerId) {
+        this._pets.set(pets);
+        this._loaded.set(true);
+      }
     } finally {
       this._loading.set(false);
     }

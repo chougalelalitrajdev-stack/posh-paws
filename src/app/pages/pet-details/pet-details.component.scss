@@ -1,0 +1,128 @@
+.pet-container { max-width: 640px; }
+
+.pet-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  margin-bottom: var(--space-2);
+  color: var(--pp-muted);
+  font-size: 14px;
+  text-decoration: none;
+
+  &:hover { color: var(--pp-primary); }
+}
+
+.pet-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: var(--space-6);
+}
+
+.pet-hero-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--pp-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44px;
+  margin-bottom: var(--space-3);
+}
+
+.pet-hero-name {
+  font-family: var(--ff-serif);
+  font-size: 30px;
+  margin: 0;
+  color: var(--pp-text);
+}
+
+.pet-hero-sub { margin: var(--space-1) 0 var(--space-3); color: var(--pp-muted); }
+
+.vax-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pp-border);
+  background: var(--pp-surface-2);
+  color: var(--pp-muted);
+  font-size: 13px;
+  font-weight: 600;
+
+  &[data-status='up-to-date'] {
+    background: var(--pp-primary-light);
+    border-color: var(--pp-primary);
+    color: var(--pp-primary-dark);
+  }
+
+  &[data-status='due-soon'] {
+    background: var(--pp-accent-light);
+    border-color: var(--pp-accent);
+    color: var(--pp-accent-dark);
+  }
+
+  &[data-status='not-vaccinated'] {
+    background: var(--pp-bg);
+    border-color: var(--pp-accent-dark);
+    color: var(--pp-accent-dark);
+  }
+}
+
+.pet-nudge { margin-bottom: var(--space-4); }
+
+.pet-nudge-btn {
+  display: block;
+  margin-top: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pp-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pet-card { margin-bottom: var(--space-4); }
+
+.pet-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.pet-fact {
+  dt { font-size: 12px; color: var(--pp-muted); font-weight: 400; }
+  dd { margin: 2px 0 0; font-size: 15px; font-weight: 600; color: var(--pp-text); }
+}
+
+.pet-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.pet-tag {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary-dark);
+  font-size: 13px;
+}
+
+.pet-notes { margin: 0; color: var(--pp-text); line-height: 1.6; white-space: pre-line; }
+
+.pet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.pet-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-12) 0;
+  color: var(--pp-muted);
+}
