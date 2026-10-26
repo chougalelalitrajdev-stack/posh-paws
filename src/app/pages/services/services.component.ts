@@ -1,5 +1,5 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import { BookingDialogService } from '../../core/services/booking-dialog.service';
 
 export type PetType = 'dog' | 'cat';
@@ -143,7 +143,7 @@ const HOW_FEATURES: HowFeature[] = [
 @Component({
   selector: 'pp-services',
   standalone: true,
-  imports: [CommonModule],
+  imports: [NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './services.component.html',
   styleUrl:    './services.component.scss',
@@ -162,5 +162,9 @@ export class ServicesComponent {
 
   openBookingDialog(): void {
     this.bookingDialog.open({ petType: this.activePet() });
+  }
+
+  bookService(service: Service): void {
+    this.bookingDialog.open({ petType: this.activePet(), serviceName: service.name });
   }
 }

@@ -4,7 +4,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: var(--pp-accent);
@@ -93,7 +93,7 @@
   align-items: center;
   justify-content: center;
 
-  @media (max-width: 991.98px) { display: none; }
+  @media (max-width: 767.98px) { display: none; }
 }
 
 .hero-img-wrap {
@@ -111,9 +111,16 @@
   text-align: center;
 }
 
+// Tablet (iPad portrait): smaller picture beside the text, floating cards hidden
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .hero-img-wrap { width: 100%; max-width: 280px; height: 320px; }
+  .hero-img-inner { font-size: 84px; }
+  .hero-float-card { display: none; }
+}
+
 .hero-img-inner   { font-size: 120px; line-height: 1; }
 .hero-img-caption {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--pp-muted);
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -133,9 +140,9 @@
 .fc-1 { bottom: 80px; left:  -20px; min-width: 160px; }
 .fc-2 { top:    80px; right: -20px; min-width: 140px; }
 
-.float-card-label { font-size: 10px; color: var(--pp-muted); letter-spacing: 0.5px; margin-bottom: 2px; }
+.float-card-label { font-size: 12px; color: var(--pp-muted); letter-spacing: 0.5px; margin-bottom: 2px; }
 .float-card-val   { font-size: 14px; font-weight: 600; color: var(--pp-text); }
-.float-card-sub   { font-size: 11px; color: var(--pp-primary); }
+.float-card-sub   { font-size: 12px; color: var(--pp-primary); }
 
 // ── Services ──────────────────────────────────────────────────
 
@@ -275,14 +282,56 @@
 
 // ── Testimonials ──────────────────────────────────────────────
 
-.testi-author { display: flex; align-items: center; gap: 12px; }
-.testi-name   { font-size: 14px; font-weight: 600; color: var(--pp-text); }
-.testi-pet    { font-size: 12px; color: var(--pp-muted); }
 
 // ── Mobile ────────────────────────────────────────────────────
 
 @media (max-width: 767.98px) {
-  .hero-section { min-height: auto; padding: 60px 0 40px; }
-  .hero-stats   { gap: 20px; flex-wrap: wrap; }
+  .hero-section { min-height: auto; padding: 28px 0 40px; }
+  .hero-badge   { margin-bottom: 16px; }
+  .hero-headline { margin-bottom: 14px; }
+  .hero-sub     { font-size: 15px; line-height: 1.7; margin-bottom: 24px; }
+
+  .pp-hero-cta {
+    flex-direction: column;
+    gap: 12px !important;
+
+    > * { width: 100%; justify-content: center; }
+  }
+
+  .hero-stats {
+    gap: 12px;
+    justify-content: space-between;
+    margin-top: 28px;
+    padding-top: 20px;
+  }
+  .hero-stat-num { font-size: 24px; }
+
+  .pet-tab-wrap { margin-bottom: 20px; }
+  .pet-tab { flex: 1; justify-content: center; min-height: var(--tap-target-min); }
+
+  .service-card, .testimonial-card, .plan-card { padding: 24px 20px; }
+  .service-card:hover { transform: none; }
+  .service-icon { margin-bottom: 14px; }
+  .service-name { font-size: 20px; }
+
+  .step-card { padding: 16px; gap: 14px; margin-bottom: 12px; }
+  .step-card:hover { transform: none; }
+  .step-num   { width: 40px; height: 40px; font-size: 18px; border-radius: 12px; }
+  .step-title { font-size: 18px; }
+
+  .how-visual-title { font-size: 26px; }
+  .how-visual-sub   { margin-bottom: 16px; }
+  .how-visual .how-feature:nth-of-type(n+5) { display: none; }
+
+  .about-img-card { height: 180px; font-size: 72px; }
+  .about-body     { line-height: 1.75; margin-bottom: 16px !important; }
+
+  .gallery-card { height: 140px; font-size: 44px; }
+
   .plan-card.featured { transform: none; }
+}
+
+// Pointer devices only: lift cards on hover.
+@media (hover: none) {
+  .gallery-card:hover { transform: none; }
 }

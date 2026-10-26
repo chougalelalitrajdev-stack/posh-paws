@@ -18,7 +18,7 @@
           Each session is tailored to your pet's breed, coat, and temperament —
           handled by certified groomers who genuinely love animals.
         </p>
-        <div class="d-flex flex-wrap gap-3">
+        <div class="pp-hero-cta d-flex flex-wrap gap-3">
           <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
           <a class="btn-pp-outline" href="#how-section">How it works</a>
         </div>
@@ -51,22 +51,29 @@
   <div class="container">
 
     <!-- Header row: title + pet tabs -->
-    <div class="row align-items-end mb-5">
+    <div class="row align-items-end mb-4 mb-lg-5">
       <div class="col-lg-6 fade-in-up delay-1">
         <div class="eyebrow">Browse by pet</div>
         <h2 class="section-title">All our <em>services</em></h2>
       </div>
-      <div class="col-lg-6 fade-in-up delay-2">
+      <div class="col-lg-6 fade-in-up delay-2 d-none d-lg-block">
         <div class="pet-tab-wrap justify-content-lg-end">
-          <button class="pet-tab" [class.active]="activePet() === 'dog'" (click)="switchPet('dog')">
-            🐶 Dogs
-          </button>
-          <button class="pet-tab" [class.active]="activePet() === 'cat'" (click)="switchPet('cat')">
-            🐱 Cats
-          </button>
+          <ng-container [ngTemplateOutlet]="petTabs" />
         </div>
       </div>
     </div>
+
+    <!-- Phone-only tab bar: sticks under the navbar while scrolling the list -->
+    <div class="pp-sticky-tabs d-lg-none">
+      <div class="pet-tab-wrap">
+        <ng-container [ngTemplateOutlet]="petTabs" />
+      </div>
+    </div>
+
+    <ng-template #petTabs>
+      <button class="pet-tab" type="button" [class.active]="activePet() === 'dog'" (click)="switchPet('dog')">🐶 Dogs</button>
+      <button class="pet-tab" type="button" [class.active]="activePet() === 'cat'" (click)="switchPet('cat')">🐱 Cats</button>
+    </ng-template>
 
     <!-- Cards -->
     <div class="row g-4">
@@ -80,13 +87,14 @@
             <div class="service-price">{{ svc.price }}</div>
             <div class="service-duration">{{ svc.duration }}</div>
           </div>
+          <button class="btn-pp-outline svc-book" type="button" (click)="bookService(svc)" [attr.aria-label]="'Book ' + svc.name">Book</button>
         </div>
       </div>
       }
     </div>
 
     <!-- Bottom CTA -->
-    <div class="text-center mt-5 fade-in-up">
+    <div class="pp-cta-wrap fade-in-up">
       <button class="btn-pp-primary" type="button" (click)="openBookingDialog()">Book any service →</button>
     </div>
 
@@ -103,7 +111,7 @@
       <!-- Steps column -->
       <div class="col-lg-6 fade-in-up delay-1">
         <div class="eyebrow">How it works</div>
-        <h2 class="section-title mb-5">Simple as <em>three steps</em></h2>
+        <h2 class="section-title mb-4 mb-lg-5">Simple as <em>three steps</em></h2>
 
         @for (step of howSteps; track step.num) {
         <div class="step-card">
@@ -155,8 +163,8 @@
             Real-time slot booking · WhatsApp confirmation · ₹100 refundable hold
           </p>
         </div>
-        <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-          <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
+        <div class="col-lg-4 text-lg-end mt-4 mt-lg-0 d-grid d-lg-block">
+          <button class="btn-pp-accent justify-content-center" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
         </div>
       </div>
     </div>

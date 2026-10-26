@@ -3,6 +3,10 @@
   display: block;
   position: sticky;
   top: 0;
+
+  @media (max-height: 500px) and (orientation: landscape) {
+    position: static;
+  }
   z-index: 1000;
 }
 
@@ -23,8 +27,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0;
-  gap: 16px;
+  padding: 8px 0;
+  gap: 8px;
+
+  @media (min-width: 992px) {
+    padding: 14px 0;
+    gap: 16px;
+  }
 }
 
 // ── Brand ──────────────────────────────────────────────────
@@ -33,10 +42,13 @@
   text-decoration: none;
 
   .brand-logo {
-    height: 100px;
+    height: 64px;
     width: auto;
-    // display: block;
     object-fit: contain;
+
+    @media (min-width: 992px) {
+      height: 100px;
+    }
   }
 }
 
@@ -105,10 +117,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: stretch; // buttons default to flex-start, which collapsed the lines to 0 width
   gap: 5px;
-  width: 36px;
-  height: 36px;
-  padding: 4px;
+  width: var(--tap-target-min);
+  height: var(--tap-target-min);
+  padding: 0 11px;
   background: transparent;
   border: 1.5px solid var(--pp-border);
   border-radius: var(--radius);

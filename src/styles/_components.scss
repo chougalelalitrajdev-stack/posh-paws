@@ -177,7 +177,7 @@
   letter-spacing: 0.5px;
 }
 .brand-tagline {
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--pp-muted);
@@ -369,7 +369,7 @@
   transform: translateX(-50%);
   background: var(--pp-accent);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   padding: 4px 16px;
   border-radius: var(--radius-pill);
@@ -403,7 +403,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   flex-shrink: 0;
   font-weight: 700;
 
@@ -465,7 +465,7 @@
 }
 
 .step-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--pp-muted);
   font-weight: 500;
 
@@ -570,11 +570,11 @@
 }
 
 .footer-brand    { font-family: var(--ff-serif); font-size: 28px; color: white; margin-bottom: 8px; }
-.footer-tagline  { font-size: 13px; color: rgba(255,255,255,.5); letter-spacing: .5px; margin-bottom: 24px; }
+.footer-tagline  { font-size: 13px; color: rgba(255,255,255,.6); letter-spacing: .5px; margin-bottom: 24px; }
 .footer-link     { color: rgba(255,255,255,.6); text-decoration: none; font-size: 14px; display: block; margin-bottom: 10px; transition: color var(--transition); &:hover { color: var(--pp-accent); } }
-.footer-label    { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.35); margin-bottom: 16px; font-weight: 500; }
+.footer-label    { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.55); margin-bottom: 16px; font-weight: 500; }
 .footer-divider  { border-color: rgba(255,255,255,.1); margin: 40px 0 24px; }
-.footer-bottom   { font-size: 12px; color: rgba(255,255,255,.3); }
+.footer-bottom   { font-size: 13px; color: rgba(255,255,255,.55); }
 
 .footer-whatsapp {
   display: inline-flex;
@@ -636,7 +636,7 @@
 
 .booking-status {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   padding: 4px 12px;
   border-radius: var(--radius-pill);
@@ -754,7 +754,7 @@
 }
 
 .pp-bottom-nav-icon  { font-size: 20px; line-height: 1; }
-.pp-bottom-nav-label { font-size: 11px; font-weight: 500; }
+.pp-bottom-nav-label { font-size: 12px; font-weight: 500; }
 
 // ── Bottom sheet / modal dialog (mobile-first) ──────────────────
 //    Slides up from the bottom on phones; can be centered as a
@@ -911,3 +911,163 @@
 .delay-1          { animation-delay: .1s; }
 .delay-2          { animation-delay: .2s; }
 .delay-3          { animation-delay: .35s; }
+
+// ── Mobile baseline ───────────────────────────────────────────
+//    Bootstrap's g-5 gutter (3rem) makes rows wider than the 12px
+//    container padding on phones, causing sideways scroll.
+@media (max-width: 767.98px) {
+  .g-5, .gx-5 { --bs-gutter-x: 1.5rem !important; } // Bootstrap utilities are !important
+}
+
+// Footer links need a 44px tap target on touch layouts.
+@media (max-width: 991.98px) {
+  .footer-link {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap-target-min);
+    margin-bottom: 0;
+  }
+}
+
+// All button variants meet the 44px touch minimum on touch layouts.
+@media (max-width: 991.98px) {
+  .btn-pp-primary, .btn-pp-accent, .btn-pp-outline, .btn-pp-ghost { min-height: var(--tap-target-min); }
+}
+
+// ── Mobile layout helpers ─────────────────────────────────────
+
+// Horizontal swipe row; a normal Bootstrap row on larger screens.
+// Put on a `.row`; children keep their col-* classes for the grid layout.
+//   .pp-swipe                      swipe below 768px
+//   .pp-swipe.pp-swipe-tablet      swipe below 992px (iPad portrait too), 2 cards visible on tablets
+@mixin pp-swipe-row($card-width) {
+  --bs-gutter-x: .75rem !important;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: .375rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-3);
+
+  &::-webkit-scrollbar { display: none; }
+
+  > * {
+    flex: 0 0 $card-width;
+    width: $card-width;
+    max-width: $card-width;
+    scroll-snap-align: start;
+  }
+
+  > * > * { height: 100%; }
+}
+
+@media (max-width: 767.98px) {
+  .row.pp-swipe { @include pp-swipe-row(84%); }
+
+  // Featured item first in a swipe row.
+  .pp-swipe-first { order: -1; }
+}
+
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .row.pp-swipe > * { flex-basis: 56%; width: 56%; max-width: 56%; }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .row.pp-swipe.pp-swipe-tablet { @include pp-swipe-row(46%); }
+  .pp-swipe-tablet > .pp-swipe-first { order: -1; }
+}
+
+// Call-to-action wrapper: full-width button on phones, centered from 768px up.
+.pp-cta-wrap {
+  display: grid;
+  margin-top: var(--space-8);
+
+  .btn-pp-primary, .btn-pp-accent, .btn-pp-outline { justify-content: center; }
+
+  @media (min-width: 768px) {
+    display: block;
+    text-align: center;
+    margin-top: var(--space-12);
+  }
+}
+
+// Consistent text rhythm: balanced headings, no orphaned last words.
+.section-title, .hero-headline { text-wrap: balance; }
+.section-sub, .about-body, .hero-sub, .step-desc, .service-desc, .testi-quote { text-wrap: pretty; }
+
+.testi-author { display: flex; align-items: center; gap: 12px; }
+.testi-name   { font-size: 14px; font-weight: 600; color: var(--pp-text); }
+.testi-pet    { font-size: 12px; color: var(--pp-muted); }
+
+// ── Section header with a "See all" link (phones) ─────────────
+//    <div class="pp-section-head"><div>eyebrow + title</div><a class="pp-see-all d-md-none">…</a></div>
+//    Link sits level with the title on phones; hidden from 768px up where the header is centred/left as designed.
+.pp-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+
+  @media (min-width: 768px) {
+    justify-content: center;
+
+    &.pp-section-head-start { justify-content: flex-start; }
+  }
+}
+
+.pp-see-all {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pp-primary);
+  text-decoration: none;
+
+  &.pp-see-all-light { color: var(--pp-accent); }
+}
+
+// ── Touch devices of any width (iPad landscape / Pro) ─────────
+//    Width alone can't tell a tablet from a desktop; pointer: coarse can.
+@media (pointer: coarse) {
+  .pp-nav-link,
+  .sign-in-btn,
+  .footer-link,
+  .footer-legal-link,
+  .cancel-btn,
+  .membership-upgrade-link,
+  .quick-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-target-min);
+  }
+
+  .footer-link { display: flex; margin-bottom: 0; }
+
+  .btn-pp-primary, .btn-pp-accent, .btn-pp-outline, .btn-pp-ghost { min-height: var(--tap-target-min); }
+}
+
+// ── Phones held sideways (short screens) ──────────────────────
+//    Reclaim vertical space: the top bar scrolls away and the tab bar gets slimmer.
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --navbar-height-mobile: 0px;
+    --bottom-nav-height: 48px;
+  }
+
+  .pp-bottom-nav-item { flex-direction: row; gap: var(--space-2); }
+}
+
+// ── Large monitors ────────────────────────────────────────────
+//    Let content grow instead of sitting in a narrow column on 1600px+ screens.
+// `body .container` out-ranks Bootstrap's own container breakpoints, which compile after this file.
+@media (min-width: 1600px) {
+  body .container { max-width: 1480px; }
+}
+
+@media (min-width: 2200px) {
+  html { font-size: 112.5%; } // 18px root: rem-based type and spacing scale up
+  body .container { max-width: 1680px; }
+}

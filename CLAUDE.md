@@ -92,11 +92,32 @@ Prefer these over writing equivalent styles per-component:
 - **Cards**: `.service-card`, `.plan-card`, `.testimonial-card`, `.dash-card`
 - **Animations**: `.animate-blob`, `.animate-float`, `.fade-in-up` + `.delay-1/2/3`
 
+### Mobile-first layout rules
+
+Phones are the primary target; verify every change at 360, 390, 430 (phone), 768 (tablet) and 1280+ (desktop).
+
+- **No sideways scroll** at any width. Bootstrap `g-5`/`gx-5` is capped to 1.5rem below 768px (in `_components.scss`); don't re-widen it. Use `overflow-x: clip` (never `hidden`) on page hosts, since `hidden` breaks `position: sticky`.
+- **Touch targets ≥ 44px** (`--tap-target-min`) and **text ≥ 12px** on touch layouts (below 992px). Desktop nav links may be smaller.
+- **Text alignment:** left-aligned on phones; centred only from 768px up (`text-md-center`; `.eyebrow.center` is tablet-and-up).
+- **Section headers on phones:** wrap eyebrow + title in `.pp-section-head` with a `.pp-see-all d-md-none` link on the right (see Home). Phone section spacing is tightened via `--section-y*` overrides in `_tokens.scss`. Dog/cat tabs are a full-width segmented control.
+- **Long lists become swipe rows on phones:** add `pp-swipe` to a Bootstrap `.row` (keeps its `col-*` classes for tablet/desktop). Don't put `justify-content-center` on it; use `justify-content-md-center`. Add `pp-swipe-first` to a column to show it first.
+- **CTAs:** wrap in `.pp-cta-wrap` for a full-width button on phones, centred on desktop.
+- **Bottom tab bar** (`pp-bottom-nav`) shows below 992px; `app.scss` reserves space for it. Sticky bars under the navbar use `top: var(--navbar-height-mobile)`.
+- **Dialogs** use the `.pp-sheet` bottom-sheet pattern (z-index above the tab bar).
+- **Screen tiers** (all verified): phones 320–767 (swipe rows, tab bar), iPad portrait 768–991 (`pp-swipe-tablet` rows with 46% cards, two-column hero, tab bar), iPad landscape and laptops 992–1599 (desktop layout, no tab bar), large monitors 1600+ (wider container; root font 18px from 2200px). Touch devices of any width get 44px targets via `@media (pointer: coarse)`. Phones held sideways (`max-height: 500px`) get a slimmer tab bar and a navbar that scrolls away.
+- **Specificity:** Bootstrap's CSS compiles after `_components.scss`, so equal-specificity rules lose. Use `.row.pp-swipe`, `body .container` or `!important` (documented) when overriding it.
+
 ### Routes / pages
+
+All routes are lazy-loaded (`loadComponent`). `/account*` routes use `authGuard`.
 
 | Path | Component |
 |---|---|
-| `/services` (default) | `ServicesComponent` — dog/cat tab toggle, service cards, how-it-works |
+| `/` | `HomeComponent` |
+| `/services` | `ServicesComponent`: sticky dog/cat tabs, per-service Book button |
 | `/about` | `AboutComponent` |
-| `/membership` | `MembershipComponent` — plan cards |
+| `/membership` | `MembershipComponent`: plan cards, Subscribe dialog |
 | `/gallery` | `GalleryComponent` |
+| `/book` | `BookingComponent`: original 4-step wizard (CTAs now open the booking dialog instead) |
+| `/account` | `AccountComponent` (login required): bookings, pets, membership |
+| `/account/pets/:id` | `PetDetailsComponent` (login required) |

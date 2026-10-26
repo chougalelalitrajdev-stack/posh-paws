@@ -23,7 +23,9 @@
   padding: var(--section-y-sm) 0 var(--section-y) 0;
   position: relative;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
+
+  @media (min-width: 768px) { text-align: center; }
 }
 
 // On the green hero, invert the eyebrow and headline colors
@@ -194,7 +196,7 @@
 
 .gallery-card-tag {
   flex-shrink: 0;
-  font-size: 0.6875rem;    // 11px
+  font-size: 0.75rem;    // 11px
   font-weight: 500;
   color: var(--pp-primary);
   background: var(--pp-primary-light);
@@ -261,8 +263,9 @@
 // xs — under 576px
 @media (max-width: 575px) {
   .hero-stats-strip {
-    gap: var(--space-8);
-    flex-wrap: wrap;
+    gap: var(--space-4);
+    justify-content: space-between;
+    margin-top: var(--space-8);
   }
 
   // Tighten grid on narrow phones — 2 columns minimum
@@ -272,6 +275,19 @@
   }
 
   .gallery-card-img { height: 140px; font-size: 2.5rem; }
+
+  .page-hero { padding: var(--space-8) 0; }
+  .hero-sub  { font-size: .9375rem; }
+
+  // Name above tag so neither is squeezed or overflows the narrow card
+  .gallery-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+  }
+  .gallery-card-label { max-width: 100%; }
+  .gallery-card-tag   { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
   .cta-card { padding: var(--space-8) var(--space-6); }
   .cta-leaf { display: none; }

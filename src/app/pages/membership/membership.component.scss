@@ -25,7 +25,9 @@
   padding: var(--section-y-sm) 0 var(--section-y) 0;
   position: relative;
   overflow: hidden;
-  text-align: center;
+  text-align: left;
+
+  @media (min-width: 768px) { text-align: center; }
 }
 
 .hero-deco-circle {

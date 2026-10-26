@@ -4,7 +4,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: var(--pp-accent);
@@ -66,7 +66,7 @@
 
 .stat-chip-icon  { font-size: 22px; line-height: 1; }
 .stat-chip-val   { font-family: var(--ff-serif); font-size: 22px; color: var(--pp-primary); font-weight: 500; line-height: 1.1; }
-.stat-chip-label { font-size: 11px; color: var(--pp-muted); margin-top: 2px; }
+.stat-chip-label { font-size: 12px; color: var(--pp-muted); margin-top: 2px; }
 
 // ── Booking tabs ──────────────────────────────────────────────
 
@@ -106,7 +106,7 @@
 }
 
 .tab-count {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   background: var(--pp-surface);
   color: var(--pp-muted);
@@ -147,7 +147,7 @@
 .cancel-btn {
   background: none;
   border: none;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--pp-muted);
   cursor: pointer;
   font-family: var(--ff-sans);
@@ -171,7 +171,7 @@
 // ── Membership banner extras ──────────────────────────────────
 
 .membership-label {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 2px;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.5);
@@ -336,7 +336,75 @@
 // ── Responsive ────────────────────────────────────────────────
 
 @media (max-width: 767.98px) {
-  .stats-strip { gap: 8px; }
-  .stat-chip   { min-width: calc(50% - 4px); }
-  .acct-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .acct-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+
+    > .d-flex {
+      flex-wrap: nowrap !important;
+
+      .btn-pp-accent { flex: 1; justify-content: center; }
+      .btn-pp-ghost  { flex-shrink: 0; }
+    }
+  }
+
+  // Three compact tiles in one row instead of 2 + 1
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .stat-chip {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 12px 6px;
+    text-align: center;
+  }
+
+  // Booking row: icon + full-width text, status and cancel on their own line
+  .booking-label { white-space: normal; }
+  .booking-item  { flex-wrap: wrap; row-gap: 8px; }
+  .booking-actions {
+    flex: 1 0 calc(100% - 52px);
+    margin-left: 52px;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  // Sidebar order on phones: pets first, then membership, then links
+  .acct-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+
+    > * { margin: 0 !important; }
+    .membership-banner { order: 2; }
+    .dash-card:last-child { order: 3; }
+  }
+
+  .quick-link { min-height: var(--tap-target-min); font-size: 14px; }
+}
+
+// Touch layouts (phones and tablets): links need a 44px target.
+@media (max-width: 991.98px) {
+  .cancel-btn {
+    min-height: var(--tap-target-min);
+    padding: 0 var(--space-3);
+    font-size: 13px;
+  }
+
+  .membership-upgrade-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-target-min);
+    font-size: 14px;
+  }
 }

@@ -22,7 +22,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: var(--pp-accent);
@@ -38,9 +38,12 @@
     flex-shrink: 0;
   }
 
-  &.center {
-    justify-content: center;
-    &::before { display: none; }
+  // Centred only from tablet up; phones keep the left-aligned rule line.
+  @media (min-width: 768px) {
+    &.center {
+      justify-content: center;
+      &::before { display: none; }
+    }
   }
 }
 

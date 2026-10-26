@@ -62,6 +62,7 @@
   --safe-right: env(safe-area-inset-right, 0px);
 
   // ── Mobile chrome dimensions ───────────────────────────────────
+  --navbar-height-mobile: 82px;
   --bottom-nav-height: 60px;
   // Total space the fixed bottom nav occupies, incl. safe area —
   // apply as scroll-padding/padding-bottom on page content so the
@@ -269,4 +270,13 @@
   --pp-shadow-primary: rgba(96, 165, 250, .25);
   --pp-shadow-accent: rgba(52, 211, 153, .25);
   --pp-focus-ring: rgba(96, 165, 250, .35);
+}
+// Tighter vertical rhythm on phones (desktop keeps the larger clamp values above).
+@media (max-width: 767.98px) {
+  :root {
+    --section-y: 3rem;     // 48px
+    --section-y-sm: 2.5rem; // 40px
+    --section-y-xs: 2rem;   // 32px
+    --section-y-lg: 3.5rem; // 56px
+  }
 }
