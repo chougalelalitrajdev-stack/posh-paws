@@ -22,6 +22,17 @@
 
   --transition: .2s ease;
 
+  // ── Shared colour roles (same in every theme; override per theme if needed)
+  --pp-card-bg: #fff;                          // card / panel surface
+  --pp-on-primary: #fff;                       // text on filled primary/accent surfaces
+  --pp-on-dark-faint: rgba(255, 255, 255, .12); // dividers and tints on dark surfaces
+  --pp-on-dark-subtle: rgba(255, 255, 255, .5); // quiet text on dark surfaces
+  --pp-on-dark-muted: rgba(255, 255, 255, .7);  // secondary text on dark surfaces
+  --pp-on-dark-strong: rgba(255, 255, 255, .85); // body text on dark surfaces
+  --pp-whatsapp: #25D366;
+  --pp-warning-bg: #FFF3E0;
+  --pp-warning: #E07B39;
+
   // ── Spacing scale (rem — respects user font-size preferences)
   //    Use these for padding, margin, and gap inside components.
   //    1rem = 16px at browser default; never hardcode px for spacing.
@@ -38,6 +49,26 @@
   --space-16: 4rem; // 64px
   --space-20: 5rem; // 80px
   --space-24: 6rem; // 96px
+
+  // ── Type scale (rem; 1rem = 16px). Never hardcode font-size in px.
+  //    xs  captions, labels, badges      sm  secondary / card text
+  //    base body copy                    lg+ lead text and headings
+  --fs-xs: 0.75rem; // 12px
+  --fs-sm: 0.875rem; // 14px
+  --fs-base: 1rem; // 16px
+  --fs-lg: 1.125rem; // 18px
+  --fs-xl: 1.25rem; // 20px
+  --fs-2xl: 1.5rem; // 24px
+  --fs-3xl: 1.75rem; // 28px
+  --fs-4xl: 2rem; // 32px
+  --fs-5xl: 2.5rem; // 40px
+  --fs-6xl: 2.75rem; // 44px (prices)
+  --fs-title: clamp(1.75rem, 4vw, 2.75rem); // section titles (28px to 44px)
+  --fs-display: clamp(2.375rem, 5.5vw, 4.25rem); // hero headline (38px to 68px)
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.4;
+  --lh-body: 1.7;
 
   // ── Section vertical rhythm
   //    clamp(minimum, fluid-middle, maximum)

@@ -1,24 +1,13 @@
-<!-- ══════════════════════════════════════════════════════
-     PAGE HERO
-══════════════════════════════════════════════════════ -->
-<section class="page-hero">
-  <div class="hero-deco-circle c1"></div>
-  <div class="hero-deco-circle c2"></div>
-
-  <div class="container">
-    <div class="hero-inner fade-in-up delay-1">
-      <div class="eyebrow center">Our story</div>
-      <h1 class="hero-headline text-md-center">
-        <span>Six years of <em>caring</em></span>
-        <span>for Pune's pets.</span>
-      </h1>
-      <p class="hero-sub">
-        Born from a simple belief — that every pet deserves the same quality of
-        care their owner gives themselves.
-      </p>
-    </div>
-  </div>
-</section>
+<pp-page-hero eyebrow="Our story">
+  <span ppTitle>
+    <span>Six years of <em>caring</em></span>
+    <span>for Pune's pets.</span>
+  </span>
+  <span ppLead>
+    Born from a simple belief — that every pet deserves the same quality of
+    care their owner gives themselves.
+  </span>
+</pp-page-hero>
 
 <!-- ══════════════════════════════════════════════════════
      OUR STORY
@@ -34,10 +23,9 @@
 
       <!-- Copy -->
       <div class="col-lg-7 fade-in-up delay-2">
-        <div class="eyebrow">Our story</div>
-        <h2 class="section-title mb-4">
-          Six years of <em>caring</em><br>for Pune's pets
-        </h2>
+        <pp-section-header eyebrow="Our story">
+          <span ppTitle>Six years of <em>caring</em><br>for Pune's pets</span>
+        </pp-section-header>
 
         <p class="story-body">
           Posh Paws was born from a simple belief — that every pet deserves the
@@ -73,25 +61,18 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     OUR VALUES
-══════════════════════════════════════════════════════ -->
+<!-- Values -->
 <section class="values-section section-pad" id="our-values">
   <div class="container">
 
-    <div class="text-md-center mb-4 mb-md-5 fade-in-up">
-      <div class="eyebrow center">What we stand for</div>
-      <h2 class="section-title">The values behind <em>every</em> session</h2>
-    </div>
+    <pp-section-header eyebrow="What we stand for" align="center">
+      <span ppTitle>The values behind <em>every</em> session</span>
+    </pp-section-header>
 
     <div class="row g-4 pp-swipe">
       @for (val of values; track val.title) {
         <div class="col-md-6 col-lg-3 fade-in-up">
-          <div class="value-card">
-            <div class="value-icon">{{ val.icon }}</div>
-            <h3 class="value-title">{{ val.title }}</h3>
-            <p class="value-desc">{{ val.desc }}</p>
-          </div>
+          <pp-feature-card [item]="val" />
         </div>
       }
     </div>
@@ -99,31 +80,18 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     TESTIMONIALS
-══════════════════════════════════════════════════════ -->
+<!-- Testimonials -->
 <section class="testimonials-section section-pad" id="testimonials">
   <div class="container">
 
-    <div class="text-md-center mb-4 mb-md-5 fade-in-up">
-      <div class="eyebrow center">Testimonials</div>
-      <h2 class="section-title">What pet parents <em>say</em></h2>
-    </div>
+    <pp-section-header eyebrow="Testimonials" align="center">
+      <span ppTitle>What pet parents <em>say</em></span>
+    </pp-section-header>
 
     <div class="row g-4 pp-swipe pp-swipe-tablet">
-      @for (t of testimonials; track t.author) {
+      @for (t of testimonials; track t.id) {
         <div class="col-lg-4 col-md-6 fade-in-up">
-          <div class="testimonial-card">
-            <div class="stars">★★★★★</div>
-            <p class="testi-quote">"{{ t.quote }}"</p>
-            <div class="testi-author">
-              <div class="testi-avatar">{{ t.initial }}</div>
-              <div>
-                <div class="testi-name">{{ t.author }}</div>
-                <div class="testi-pet">{{ t.pet }}</div>
-              </div>
-            </div>
-          </div>
+          <pp-testimonial-card [testimonial]="t" />
         </div>
       }
     </div>
@@ -131,25 +99,8 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     CTA BANNER
-══════════════════════════════════════════════════════ -->
-<section class="cta-section section-pt-sm section-pb">
-  <div class="container">
-    <div class="cta-card fade-in-up">
-      <div class="cta-leaf">🌿</div>
-      <div class="row align-items-center">
-        <div class="col-lg-8">
-          <div class="eyebrow">Ready to visit us?</div>
-          <h2 class="cta-title">Book a session and see the <em>difference</em></h2>
-          <p class="cta-sub">
-            By appointment only · Central Pune · WhatsApp confirmation
-          </p>
-        </div>
-        <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-          <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<pp-cta-banner eyebrow="Ready to visit us?">
+  <span ppTitle>Book a session and see the <em>difference</em></span>
+  <span ppText>By appointment only · Central Pune · WhatsApp confirmation</span>
+  <button ppAction class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
+</pp-cta-banner>

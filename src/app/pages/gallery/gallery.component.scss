@@ -1,88 +1,11 @@
-// ─────────────────────────────────────────────────────────────
-//  gallery.component.scss
-//
-//  stat-big, stat-label, btn-pp-* from _components.scss (global)
-//  section-pad utility class from _components.scss (global)
-//
-//  SECTION MAP
-//  1. Host
-//  2. Page hero
-//  3. Gallery grid (section, filters, cards)
-//  4. CTA banner
-//  5. Responsive overrides
-// ─────────────────────────────────────────────────────────────
+// Gallery-only styles. Hero and CTA banner come from src/app/shared/ui.
 
 :host {
   display: block;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
-// ── 2. Page hero ──────────────────────────────────────────────
-.page-hero {
-  background: var(--pp-primary);   // green — matches the gallery feel from the design
-  padding: var(--section-y-sm) 0 var(--section-y) 0;
-  position: relative;
-  overflow: hidden;
-  text-align: left;
-
-  @media (min-width: 768px) { text-align: center; }
-}
-
-// On the green hero, invert the eyebrow and headline colors
-.page-hero .eyebrow {
-  color: rgba(255, 255, 255, .55);
-
-  &::before { background: rgba(255, 255, 255, .35); display: none; }
-}
-
-.page-hero .hero-headline {
-  color: white;
-
-  em { color: var(--pp-accent); }
-}
-
-.page-hero .hero-sub {
-  color: rgba(255, 255, 255, .65);
-}
-
-// Decoration rings — subtler on the dark bg
-.hero-deco-circle {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, .08);
-  pointer-events: none;
-
-  &.c1 {
-    width:  min(600px, 80vw);
-    height: min(600px, 80vw);
-    left: 50%;
-    top: -160px;
-    transform: translateX(-50%);
-  }
-
-  &.c2 {
-    width:  min(380px, 55vw);
-    height: min(380px, 55vw);
-    left: 50%;
-    top: -60px;
-    transform: translateX(-50%);
-  }
-}
-
-.hero-inner {
-  position: relative;
-  max-width: 620px;
-  margin: 0 auto;
-}
-
-.hero-sub {
-  font-size: 1rem;
-  line-height: 1.8;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-// Stats strip — sits below the hero text, above the section break
+// ── Hero stats strip (projected into <pp-page-hero>) ──────────
 .hero-stats-strip {
   position: relative;
   display: flex;
@@ -90,14 +13,18 @@
   gap: var(--space-12);
   margin-top: var(--space-12);
   padding-top: var(--space-8);
-  border-top: 1px solid rgba(255, 255, 255, .12);
+  border-top: 1px solid var(--pp-on-dark-faint);
+
+  @media (max-width: 575.98px) {
+    gap: var(--space-4);
+    justify-content: space-between;
+    margin-top: var(--space-8);
+  }
 }
 
-.hero-stat-item { text-align: center; }
-
-// Override stat-big and stat-label colors for the green hero
-.page-hero .stat-big  { color: white; }
-.page-hero .stat-label { color: rgba(255, 255, 255, .55); }
+.hero-stat { text-align: center; }
+.hero-stat-value { font-family: var(--ff-serif); font-size: var(--fs-3xl); font-weight: 500; color: var(--pp-on-primary); }
+.hero-stat-label { font-size: var(--fs-xs); color: var(--pp-on-dark-subtle); }
 
 // ── 3. Gallery grid ───────────────────────────────────────────
 .gallery-section {
@@ -119,9 +46,9 @@
   padding: var(--space-3) var(--space-6);
   border-radius: var(--radius-pill);
   border: 1.5px solid var(--pp-border);
-  background: white;
+  background: var(--pp-card-bg);
   font-family: var(--ff-sans);
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--pp-muted);
   cursor: pointer;
@@ -136,7 +63,7 @@
   &.active {
     background: var(--pp-primary);
     border-color: var(--pp-primary);
-    color: white;
+    color: var(--pp-on-primary);
   }
 }
 
@@ -149,7 +76,7 @@
 
 // Individual gallery card
 .gallery-card {
-  background: white;
+  background: var(--pp-card-bg);
   border-radius: var(--radius-lg);
   border: 1px solid var(--pp-border);
   overflow: hidden;
@@ -186,7 +113,7 @@
 }
 
 .gallery-card-label {
-  font-size: 0.875rem;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--pp-text);
   white-space: nowrap;
@@ -196,7 +123,7 @@
 
 .gallery-card-tag {
   flex-shrink: 0;
-  font-size: 0.75rem;    // 11px
+  font-size: var(--fs-xs);    // 11px
   font-weight: 500;
   color: var(--pp-primary);
   background: var(--pp-primary-light);
@@ -208,76 +135,21 @@
 // Placeholder note below the grid
 .gallery-note {
   text-align: center;
-  font-size: 0.8125rem;
+  font-size: var(--fs-sm);
   color: var(--pp-subtle);
   margin-top: var(--space-8);
   margin-bottom: 0;
 }
 
-// ── 4. CTA banner ─────────────────────────────────────────────
-.cta-section {
-  background: var(--pp-bg);
-}
+// ── Responsive ────────────────────────────────────────────────
 
-.cta-card {
-  background: white;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--pp-border);
-  padding: var(--space-16) var(--space-14);
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-
-.cta-leaf {
-  position: absolute;
-  font-size: 11.25rem;
-  opacity: .04;
-  pointer-events: none;
-  user-select: none;
-  right: -20px;
-  bottom: -30px;
-  transform: rotate(20deg);
-  line-height: 1;
-}
-
-.cta-title {
-  font-family: var(--ff-serif);
-  font-size: clamp(1.375rem, 3.5vw, 2.5rem);
-  font-weight: 500;
-  color: var(--pp-text);
-  line-height: 1.2;
-  margin-bottom: var(--space-3);
-
-  em { font-style: italic; color: var(--pp-primary); }
-}
-
-.cta-sub {
-  font-size: 0.875rem;
-  color: var(--pp-muted);
-  margin-bottom: 0;
-}
-
-// ── 5. Responsive overrides ───────────────────────────────────
-
-// xs — under 576px
-@media (max-width: 575px) {
-  .hero-stats-strip {
-    gap: var(--space-4);
-    justify-content: space-between;
-    margin-top: var(--space-8);
-  }
-
-  // Tighten grid on narrow phones — 2 columns minimum
+@media (max-width: 575.98px) {
   .gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
     gap: var(--space-3);
   }
 
-  .gallery-card-img { height: 140px; font-size: 2.5rem; }
-
-  .page-hero { padding: var(--space-8) 0; }
-  .hero-sub  { font-size: .9375rem; }
+  .gallery-card-img { height: 140px; font-size: var(--fs-5xl); }
 
   // Name above tag so neither is squeezed or overflows the narrow card
   .gallery-card-footer {
@@ -288,16 +160,8 @@
   }
   .gallery-card-label { max-width: 100%; }
   .gallery-card-tag   { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-
-  .cta-card { padding: var(--space-8) var(--space-6); }
-  .cta-leaf { display: none; }
 }
 
-// tablet — 576px to 991px
-@media (min-width: 576px) and (max-width: 991px) {
-  .gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
-
-  .cta-card { padding: var(--space-12) var(--space-10); }
+@media (min-width: 576px) and (max-width: 991.98px) {
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 }

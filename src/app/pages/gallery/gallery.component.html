@@ -1,34 +1,22 @@
-<!-- ══════════════════════════════════════════════════════
-     PAGE HERO
-══════════════════════════════════════════════════════ -->
-<section class="page-hero">
-  <div class="hero-deco-circle c1"></div>
-  <div class="hero-deco-circle c2"></div>
+<pp-page-hero eyebrow="Our work" tone="dark">
+  <span ppTitle>
+    <span>Happy pets,</span>
+    <span><em>every time.</em></span>
+  </span>
+  <span ppLead>
+    Every photo is a story of a pet who came in nervous and left glowing.
+    Real grooming, real results — right here in Pune.
+  </span>
 
-  <div class="container">
-    <div class="hero-inner fade-in-up delay-1">
-      <div class="eyebrow center">Our work</div>
-      <h1 class="hero-headline text-md-center">
-        <span>Happy pets,</span>
-        <span><em>every time.</em></span>
-      </h1>
-      <p class="hero-sub">
-        Every photo is a story of a pet who came in nervous and left glowing.
-        Real grooming, real results — right here in Pune.
-      </p>
-    </div>
-
-    <!-- Stats strip -->
-    <div class="hero-stats-strip fade-in-up delay-2">
-      @for (stat of stats; track stat.label) {
-        <div class="hero-stat-item">
-          <div class="stat-big">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-        </div>
-      }
-    </div>
+  <div ppFooter class="hero-stats-strip fade-in-up delay-2">
+    @for (stat of stats; track stat.label) {
+      <div class="hero-stat">
+        <div class="hero-stat-value">{{ stat.value }}</div>
+        <div class="hero-stat-label">{{ stat.label }}</div>
+      </div>
+    }
   </div>
-</section>
+</pp-page-hero>
 
 <!-- ══════════════════════════════════════════════════════
      GALLERY GRID
@@ -79,25 +67,8 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     CTA BANNER
-══════════════════════════════════════════════════════ -->
-<section class="cta-section section-pt-sm section-pb">
-  <div class="container">
-    <div class="cta-card fade-in-up">
-      <div class="cta-leaf">🌿</div>
-      <div class="row align-items-center">
-        <div class="col-lg-8">
-          <div class="eyebrow">Your pet next?</div>
-          <h2 class="cta-title">Book a session and <em>see the difference</em></h2>
-          <p class="cta-sub">
-            By appointment only · WhatsApp confirmation · Central Pune
-          </p>
-        </div>
-        <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-          <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<pp-cta-banner eyebrow="Your pet next?">
+  <span ppTitle>Book a session and <em>see the difference</em></span>
+  <span ppText>By appointment only · WhatsApp confirmation · Central Pune</span>
+  <button ppAction class="btn-pp-accent" type="button" (click)="openBookingDialog()">Reserve a slot →</button>
+</pp-cta-banner>

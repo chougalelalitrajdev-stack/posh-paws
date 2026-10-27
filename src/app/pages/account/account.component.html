@@ -7,7 +7,7 @@
         <div class="eyebrow">My account</div>
         <h2 class="section-title">Welcome back, <em>{{ userName() }}</em></h2>
       </div>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="acct-actions">
         <button class="btn-pp-accent" type="button" (click)="openBookingDialog()">+ New booking</button>
         <button class="btn-pp-ghost" type="button" (click)="logout()">Sign out</button>
       </div>
@@ -100,7 +100,7 @@
       <div class="col-lg-4 acct-side">
 
         <!-- Membership banner -->
-        <div class="membership-banner mb-4">
+        <div class="membership-banner">
           <div class="membership-label">Active membership</div>
           <div class="membership-tier">{{ membership.tier }}</div>
           <div class="membership-sub">{{ membership.tagline }}</div>
@@ -145,7 +145,7 @@
         </div>
 
         <!-- Quick links -->
-        <div class="dash-card mt-4">
+        <div class="dash-card">
           <div class="dash-card-title">Quick links</div>
           <nav class="quick-links">
             <a class="quick-link" routerLink="/services">🛁 Browse services</a>

@@ -1,3 +1,4 @@
+// lint:allow-important (utility classes mirror Bootstrap utilities)
 // ─────────────────────────────────────────────────────────────
 //  _typography.scss  —  fonts + text utilities
 //
@@ -22,7 +23,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: var(--pp-accent);
@@ -50,7 +51,7 @@
 // ── Section title (large serif heading) ───────────────────────
 .section-title {
   font-family: var(--ff-serif);
-  font-size: clamp(28px, 4vw, 44px);
+  font-size: var(--fs-title);
   font-weight: 500;
   color: var(--pp-text);
   line-height: 1.2;
@@ -65,13 +66,31 @@
 // ── Hero headline ─────────────────────────────────────────────
 .hero-headline {
   font-family: var(--ff-serif);
-  font-size: clamp(38px, 5.5vw, 68px);
+  font-size: var(--fs-display);
   font-weight: 500;
   line-height: 1.1;
   color: var(--pp-text);
   letter-spacing: -0.5px;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 
   em    { font-style: italic; color: var(--pp-primary); }
   span  { display: block; }
+}
+
+// ── Intro paragraph under a hero headline ─────────────────────
+.hero-sub {
+  font-size: var(--fs-base);
+  color: var(--pp-muted);
+  line-height: 1.8;
+  max-width: 520px;
+  margin: 0 0 var(--space-8);
+}
+
+// ── Text on dark (primary-coloured) surfaces ──────────────────
+//    Put `on-dark` on a section/panel and its eyebrow, headings and intro
+//    flip to light colours automatically. Components never colour text by hand.
+.on-dark {
+  .eyebrow { color: var(--pp-on-dark-subtle); &::before { background: var(--pp-on-dark-subtle); } }
+  .section-title, .hero-headline { color: var(--pp-on-primary); em { color: var(--pp-accent); } }
+  .hero-sub, .section-sub { color: var(--pp-on-dark-muted); }
 }

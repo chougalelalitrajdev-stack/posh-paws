@@ -1,0 +1,66 @@
+<div class="container sg">
+  <h1 class="hero-headline">Style <em>guide</em></h1>
+  <p class="hero-sub">Development reference. Everything here is built from tokens in <code>src/styles/_tokens.scss</code>
+    and components in <code>src/app/shared/ui</code>. This page is not part of the production build.</p>
+
+  <h2 class="sg-h">Colours</h2>
+  <div class="sg-swatches">
+    @for (c of colours; track c) {
+      <div class="sg-swatch">
+        <span class="sg-chip" [style.background]="'var(--pp-' + c + ')'"></span>
+        <code>--pp-{{ c }}</code>
+      </div>
+    }
+  </div>
+
+  <h2 class="sg-h">Type scale</h2>
+  @for (t of typeScale; track t) {
+    <div class="sg-type" [style.fontSize]="'var(--fs-' + t + ')'"><code>--fs-{{ t }}</code> Grooming rituals for every pet</div>
+  }
+
+  <h2 class="sg-h">Spacing</h2>
+  <div class="sg-spacing">
+    @for (s of spacing; track s) {
+      <div class="sg-space"><span class="sg-bar" [style.width]="'var(--space-' + s + ')'"></span><code>--space-{{ s }}</code></div>
+    }
+  </div>
+
+  <h2 class="sg-h">Buttons</h2>
+  <div class="sg-row">
+    <button class="btn-pp-primary" type="button">Primary</button>
+    <button class="btn-pp-accent" type="button">Accent</button>
+    <button class="btn-pp-outline" type="button">Outline</button>
+    <button class="btn-pp-ghost" type="button">Ghost</button>
+    <button class="btn-pp-primary" type="button" disabled>Disabled</button>
+  </div>
+
+  <h2 class="sg-h">Icons</h2>
+  <div class="sg-row">
+    @for (name of icons; track name) {
+      <div class="sg-icon"><pp-icon [name]="name" [size]="24" /><code>{{ name }}</code></div>
+    }
+  </div>
+
+  <h2 class="sg-h">Chips (single and multi select)</h2>
+  <pp-chip-group [options]="genderOptions" [(value)]="gender" />
+
+  <h2 class="sg-h">Section header</h2>
+  <pp-section-header eyebrow="Our offerings" linkTo="/services">
+    <span ppTitle>Grooming <em>rituals</em></span>
+    A short intro paragraph sits under the title.
+  </pp-section-header>
+
+  <h2 class="sg-h">Cards</h2>
+  <div class="row g-4">
+    <div class="col-md-4"><pp-service-card [service]="service" [showBook]="true" /></div>
+    <div class="col-md-4"><pp-plan-card [plan]="plan" /></div>
+    <div class="col-md-4"><pp-testimonial-card [testimonial]="testimonial" /></div>
+    <div class="col-md-4"><pp-feature-card [item]="feature" /></div>
+  </div>
+
+  <h2 class="sg-h">Accordion</h2>
+  <pp-accordion [items]="faq" />
+
+  <h2 class="sg-h">Formatting pipes</h2>
+  <p>{{ 120000 | inr }} · {{ 99950 | inr }} · {{ 45 | duration }} · {{ 150 | duration }}</p>
+</div>

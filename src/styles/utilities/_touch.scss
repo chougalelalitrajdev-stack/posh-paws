@@ -1,0 +1,33 @@
+// Touch-target helpers
+
+// ── Mobile: touch targets ──────────────────────────────────────
+//    Apply to any icon-only / small control (close buttons, chips)
+//    so the hit area meets --tap-target-min without inflating the
+//    visible element.
+.pp-tap-target {
+  min-width: var(--tap-target-min);
+  min-height: var(--tap-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Touch devices of any width (iPad landscape / Pro) ─────────
+//    Width alone can't tell a tablet from a desktop; pointer: coarse can.
+@media (pointer: coarse) {
+  .pp-nav-link,
+  .sign-in-btn,
+  .footer-link,
+  .footer-legal-link,
+  .cancel-btn,
+  .membership-upgrade-link,
+  .quick-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-target-min);
+  }
+
+  .footer-link { display: flex; margin-bottom: 0; }
+
+  .btn-pp-primary, .btn-pp-accent, .btn-pp-outline, .btn-pp-ghost { min-height: var(--tap-target-min); }
+}

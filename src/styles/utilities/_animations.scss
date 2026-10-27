@@ -1,0 +1,46 @@
+// Keyframes + animation helpers
+
+// ── Animations ────────────────────────────────────────────────
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .6; transform: scale(1.3); }
+}
+
+@keyframes morphBlob {
+  0%, 100% { border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%; }
+  33%       { border-radius: 50% 50% 40% 60% / 60% 40% 60% 40%; }
+  66%       { border-radius: 40% 60% 60% 40% / 45% 55% 45% 55%; }
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(32px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.animate-blob     { animation: morphBlob 8s ease-in-out infinite; }
+.animate-float    { animation: floatUp 3s ease-in-out infinite; }
+.animate-float-d  { animation: floatUp 3s ease-in-out 1.5s infinite; }
+.fade-in-up       { animation: fadeInUp .6s ease both; }
+.delay-1          { animation-delay: .1s; }
+.delay-2          { animation-delay: .2s; }
+.delay-3          { animation-delay: .35s; }

@@ -1,78 +1,27 @@
-<!-- ══════════════════════════════════════════════════════
-     PAGE HERO
-══════════════════════════════════════════════════════ -->
-<section class="page-hero">
-  <div class="hero-deco-circle c1"></div>
-  <div class="hero-deco-circle c2"></div>
+<pp-page-hero eyebrow="Membership">
+  <span ppTitle>
+    <span>Save more, stress</span>
+    <span><em>less</em> — every month.</span>
+  </span>
+  <span ppLead>
+    Priority slots, real savings, and a groomer who already knows your pet.
+    Pick the plan that fits your rhythm.
+  </span>
+</pp-page-hero>
 
-  <div class="container">
-    <div class="hero-inner fade-in-up delay-1">
-      <div class="eyebrow center">Membership</div>
-      <h1 class="hero-headline text-md-center">
-        <span>Save more, stress</span>
-        <span><em>less</em> — every month.</span>
-      </h1>
-      <p class="hero-sub">
-        Priority slots, real savings, and a groomer who already knows your pet.
-        Pick the plan that fits your rhythm.
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════════════════════════════
-     PLANS
-══════════════════════════════════════════════════════ -->
+<!-- Plans -->
 <section class="plans-section section-pad" id="plans">
   <div class="container">
 
-    <div class="text-md-center mb-4 mb-md-5 fade-in-up">
-      <div class="eyebrow center">Choose a plan</div>
-      <h2 class="section-title">Find the right <em>plan</em> for you</h2>
-      <p class="text-muted-pp mt-2 plans-sub">
-        Save more, enjoy priority slots, and give your pet the best every month.
-      </p>
-    </div>
+    <pp-section-header eyebrow="Choose a plan" align="center">
+      <span ppTitle>Find the right <em>plan</em> for you</span>
+      Save more, enjoy priority slots, and give your pet the best every month.
+    </pp-section-header>
 
     <div class="row g-4 justify-content-center align-items-stretch">
-      @for (plan of plans; track plan.name) {
+      @for (plan of plans; track plan.id) {
         <div class="col-lg-4 col-md-6 fade-in-up">
-          <div class="plan-card h-100" [class.featured]="plan.featured">
-
-            @if (plan.badge) {
-              <div class="plan-badge">{{ plan.badge }}</div>
-            }
-
-            <div class="plan-name">{{ plan.name }}</div>
-            <div class="plan-tagline">{{ plan.tagline }}</div>
-
-            <div class="plan-price">
-              <div class="plan-price-num">{{ plan.price }}</div>
-              <div class="plan-price-period">{{ plan.period }}</div>
-            </div>
-
-            <div class="plan-divider"></div>
-
-            @for (feat of plan.features; track feat.text) {
-              <div class="plan-feature" [class.plan-feature-no]="!feat.included">
-                <div class="plan-feature-check">{{ feat.included ? '✓' : '✗' }}</div>
-                {{ feat.text }}
-              </div>
-            }
-
-            <div class="plan-cta">
-              @if (plan.buttonType === 'primary') {
-                <button class="btn-pp-primary w-100 justify-content-center" type="button" (click)="subscribeToPlan(plan)">
-                  Subscribe →
-                </button>
-              } @else {
-                <button class="btn-pp-outline w-100 justify-content-center" type="button" (click)="subscribeToPlan(plan)">
-                  Subscribe
-                </button>
-              }
-            </div>
-
-          </div>
+          <pp-plan-card [plan]="plan" (subscribe)="subscribeToPlan($event)" />
         </div>
       }
     </div>
@@ -80,25 +29,18 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     MEMBER PERKS
-══════════════════════════════════════════════════════ -->
+<!-- Member perks -->
 <section class="perks-section section-pad" id="perks">
   <div class="container">
 
-    <div class="text-md-center mb-4 mb-md-5 fade-in-up">
-      <div class="eyebrow center">Why join</div>
-      <h2 class="section-title">What every member <em>gets</em></h2>
-    </div>
+    <pp-section-header eyebrow="Why join" align="center">
+      <span ppTitle>What every member <em>gets</em></span>
+    </pp-section-header>
 
     <div class="row g-4 pp-swipe">
       @for (perk of perks; track perk.title) {
         <div class="col-md-6 col-lg-3 fade-in-up">
-          <div class="perk-card">
-            <div class="perk-icon">{{ perk.icon }}</div>
-            <h3 class="perk-title">{{ perk.title }}</h3>
-            <p class="perk-desc">{{ perk.desc }}</p>
-          </div>
+          <pp-feature-card [item]="perk" />
         </div>
       }
     </div>
@@ -106,65 +48,25 @@
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     FAQ
-══════════════════════════════════════════════════════ -->
+<!-- FAQ -->
 <section class="faq-section section-pad" id="faq">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-lg-8">
 
-        <div class="text-md-center mb-4 mb-md-5 fade-in-up">
-          <div class="eyebrow center">FAQ</div>
-          <h2 class="section-title">Common <em>questions</em></h2>
-        </div>
+        <pp-section-header eyebrow="FAQ" align="center">
+          <span ppTitle>Common <em>questions</em></span>
+        </pp-section-header>
 
-        <div class="faq-list fade-in-up">
-          @for (item of faq; track item.q; let i = $index) {
-            <div class="faq-item" [class.open]="openFaq() === i">
-
-              <button class="faq-question" (click)="toggleFaq(i)">
-                <span>{{ item.q }}</span>
-                <div class="faq-icon" [class.rotated]="openFaq() === i">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8"
-                          stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </button>
-
-              @if (openFaq() === i) {
-                <div class="faq-answer">{{ item.a }}</div>
-              }
-
-            </div>
-          }
-        </div>
+        <pp-accordion [items]="faq" />
 
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     CTA BANNER
-══════════════════════════════════════════════════════ -->
-<section class="cta-section section-pt-sm section-pb">
-  <div class="container">
-    <div class="cta-card fade-in-up">
-      <div class="cta-leaf">🌿</div>
-      <div class="row align-items-center">
-        <div class="col-lg-8">
-          <div class="eyebrow">Start today</div>
-          <h2 class="cta-title">Your pet's best grooming routine <em>awaits</em></h2>
-          <p class="cta-sub">
-            Join 500+ happy pet parents · Cancel anytime · No lock-in
-          </p>
-        </div>
-        <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-          <a class="btn-pp-accent" routerLink="/membership" fragment="plans">Choose a plan →</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+<pp-cta-banner eyebrow="Start today" surface="tinted">
+  <span ppTitle>Your pet's best grooming routine <em>awaits</em></span>
+  <span ppText>Join 500+ happy pet parents · Cancel anytime · No lock-in</span>
+  <a ppAction class="btn-pp-accent" routerLink="/membership" fragment="plans">Choose a plan →</a>
+</pp-cta-banner>

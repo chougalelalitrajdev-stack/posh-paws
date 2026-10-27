@@ -1,0 +1,41 @@
+// Footer
+
+// ── Footer ────────────────────────────────────────────────────
+.pp-footer {
+  background: var(--pp-footer-bg);
+  padding: var(--space-16) 0 var(--space-8);
+  color: var(--pp-on-dark-muted);
+}
+
+.footer-brand    { font-family: var(--ff-serif); font-size: var(--fs-3xl); color: var(--pp-on-primary); margin-bottom: 8px; }
+.footer-tagline  { font-size: var(--fs-sm); color: var(--pp-on-dark-muted); letter-spacing: .5px; margin-bottom: 24px; }
+.footer-link     { color: var(--pp-on-dark-muted); text-decoration: none; font-size: var(--fs-sm); display: block; margin-bottom: 10px; transition: color var(--transition); &:hover { color: var(--pp-accent); } }
+.footer-label    { font-size: var(--fs-xs); letter-spacing: 2px; text-transform: uppercase; color: var(--pp-on-dark-subtle); margin-bottom: 16px; font-weight: 500; }
+.footer-divider  { border-color: var(--pp-on-dark-faint); margin: 40px 0 24px; }
+.footer-bottom   { font-size: var(--fs-sm); color: var(--pp-on-dark-subtle); }
+
+.footer-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--pp-whatsapp);
+  color: var(--pp-on-primary);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity var(--transition);
+
+  &:hover { opacity: .9; color: var(--pp-on-primary); }
+}
+
+// Footer links need a 44px tap target on touch layouts.
+@media (max-width: 991.98px) {
+  .footer-link {
+    display: flex;
+    align-items: center;
+    min-height: var(--tap-target-min);
+    margin-bottom: 0;
+  }
+}

@@ -1,0 +1,99 @@
+// Bottom sheet / dialog
+
+// ── Bottom sheet / modal dialog (mobile-first) ──────────────────
+//    Slides up from the bottom on phones; can be centered as a
+//    conventional dialog at tablet/desktop widths by the component
+//    (add/remove a modifier class there — this file only supplies
+//    the mobile sheet look, which also reads fine on larger screens).
+//
+//    Usage:
+//    <div class="pp-sheet-backdrop" (click)="close()">
+//      <div class="pp-sheet" (click)="$event.stopPropagation()">
+//        <div class="pp-sheet-handle"></div>
+//        <div class="pp-sheet-header">...</div>
+//        <div class="pp-sheet-body">...</div>
+//      </div>
+//    </div>
+.pp-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet-backdrop);
+  background: rgba(0, 0, 0, .45);
+  animation: fadeInUp .2s ease both;
+}
+
+.pp-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sheet);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--pp-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-6) calc(var(--space-6) + var(--safe-bottom));
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: sheetUp .25s ease both;
+
+  // On tablet/desktop, present as a centered dialog instead of a
+  // bottom sheet — same markup, no component-side variant needed.
+  @media (min-width: 768px) {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius-lg);
+    animation: dialogIn .2s ease both;
+  }
+}
+
+.pp-sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--pp-border-strong);
+  margin: var(--space-2) auto var(--space-4);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.pp-sheet-header {
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+
+.pp-sheet-title { font-family: var(--ff-serif); font-size: var(--fs-xl); font-weight: 500; color: var(--pp-text); margin-bottom: var(--space-1); }
+.pp-sheet-sub   { font-size: var(--fs-sm); color: var(--pp-muted); }
+
+.pp-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+// Shared "success" state layout for any dialog (booking, subscribe, ...)
+.pp-dialog-success {
+  text-align: center;
+  align-items: center;
+}
+
+.pp-dialog-success-emoji {
+  font-size: 44px;
+  margin-bottom: var(--space-2);
+}
+
+// Shared inline info/note box for any dialog step
+.pp-dialog-note {
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+  line-height: 1.6;
+}

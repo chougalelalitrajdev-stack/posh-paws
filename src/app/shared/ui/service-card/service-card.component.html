@@ -1,0 +1,19 @@
+<article class="svc" [class.svc-list]="layout() === 'list'">
+  <div class="svc-icon">{{ service().icon }}</div>
+  <h3 class="svc-name">{{ service().name }}</h3>
+  <p class="svc-desc">{{ service().description }}</p>
+
+  <div class="svc-meta">
+    <span class="svc-price">{{ service().pricePaise | inr }}</span>
+    <span class="svc-duration">{{ service().durationMinutes | duration }}</span>
+  </div>
+
+  @if (showBook()) {
+    <button
+      class="btn-pp-outline svc-book"
+      type="button"
+      [attr.aria-label]="'Book ' + service().name"
+      (click)="book.emit(service())"
+    >Book</button>
+  }
+</article>

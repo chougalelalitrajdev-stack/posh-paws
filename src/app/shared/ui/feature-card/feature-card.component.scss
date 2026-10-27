@@ -1,0 +1,27 @@
+:host { display: block; height: 100%; }
+
+.feature {
+  height: 100%;
+  background: var(--pp-card-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  transition: transform var(--transition), box-shadow var(--transition);
+
+  @media (hover: hover) { &:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); } }
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--space-6);
+  background: var(--pp-primary-light);
+  border-radius: 14px;
+  font-size: var(--fs-xl);
+}
+
+.feature-title { margin: 0 0 var(--space-3); font-family: var(--ff-serif); font-size: var(--fs-lg); font-weight: 500; color: var(--pp-text); }
+.feature-text  { margin: 0; font-size: var(--fs-sm); line-height: var(--lh-body); color: var(--pp-muted); text-wrap: pretty; }

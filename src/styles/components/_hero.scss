@@ -1,0 +1,56 @@
+// Home hero
+
+// ── Hero section ──────────────────────────────────────────────
+.hero-section {
+  min-height: 92vh;
+  background: var(--pp-bg);
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-20) 0 60px;
+}
+
+.hero-bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--pp-sand);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+  border-radius: var(--radius-pill);
+  padding: 6px var(--space-4);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--pp-focus-ring);
+}
+
+.hero-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pp-primary);
+  animation: pulse 2s infinite;
+}
+
+.hero-stats {
+  display: flex;
+  gap: var(--space-8);
+  margin-top: 44px;
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--pp-border);
+}
+.hero-stat-num {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-3xl);
+  color: var(--pp-primary);
+  font-weight: 500;
+}
+.hero-stat-label { font-size: var(--fs-xs); color: var(--pp-muted); }

@@ -1,75 +1,7 @@
-// ── Typography ────────────────────────────────────────────────
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: var(--pp-accent);
-  font-weight: 500;
-  margin-bottom: 14px;
-
-  &::before {
-    content: '';
-    width: 28px;
-    height: 1.5px;
-    background: var(--pp-accent);
-    border-radius: 2px;
-  }
-
-  &.eyebrow-light {
-    color: rgba(255, 255, 255, 0.6);
-    &::before { background: rgba(255, 255, 255, 0.4); }
-  }
-}
-
-.section-title {
-  font-family: var(--ff-serif);
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
-  font-weight: 500;
-  color: var(--pp-text);
-  line-height: 1.2;
-  letter-spacing: -0.3px;
-
-  em { font-style: italic; color: var(--pp-primary); }
-
-  &.section-title-light { color: #fff; }
-}
-
-.em-accent { color: var(--pp-accent) !important; }
-
-.section-sub {
-  font-size: 15px;
-  color: var(--pp-muted);
-  line-height: 1.8;
-}
+// Home-only styles. Anything shared lives in src/styles or src/app/shared/ui.
 
 // ── Hero ──────────────────────────────────────────────────────
 
-.hero-headline {
-  font-family: var(--ff-serif);
-  font-size: clamp(2.375rem, 5.5vw, 4.25rem);
-  font-weight: 500;
-  line-height: 1.1;
-  color: var(--pp-text);
-  letter-spacing: -0.5px;
-  margin-bottom: 20px;
-
-  em    { font-style: italic; color: var(--pp-primary); }
-  span  { display: block; }
-}
-
-.hero-sub {
-  font-size: 16px;
-  color: var(--pp-muted);
-  line-height: 1.8;
-  margin-bottom: 36px;
-  max-width: 460px;
-}
-
-// Background circle positions (base style in _components.scss)
 .hero-bg-c1 { width: 600px; height: 600px; right: -120px; top: -100px; opacity: 0.50; }
 .hero-bg-c2 { width: 400px; height: 400px; right:   40px; top:   30px; opacity: 0.35; }
 .hero-bg-c3 { width: 200px; height: 200px; right:  180px; top:  160px; opacity: 0.25; }
@@ -120,19 +52,19 @@
 
 .hero-img-inner   { font-size: 120px; line-height: 1; }
 .hero-img-caption {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--pp-muted);
   letter-spacing: 1px;
   text-transform: uppercase;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 // Floating info cards
 .hero-float-card {
   position: absolute;
-  background: #fff;
+  background: var(--pp-card-bg);
   border-radius: var(--radius);
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--pp-border);
 }
@@ -140,106 +72,9 @@
 .fc-1 { bottom: 80px; left:  -20px; min-width: 160px; }
 .fc-2 { top:    80px; right: -20px; min-width: 140px; }
 
-.float-card-label { font-size: 12px; color: var(--pp-muted); letter-spacing: 0.5px; margin-bottom: 2px; }
-.float-card-val   { font-size: 14px; font-weight: 600; color: var(--pp-text); }
-.float-card-sub   { font-size: 12px; color: var(--pp-primary); }
-
-// ── Services ──────────────────────────────────────────────────
-
-.pet-tab-wrap {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 40px;
-}
-
-// ── How it works ──────────────────────────────────────────────
-
-.step-card {
-  display: flex;
-  gap: 20px;
-  padding: 28px 24px;
-  background: var(--pp-bg);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--pp-border);
-  margin-bottom: 16px;
-  transition: box-shadow var(--transition), transform var(--transition);
-
-  &:hover { box-shadow: var(--shadow-md); transform: translateX(4px); }
-}
-
-.step-num {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  background: var(--pp-primary-light);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--ff-serif);
-  font-size: 22px;
-  color: var(--pp-primary);
-  font-weight: 600;
-}
-
-.step-title { font-family: var(--ff-serif); font-size: 20px; font-weight: 500; margin-bottom: 4px; color: var(--pp-text); }
-.step-desc  { font-size: 13px; color: var(--pp-muted); line-height: 1.7; margin: 0; }
-
-.how-visual {
-  background: var(--pp-primary);
-  border-radius: var(--radius-lg);
-  padding: 48px 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  @media (max-width: 767.98px) { padding: 32px 24px; }
-}
-
-.how-visual-title {
-  font-family: var(--ff-serif);
-  font-size: 32px;
-  color: #fff;
-  font-weight: 500;
-  margin-bottom: 8px;
-
-  em { font-style: italic; color: var(--pp-accent); }
-}
-
-.how-visual-sub {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 14px;
-  margin-bottom: 32px;
-}
-
-.how-feature {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-
-  &:last-child { border-bottom: none; }
-}
-
-.how-feature-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.how-feature-text {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
-
-  strong { color: #fff; display: block; font-size: 15px; margin-bottom: 1px; }
-}
+.float-card-label { font-size: var(--fs-xs); color: var(--pp-muted); letter-spacing: 0.5px; margin-bottom: 2px; }
+.float-card-val   { font-size: var(--fs-sm); font-weight: 600; color: var(--pp-text); }
+.float-card-sub   { font-size: var(--fs-xs); color: var(--pp-primary); }
 
 // ── About ─────────────────────────────────────────────────────
 
@@ -254,8 +89,10 @@
   font-size: 100px;
 }
 
+.pp-hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+
 .about-body {
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--pp-muted);
   line-height: 1.9;
 }
@@ -264,7 +101,7 @@
 
 .gallery-strip { background: var(--pp-primary); }
 
-.gallery-card {
+.gallery-tile {
   background: var(--pp-surface);
   border-radius: var(--radius);
   height: 200px;
@@ -280,58 +117,34 @@
   &:hover { transform: scale(1.03); }
 }
 
-// ── Testimonials ──────────────────────────────────────────────
-
-
 // ── Mobile ────────────────────────────────────────────────────
 
 @media (max-width: 767.98px) {
-  .hero-section { min-height: auto; padding: 28px 0 40px; }
-  .hero-badge   { margin-bottom: 16px; }
-  .hero-headline { margin-bottom: 14px; }
-  .hero-sub     { font-size: 15px; line-height: 1.7; margin-bottom: 24px; }
+  .hero-section { min-height: auto; padding: var(--space-6) 0 var(--space-10); }
+  .hero-badge   { margin-bottom: var(--space-4); }
+  .hero-headline { margin-bottom: var(--space-3); }
+  .hero-sub     { font-size: var(--fs-base); line-height: var(--lh-body); margin-bottom: var(--space-6); }
 
   .pp-hero-cta {
     flex-direction: column;
-    gap: 12px !important;
 
     > * { width: 100%; justify-content: center; }
   }
 
   .hero-stats {
-    gap: 12px;
+    gap: var(--space-3);
     justify-content: space-between;
-    margin-top: 28px;
-    padding-top: 20px;
+    margin-top: var(--space-8);
+    padding-top: var(--space-5);
   }
-  .hero-stat-num { font-size: 24px; }
+  .hero-stat-num { font-size: var(--fs-2xl); }
 
-  .pet-tab-wrap { margin-bottom: 20px; }
-  .pet-tab { flex: 1; justify-content: center; min-height: var(--tap-target-min); }
+  .about-img-card { height: 180px; font-size: 4.5rem; }
+  .about-body     { line-height: 1.75; }
 
-  .service-card, .testimonial-card, .plan-card { padding: 24px 20px; }
-  .service-card:hover { transform: none; }
-  .service-icon { margin-bottom: 14px; }
-  .service-name { font-size: 20px; }
-
-  .step-card { padding: 16px; gap: 14px; margin-bottom: 12px; }
-  .step-card:hover { transform: none; }
-  .step-num   { width: 40px; height: 40px; font-size: 18px; border-radius: 12px; }
-  .step-title { font-size: 18px; }
-
-  .how-visual-title { font-size: 26px; }
-  .how-visual-sub   { margin-bottom: 16px; }
-  .how-visual .how-feature:nth-of-type(n+5) { display: none; }
-
-  .about-img-card { height: 180px; font-size: 72px; }
-  .about-body     { line-height: 1.75; margin-bottom: 16px !important; }
-
-  .gallery-card { height: 140px; font-size: 44px; }
-
-  .plan-card.featured { transform: none; }
+  .gallery-tile { height: 140px; font-size: 2.75rem; }
 }
 
-// Pointer devices only: lift cards on hover.
 @media (hover: none) {
-  .gallery-card:hover { transform: none; }
+  .gallery-tile:hover { transform: none; }
 }

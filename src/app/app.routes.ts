@@ -1,3 +1,4 @@
+import { isDevMode } from '@angular/core';
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 
@@ -36,4 +37,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./pages/pet-details/pet-details.component').then(m => m.PetDetailsComponent),
   },
+
+  // Development-only reference page; not registered in production builds.
+  ...(isDevMode()
+    ? [{
+        path: 'styleguide',
+        loadComponent: () => import('./pages/styleguide/styleguide.component').then(m => m.StyleguideComponent),
+      }]
+    : []),
 ];

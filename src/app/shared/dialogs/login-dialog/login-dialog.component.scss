@@ -1,0 +1,15 @@
+.login-field { margin-bottom: var(--space-4); }
+
+.login-code-input {
+  text-align: center;
+  font-size: var(--fs-2xl);
+  letter-spacing: 0.4em;
+}
+
+.login-optional { color: var(--pp-subtle); font-weight: 400; }
+
+.login-error {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--pp-accent-dark);
+}

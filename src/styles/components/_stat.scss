@@ -1,0 +1,17 @@
+// Big-number stat
+
+// ── Stat display (large number + label) ──────────────────────
+.stat-big {
+  font-family: var(--ff-serif);
+  font-size: clamp(2.5rem, 5vw, 3rem);   // 40px → 48px fluid
+  color: var(--pp-primary);
+  font-weight: 500;
+  line-height: 1;
+  margin-bottom: var(--space-1);
+}
+
+.stat-label {
+  font-size: var(--fs-sm);   // 13px
+  color: var(--pp-muted);
+  letter-spacing: 0.3px;
+}

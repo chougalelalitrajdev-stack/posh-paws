@@ -1,19 +1,7 @@
 import { Injectable, signal } from '@angular/core';
+import { PlanItem } from '../catalog/catalog.models';
 
 export type SubscribeDialogStep = 'confirm' | 'payment' | 'success';
-
-export interface SubscribePlanFeature {
-  text: string;
-  included: boolean;
-}
-
-export interface SubscribePlanSummary {
-  name: string;
-  tagline: string;
-  price: string;
-  period: string;
-  features: SubscribePlanFeature[];
-}
 
 /**
  * Drives the global "Subscribe to a plan" dialog — mirrors
@@ -24,9 +12,9 @@ export interface SubscribePlanSummary {
 export class SubscribeDialogService {
   readonly isOpen = signal(false);
   readonly step = signal<SubscribeDialogStep>('confirm');
-  readonly plan = signal<SubscribePlanSummary | null>(null);
+  readonly plan = signal<PlanItem | null>(null);
 
-  open(plan: SubscribePlanSummary): void {
+  open(plan: PlanItem): void {
     this.plan.set(plan);
     this.step.set('confirm');
     this.isOpen.set(true);

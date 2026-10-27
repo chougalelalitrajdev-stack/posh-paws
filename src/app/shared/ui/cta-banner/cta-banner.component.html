@@ -1,0 +1,17 @@
+<section class="pp-cta" [class.is-tinted]="surface() === 'tinted'">
+  <div class="container">
+    <div class="pp-cta-card fade-in-up">
+      <span class="pp-cta-mark" aria-hidden="true"><pp-icon name="paw" [size]="200" /></span>
+
+      <div class="pp-cta-grid">
+        <div class="pp-cta-copy">
+          <div class="eyebrow">{{ eyebrow() }}</div>
+          <h2 class="pp-cta-title"><ng-content select="[ppTitle]" /></h2>
+          <p class="pp-cta-text"><ng-content select="[ppText]" /></p>
+        </div>
+
+        <div class="pp-cta-action"><ng-content select="[ppAction]" /></div>
+      </div>
+    </div>
+  </div>
+</section>

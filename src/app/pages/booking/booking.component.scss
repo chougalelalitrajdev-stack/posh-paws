@@ -1,38 +1,5 @@
-// ── Typography ────────────────────────────────────────────────
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: var(--pp-accent);
-  font-weight: 500;
-  margin-bottom: 14px;
-
-  &::before {
-    content: '';
-    width: 28px;
-    height: 1.5px;
-    background: var(--pp-accent);
-    border-radius: 2px;
-  }
-}
-
-.section-title {
-  font-family: var(--ff-serif);
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
-  font-weight: 500;
-  color: var(--pp-text);
-  line-height: 1.2;
-  letter-spacing: -0.3px;
-
-  em { font-style: italic; color: var(--pp-primary); }
-}
-
 .booking-sub {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   color: var(--pp-muted);
 }
 
@@ -40,29 +7,23 @@
 
 .pet-selector {
   display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
-.pet-option-icon  { font-size: 36px; margin-bottom: 6px; }
-.pet-option-label { font-size: 14px; font-weight: 500; color: var(--pp-text); }
+.pet-option-icon  { font-size: var(--fs-5xl); margin-bottom: 6px; }
+.pet-option-label { font-size: var(--fs-sm); font-weight: 500; color: var(--pp-text); }
 
 // ── Form helpers ──────────────────────────────────────────────
 
 .pp-input-group { margin-bottom: 20px; }
 
-.required-dot {
-  color: var(--pp-accent);
-  font-size: 14px;
-  line-height: 1;
-}
-
 .optional-tag {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: 0.5px;
   color: var(--pp-subtle);
   font-weight: 400;
-  margin-left: 4px;
+  margin-left: var(--space-1);
 }
 
 // ── Service summary pill (step 1) ─────────────────────────────
@@ -74,18 +35,18 @@
   background: var(--pp-primary-light);
   border: 1px solid var(--pp-focus-ring);
   border-radius: var(--radius);
-  padding: 12px 16px;
-  margin-bottom: 24px;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
-.service-pill-name  { font-size: 13px; font-weight: 500; color: var(--pp-primary); }
-.service-pill-price { font-family: var(--ff-serif); font-size: 18px; color: var(--pp-primary); font-weight: 500; }
+.service-pill-name  { font-size: var(--fs-sm); font-weight: 500; color: var(--pp-primary); }
+.service-pill-price { font-family: var(--ff-serif); font-size: var(--fs-lg); color: var(--pp-primary); font-weight: 500; }
 
 // ── Validation hint ───────────────────────────────────────────
 
 .field-hint {
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--pp-muted);
   margin-top: 10px;
   margin-bottom: 0;
@@ -102,8 +63,8 @@
   border: 1px solid var(--pp-border);
   border-radius: var(--radius);
   padding: 10px 14px;
-  margin-bottom: 24px;
-  font-size: 13px;
+  margin-bottom: var(--space-6);
+  font-size: var(--fs-sm);
 }
 
 .context-pet   { font-weight: 600; color: var(--pp-text); }
@@ -115,7 +76,7 @@
   margin-left: auto;
   background: none;
   border: none;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--pp-primary);
   font-weight: 500;
   cursor: pointer;
@@ -130,7 +91,7 @@
 
 .date-shortcuts {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 10px;
 }
 
@@ -139,7 +100,7 @@
   border-radius: var(--radius-pill);
   border: 1.5px solid var(--pp-border);
   background: var(--pp-bg);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--pp-muted);
   cursor: pointer;
@@ -147,7 +108,7 @@
   font-family: var(--ff-sans);
 
   &:hover  { border-color: var(--pp-primary); color: var(--pp-primary); }
-  &.active { background: var(--pp-primary); border-color: var(--pp-primary); color: #fff; }
+  &.active { background: var(--pp-primary); border-color: var(--pp-primary); color: var(--pp-on-primary); }
 }
 
 // ── Slot groups ───────────────────────────────────────────────
@@ -162,7 +123,7 @@
 }
 
 .slot-group-label {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--pp-muted);
   letter-spacing: 0.5px;
@@ -170,7 +131,7 @@
 }
 
 .slot-group-count {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--pp-primary);
   font-weight: 500;
   background: var(--pp-primary-light);
@@ -181,7 +142,7 @@
 .slot-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: var(--space-2);
 
   @media (max-width: 575.98px) { grid-template-columns: repeat(3, 1fr); }
 }
@@ -191,10 +152,10 @@
 .slot-legend {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 12px;
+  gap: var(--space-4);
+  font-size: var(--fs-xs);
   color: var(--pp-muted);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -206,12 +167,12 @@
   border-radius: var(--radius);
   border: 1.5px solid var(--pp-border);
   background: var(--pp-bg);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--pp-text);
 
   &.unavailable { opacity: 0.4; text-decoration: line-through; }
-  &.selected    { background: var(--pp-primary); color: #fff; border-color: var(--pp-primary); }
+  &.selected    { background: var(--pp-primary); color: var(--pp-on-primary); border-color: var(--pp-primary); }
 }
 
 // ── Confirm summary ───────────────────────────────────────────
@@ -220,15 +181,15 @@
   background: var(--pp-surface);
   border-radius: var(--radius);
   border: 1px solid var(--pp-border);
-  padding: 24px;
-  margin-bottom: 16px;
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .confirm-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-3);
   padding-bottom: 14px;
   margin-bottom: 14px;
 
@@ -236,21 +197,21 @@
   &:last-child  { padding-bottom: 0; margin-bottom: 0; }
 }
 
-.confirm-label    { font-size: 13px; color: var(--pp-muted); flex-shrink: 0; }
-.confirm-val      { font-size: 14px; font-weight: 500; color: var(--pp-text); text-align: right; }
+.confirm-label    { font-size: var(--fs-sm); color: var(--pp-muted); flex-shrink: 0; }
+.confirm-val      { font-size: var(--fs-sm); font-weight: 500; color: var(--pp-text); text-align: right; }
 .confirm-breed    { font-weight: 400; color: var(--pp-muted); }
-.confirm-pay-label { font-size: 13px; font-weight: 600; color: var(--pp-primary); }
-.confirm-pay-val  { font-family: var(--ff-serif); font-size: 20px; font-weight: 700; color: var(--pp-primary); }
+.confirm-pay-label { font-size: var(--fs-sm); font-weight: 600; color: var(--pp-primary); }
+.confirm-pay-val  { font-family: var(--ff-serif); font-size: var(--fs-xl); font-weight: 700; color: var(--pp-primary); }
 
 // ── Refund note ───────────────────────────────────────────────
 
 .refund-note {
-  background: #FFF8F0;
-  border: 1px solid #FDECD7;
+  background: var(--pp-accent-light);
+  border: 1px solid var(--pp-border);
   border-radius: var(--radius);
   padding: 14px 18px;
-  margin-bottom: 24px;
-  font-size: 13px;
+  margin-bottom: var(--space-6);
+  font-size: var(--fs-sm);
   color: var(--pp-muted);
   line-height: 1.6;
 }
@@ -261,17 +222,17 @@
 
 .success-msg {
   color: var(--pp-muted);
-  font-size: 14px;
-  margin-bottom: 24px;
+  font-size: var(--fs-sm);
+  margin-bottom: var(--space-6);
   line-height: 1.8;
 }
 
 .success-address {
   background: var(--pp-primary-light);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: var(--space-5);
   margin-bottom: 28px;
 }
 
-.success-address-name { font-size: 13px; color: var(--pp-primary); font-weight: 500; margin-bottom: 4px; }
-.success-address-note { font-size: 13px; color: var(--pp-primary); }
+.success-address-name { font-size: var(--fs-sm); color: var(--pp-primary); font-weight: 500; margin-bottom: 4px; }
+.success-address-note { font-size: var(--fs-sm); color: var(--pp-primary); }

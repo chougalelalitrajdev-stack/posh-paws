@@ -1,0 +1,19 @@
+<section class="pp-hero" [class.on-dark]="tone() === 'dark'" [class.is-split]="layout() === 'split'">
+  <div class="pp-hero-ring pp-hero-ring-1"></div>
+  <div class="pp-hero-ring pp-hero-ring-2"></div>
+
+  <div class="container pp-hero-body">
+    <div class="pp-hero-main">
+      <div class="pp-hero-copy fade-in-up delay-1">
+        <div class="eyebrow" [class.center]="layout() === 'center'">{{ eyebrow() }}</div>
+        <h1 class="hero-headline"><ng-content select="[ppTitle]" /></h1>
+        <p class="hero-sub"><ng-content select="[ppLead]" /></p>
+        <div class="pp-hero-actions"><ng-content select="[ppActions]" /></div>
+      </div>
+
+      <div class="pp-hero-visual fade-in-up delay-2"><ng-content select="[ppVisual]" /></div>
+    </div>
+
+    <ng-content select="[ppFooter]" />
+  </div>
+</section>

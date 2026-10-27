@@ -1,0 +1,14 @@
+// Sticky CTA bar (unused so far; for checkout)
+
+// ── Sticky CTA bar (mobile) ──────────────────────────────────────
+//    A single primary action pinned to the bottom of the viewport
+//    on a page/flow (e.g. above the bottom nav on a detail screen).
+.pp-sticky-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 900;
+  background: var(--pp-bg);
+  border-top: 1px solid var(--pp-border);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + var(--safe-bottom));
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, .05);
+}

@@ -1,0 +1,64 @@
+// Mobile bottom tab bar
+
+// ── Bottom navigation (mobile) ──────────────────────────────────
+//    Fixed tab bar for phone widths. Hidden at tablet/desktop —
+//    pages add `--bottom-nav-total-height` as scroll/padding space
+//    only while this bar is visible (handled per-page, Task 3+).
+//
+//    Usage:
+//    <nav class="pp-bottom-nav">
+//      <a class="pp-bottom-nav-item" [class.active]="...">
+//        <span class="pp-bottom-nav-icon">🏠</span>
+//        <span class="pp-bottom-nav-label">Home</span>
+//      </a>
+//      ...
+//    </nav>
+.pp-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-bottom-nav);
+  display: flex;
+  background: var(--pp-navbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--pp-border);
+  height: var(--bottom-nav-total-height);
+  padding-bottom: var(--safe-bottom);
+
+  @media (min-width: 992px) {
+    display: none;
+  }
+}
+
+.pp-bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--tap-target-min);
+  color: var(--pp-muted);
+  text-decoration: none;
+  font-family: var(--ff-sans);
+  transition: color var(--transition);
+
+  &.active,
+  &:hover { color: var(--pp-primary); }
+}
+
+.pp-bottom-nav-icon  { font-size: var(--fs-xl); line-height: 1; }
+.pp-bottom-nav-label { font-size: var(--fs-xs); font-weight: 500; }
+
+// ── Phones held sideways (short screens) ──────────────────────
+//    Reclaim vertical space: the top bar scrolls away and the tab bar gets slimmer.
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --navbar-height-mobile: 0px;
+    --bottom-nav-height: 48px;
+  }
+
+  .pp-bottom-nav-item { flex-direction: row; gap: var(--space-2); }
+}

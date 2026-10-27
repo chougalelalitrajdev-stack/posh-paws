@@ -1,67 +1,14 @@
-// ─────────────────────────────────────────────────────────────
-//  services.component.scss
-//
-//  Only page-layout styles live here.
-//  - Section padding  →  var(--section-y-*) from _tokens.scss
-//  - Internal spacing →  var(--space-*) / rem from _tokens.scss
-//  - Shared UI        →  classes from _components.scss (never duplicate)
-//
-//  SECTION MAP
-//  1. Host & page hero
-//  2. Services grid
-//  3. How it works
-//  4. CTA banner
-//  5. Responsive overrides
-// ─────────────────────────────────────────────────────────────
+// Services-only styles. Hero, cards, headers and CTA come from src/app/shared/ui.
 
-// Clip any overflow at the component boundary — prevents horizontal
-// scroll from absolutely positioned decorations or hover transforms.
+// Clip (not hidden): hidden would make the host a scroll container and break the sticky tab bar.
 :host {
   display: block;
-  overflow-x: clip; // clip, not hidden: hidden would make this a scroll container and break sticky children
+  overflow-x: clip;
 }
 
-// ── 1. Page hero ──────────────────────────────────────────────
-.page-hero {
-  background: var(--pp-bg);
-  padding: var(--section-y-sm) 0 var(--section-y) 0;
-  position: relative;
-  overflow: hidden;
-}
+.services-section { background: var(--pp-surface); }
 
-// Decorative rings — min() keeps them inside the viewport on small screens
-.hero-deco-circle {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid var(--pp-sand);
-  pointer-events: none;
-
-  &.c1 {
-    width:   min(520px, 70vw);
-    height:  min(520px, 70vw);
-    right:  -80px;
-    top:   -120px;
-    opacity: .45;
-  }
-
-  &.c2 {
-    width:  min(320px, 45vw);
-    height: min(320px, 45vw);
-    right:  60px;
-    top:   -20px;
-    opacity: .3;
-  }
-}
-
-.hero-sub {
-  font-size: 1rem;        // 16px in rem — scales with user settings
-  color: var(--pp-muted);
-  line-height: 1.8;
-  margin-bottom: var(--space-10);
-  max-width: 480px;
-}
-
-// Right-column blob visual (desktop only — column is d-none d-lg-block)
+// ── Hero picture (desktop only, projected into <pp-page-hero>) ─
 .hero-pet-wrap {
   position: relative;
   display: flex;
@@ -71,307 +18,46 @@
 }
 
 .hero-pet-blob {
-  width:  380px;
-  height: 420px;
-  background: var(--pp-surface);
-  border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%;
-  border: 2px solid var(--pp-sand);
-  box-shadow: var(--shadow-lg);
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 380px;
+  height: 420px;
+  background: var(--pp-surface);
+  border: 2px solid var(--pp-sand);
+  border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%;
+  box-shadow: var(--shadow-lg);
   animation: morphBlob 8s ease-in-out infinite;
 }
 
-.hero-pet-inner {
-  font-size: 6.25rem;   // 100px — decorative, fixed size is intentional
-  text-align: center;
-  line-height: 1;
-}
+.hero-pet-inner { font-size: 6.25rem; line-height: 1; text-align: center; }
 
 .hero-stat-pill {
   position: absolute;
-  background: white;
-  border-radius: var(--radius);
-  border: 1px solid var(--pp-border);
-  padding: var(--space-3) var(--space-5);
-  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  padding: var(--space-3) var(--space-5);
+  background: var(--pp-card-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
   animation: floatUp 3s ease-in-out infinite;
 
-  &.pill-1 { bottom: var(--space-12); left: -10px;  animation-delay: 0s; }
-  &.pill-2 { top:    var(--space-12); right: -10px; animation-delay: 1.5s; }
+  &.pill-1 { bottom: var(--space-12); left: -10px; }
+  &.pill-2 { top: var(--space-12); right: -10px; animation-delay: 1.5s; }
 }
 
-.pill-val {
-  font-family: var(--ff-serif);
-  font-size: 1.125rem;    // 18px
-  color: var(--pp-primary);
-  font-weight: 500;
-  line-height: 1;
-}
+.pill-val { font-family: var(--ff-serif); font-size: var(--fs-lg); font-weight: 500; line-height: 1; color: var(--pp-primary); }
+.pill-lbl { font-size: var(--fs-xs); letter-spacing: .3px; color: var(--pp-muted); }
 
-.pill-lbl {
-  font-size: 0.75rem;   // 11px
-  color: var(--pp-muted);
-  letter-spacing: 0.3px;
-}
-
-// ── 2. Services grid ──────────────────────────────────────────
-// Section padding via global utility class: class="section-pad"
-// Background set here; padding comes from .section-pad in template
-.services-section {
+// ── Phone tab bar ─────────────────────────────────────────────
+.pp-sticky-tabs {
+  position: sticky;
+  top: var(--navbar-height-mobile);
+  z-index: 5;
+  margin: 0 calc(var(--space-3) * -1) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   background: var(--pp-surface);
-}
-
-.pet-tab-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-// ── 3. How it works ───────────────────────────────────────────
-// Section padding via global utility class: class="section-pad"
-.how-section {
-  background: var(--pp-bg);
-}
-
-.step-card {
-  display: flex;
-  gap: var(--space-5);
-  padding: var(--space-8) var(--space-6);
-  background: white;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--pp-border);
-  margin-bottom: var(--space-4);
-  transition: box-shadow var(--transition), transform var(--transition);
-
-  &:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-3px);   // vertical only — never translateX (causes mobile scroll)
-  }
-}
-
-.step-num {
-  width: 3rem;      // 48px
-  height: 3rem;
-  flex-shrink: 0;
-  background: var(--pp-primary-light);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--ff-serif);
-  font-size: 1.375rem;   // 22px
-  color: var(--pp-primary);
-  font-weight: 600;
-}
-
-.step-title {
-  font-family: var(--ff-serif);
-  font-size: 1.25rem;    // 20px
-  font-weight: 500;
-  margin-bottom: var(--space-1);
-  color: var(--pp-text);
-}
-
-.step-desc {
-  font-size: 0.8125rem;  // 13px
-  color: var(--pp-muted);
-  line-height: 1.7;
-  margin: 0;
-}
-
-// Green feature panel
-.how-visual {
-  background: var(--pp-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-16) var(--space-12);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.how-visual-title {
-  font-family: var(--ff-serif);
-  font-size: clamp(1.5rem, 3vw, 2rem);   // 24px → 32px fluid
-  color: white;
-  font-weight: 500;
-  margin-bottom: var(--space-2);
-  line-height: 1.2;
-
-  em { font-style: italic; color: var(--pp-accent); }
-}
-
-.how-visual-sub {
-  color: rgba(255, 255, 255, .65);
-  font-size: 0.875rem;    // 14px
-  margin-bottom: var(--space-8);
-}
-
-.how-feature {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  padding: var(--space-4) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, .1);
-
-  &:last-child { border-bottom: none; }
-}
-
-.how-feature-icon {
-  width: 2.5rem;    // 40px
-  height: 2.5rem;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, .1);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;   // 20px
-}
-
-.how-feature-text {
-  font-size: 0.875rem;   // 14px
-  color: rgba(255, 255, 255, .8);
-
-  strong {
-    color: white;
-    display: block;
-    font-size: 0.9375rem;  // 15px
-    margin-bottom: 1px;
-  }
-}
-
-// ── 4. CTA banner ─────────────────────────────────────────────
-// Section padding via global utility class: class="section-pad-sm section-pb"
-.cta-section {
-  background: var(--pp-surface);
-}
-
-.cta-card {
-  background: white;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--pp-border);
-  padding: var(--space-16) var(--space-14);
-  position: relative;
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-
-.cta-leaf {
-  position: absolute;
-  font-size: 11.25rem;   // 180px — decorative, fixed is intentional
-  opacity: .04;
-  pointer-events: none;
-  user-select: none;
-  right: -20px;
-  bottom: -30px;
-  transform: rotate(20deg);
-  line-height: 1;
-}
-
-.cta-title {
-  font-family: var(--ff-serif);
-  font-size: clamp(1.375rem, 3.5vw, 2.5rem);   // 22px → 40px fluid
-  font-weight: 500;
-  color: var(--pp-text);
-  line-height: 1.2;
-  margin-bottom: var(--space-3);
-
-  em { font-style: italic; color: var(--pp-primary); }
-}
-
-.cta-sub {
-  font-size: 0.875rem;   // 14px
-  color: var(--pp-muted);
-  margin-bottom: 0;
-}
-
-// ── 5. Responsive overrides ───────────────────────────────────
-//  Only override what the global section-y clamp() can't handle alone.
-//  Most vertical spacing is already fluid — these fix layout-specific
-//  issues at specific viewport widths.
-
-// phones under 768px
-@media (max-width: 767.98px) {
-  .page-hero { padding: var(--space-6) 0 var(--space-8); }
-  .page-hero .hero-headline { margin-bottom: var(--space-3); }
-  .hero-sub { font-size: .9375rem; line-height: 1.7; margin-bottom: var(--space-6); }
-
-  .pp-hero-cta {
-    flex-direction: column;
-    gap: var(--space-3) !important;
-
-    > * { width: 100%; justify-content: center; }
-  }
-
-  // Sticky dog/cat switcher
-  .pp-sticky-tabs {
-    position: sticky;
-    top: var(--navbar-height-mobile);
-    z-index: 5;
-    margin: 0 calc(var(--space-3) * -1) var(--space-4);
-    padding: var(--space-2) var(--space-3);
-    background: var(--pp-surface);
-    border-bottom: 1px solid var(--pp-border);
-
-    .pet-tab-wrap { flex-wrap: nowrap; }
-    .pet-tab { flex: 1; justify-content: center; min-height: var(--tap-target-min); }
-  }
-
-  // Compact service cards: icon | name + price/duration | Book, description below
-  .service-card {
-    display: grid;
-    grid-template-columns: 48px 1fr auto;
-    grid-template-areas:
-      "icon name book"
-      "icon meta book"
-      "desc desc desc";
-    column-gap: var(--space-3);
-    row-gap: var(--space-1);
-    align-items: center;
-    padding: var(--space-4);
-
-    &:hover { transform: none; box-shadow: none; border-color: var(--pp-border); }
-  }
-
-  .service-icon { grid-area: icon; width: 48px; height: 48px; margin: 0; font-size: 22px; }
-  .service-name { grid-area: name; font-size: 1.0625rem; margin: 0; }
-  .service-desc { grid-area: desc; margin: var(--space-3) 0 0; }
-  .service-meta { grid-area: meta; justify-content: flex-start; gap: var(--space-3); padding: 0; border: 0; }
-  .service-price { font-size: 1.0625rem; }
-  .svc-book { grid-area: book; padding: 0 var(--space-5); }
-
-  .step-card { padding: var(--space-4); gap: var(--space-3); margin-bottom: var(--space-3); }
-  .step-card:hover { transform: none; }
-  .step-num   { width: 2.5rem; height: 2.5rem; font-size: 1.125rem; border-radius: 12px; }
-  .step-title { font-size: 1.125rem; }
-
-  .how-visual { padding: var(--space-6) var(--space-5); }
-  .how-visual .how-feature:nth-of-type(n+5) { display: none; }
-
-  .cta-card  { padding: var(--space-8) var(--space-6); }
-  .cta-leaf  { display: none; }
-}
-
-// Desktop keeps the original card layout; the Book button sits under the meta row.
-@media (min-width: 768px) {
-  .svc-book { margin-top: var(--space-4); width: 100%; justify-content: center; }
-}
-
-// tablet — 576px to 991px
-@media (min-width: 576px) and (max-width: 991px) {
-  .how-visual {
-    padding: var(--space-12) var(--space-10);
-    height: auto;          // don't force full height when stacked below steps
-    margin-top: var(--space-2);
-  }
-
-  .pet-tab-wrap { margin-top: var(--space-4); }
-
-  .cta-card { padding: var(--space-12) var(--space-10); }
+  border-bottom: 1px solid var(--pp-border);
 }

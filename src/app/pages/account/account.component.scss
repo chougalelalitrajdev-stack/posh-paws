@@ -1,45 +1,22 @@
-// ── Typography ────────────────────────────────────────────────
-
-.eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: var(--pp-accent);
-  font-weight: 500;
-  margin-bottom: 10px;
-
-  &::before {
-    content: '';
-    width: 28px;
-    height: 1.5px;
-    background: var(--pp-accent);
-    border-radius: 2px;
-  }
-}
-
-.section-title {
-  font-family: var(--ff-serif);
-  font-size: clamp(1.75rem, 4vw, 2.5rem);
-  font-weight: 500;
-  color: var(--pp-text);
-  line-height: 1.2;
-  letter-spacing: -0.3px;
-  margin: 0;
-
-  em { font-style: italic; color: var(--pp-primary); }
-}
-
 // ── Page header ───────────────────────────────────────────────
+
+.acct-header .section-title { margin: 0; }
+
+.acct-actions { display: flex; gap: var(--space-2); }
+
+// Sidebar cards stack with the parent's gap, not their own margins
+.acct-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
 
 .acct-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 32px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
   flex-wrap: wrap;
 }
 
@@ -47,44 +24,44 @@
 
 .stats-strip {
   display: flex;
-  gap: 12px;
-  margin-bottom: 32px;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
   flex-wrap: wrap;
 }
 
 .stat-chip {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   background: var(--pp-bg);
   border: 1px solid var(--pp-border);
   border-radius: var(--radius-lg);
-  padding: 14px 20px;
+  padding: 14px var(--space-5);
   flex: 1;
   min-width: 140px;
 }
 
-.stat-chip-icon  { font-size: 22px; line-height: 1; }
-.stat-chip-val   { font-family: var(--ff-serif); font-size: 22px; color: var(--pp-primary); font-weight: 500; line-height: 1.1; }
-.stat-chip-label { font-size: 12px; color: var(--pp-muted); margin-top: 2px; }
+.stat-chip-icon  { font-size: var(--fs-2xl); line-height: 1; }
+.stat-chip-val   { font-family: var(--ff-serif); font-size: var(--fs-2xl); color: var(--pp-primary); font-weight: 500; line-height: 1.1; }
+.stat-chip-label { font-size: var(--fs-xs); color: var(--pp-muted); margin-top: 2px; }
 
 // ── Booking tabs ──────────────────────────────────────────────
 
 .booking-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
 }
 
 .booking-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 9px 18px;
   border-radius: var(--radius-pill);
   border: 1.5px solid var(--pp-border);
   background: transparent;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--pp-muted);
   cursor: pointer;
@@ -94,9 +71,9 @@
   &.active {
     background: var(--pp-primary);
     border-color: var(--pp-primary);
-    color: #fff;
+    color: var(--pp-on-primary);
 
-    .tab-count { background: rgba(255, 255, 255, 0.25); color: #fff; }
+    .tab-count { background: var(--pp-on-dark-subtle); color: var(--pp-on-primary); }
   }
 
   &:not(.active):hover {
@@ -106,7 +83,7 @@
 }
 
 .tab-count {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   background: var(--pp-surface);
   color: var(--pp-muted);
@@ -122,7 +99,7 @@
 }
 
 .booking-label {
-  font-size: 14px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--pp-text);
   margin-bottom: 3px;
@@ -132,7 +109,7 @@
 }
 
 .booking-meta {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--pp-muted);
 }
 
@@ -147,67 +124,67 @@
 .cancel-btn {
   background: none;
   border: none;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--pp-muted);
   cursor: pointer;
   font-family: var(--ff-sans);
   padding: 0;
   text-decoration: underline;
 
-  &:hover { color: #E07B39; }
+  &:hover { color: var(--pp-warning); }
 }
 
 // ── Empty state ───────────────────────────────────────────────
 
 .empty-state {
   text-align: center;
-  padding: 24px 0 8px;
+  padding: var(--space-6) 0 var(--space-2);
 }
 
 .empty-icon  { font-size: 48px; margin-bottom: 12px; }
-.empty-title { font-family: var(--ff-serif); font-size: 20px; color: var(--pp-text); margin-bottom: 6px; }
-.empty-sub   { font-size: 13px; color: var(--pp-muted); margin-bottom: 20px; }
+.empty-title { font-family: var(--ff-serif); font-size: var(--fs-xl); color: var(--pp-text); margin-bottom: 6px; }
+.empty-sub   { font-size: var(--fs-sm); color: var(--pp-muted); margin-bottom: 20px; }
 
 // ── Membership banner extras ──────────────────────────────────
 
 .membership-label {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--pp-on-dark-subtle);
   margin-bottom: 6px;
 }
 
 .membership-tier {
   font-family: var(--ff-serif);
-  font-size: 26px;
+  font-size: var(--fs-3xl);
   font-weight: 500;
-  color: #fff;
-  margin-bottom: 4px;
+  color: var(--pp-on-primary);
+  margin-bottom: var(--space-1);
 }
 
 .membership-sub {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 20px;
+  font-size: var(--fs-sm);
+  color: var(--pp-on-dark-muted);
+  margin-bottom: var(--space-5);
 }
 
 .session-progress-wrap {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--pp-on-dark-faint);
   border-radius: var(--radius);
   padding: 14px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .session-progress-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 8px;
+  font-size: var(--fs-xs);
+  color: var(--pp-on-dark-muted);
+  margin-bottom: var(--space-2);
 }
 
 .session-progress-bar {
   height: 6px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--pp-on-dark-faint);
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 6px;
@@ -221,19 +198,19 @@
 }
 
 .session-progress-meta {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: var(--fs-xs);
+  color: var(--pp-on-dark-subtle);
 }
 
 .membership-upgrade-link {
   display: inline-block;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--fs-xs);
+  color: var(--pp-on-dark-muted);
   text-decoration: underline;
   cursor: pointer;
   transition: color var(--transition);
 
-  &:hover { color: #fff; }
+  &:hover { color: var(--pp-on-primary); }
 }
 
 // ── Pet profiles ──────────────────────────────────────────────
@@ -241,8 +218,8 @@
 .pet-profile-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-3);
+  padding: var(--space-3);
   border-radius: var(--radius);
   background: var(--pp-surface);
   border: 1px solid var(--pp-border);
@@ -257,14 +234,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: var(--fs-2xl);
   flex-shrink: 0;
 }
 
 .pet-link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex: 1;
   min-width: 0;
   min-height: var(--tap-target-min);
@@ -273,8 +250,8 @@
 }
 
 .pet-info   { flex: 1; min-width: 0; }
-.pet-name   { font-size: 14px; font-weight: 600; color: var(--pp-text); }
-.pet-breed  { font-size: 12px; color: var(--pp-muted); }
+.pet-name   { font-size: var(--fs-sm); font-weight: 600; color: var(--pp-text); }
+.pet-breed  { font-size: var(--fs-xs); color: var(--pp-muted); }
 
 .pet-book-btn {
   flex-shrink: 0;
@@ -282,14 +259,14 @@
   border-radius: var(--radius-pill);
   border: 1.5px solid var(--pp-primary);
   background: transparent;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 500;
   color: var(--pp-primary);
   cursor: pointer;
   font-family: var(--ff-sans);
   transition: all var(--transition);
 
-  &:hover { background: var(--pp-primary); color: #fff; }
+  &:hover { background: var(--pp-primary); color: var(--pp-on-primary); }
 }
 
 .pet-edit-btn {
@@ -298,15 +275,15 @@
   border: 0;
   border-radius: var(--radius);
   background: transparent;
-  font-size: 16px;
+  font-size: var(--fs-base);
   cursor: pointer;
 
   &:hover { background: var(--pp-primary-light); }
 }
 
-.pet-empty { font-size: 13px; color: var(--pp-muted); margin: 0 0 var(--space-3); }
+.pet-empty { font-size: var(--fs-sm); color: var(--pp-muted); margin: 0 0 var(--space-3); }
 
-.add-pet-btn { margin-top: 4px; padding: 10px; font-size: 13px; }
+.add-pet-btn { margin-top: 4px; padding: 10px; font-size: var(--fs-sm); }
 
 // ── Quick links ───────────────────────────────────────────────
 
@@ -320,9 +297,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 11px 8px;
+  padding: 11px var(--space-2);
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--pp-text);
   text-decoration: none;
   transition: background var(--transition), color var(--transition);
@@ -339,12 +316,10 @@
   .acct-header {
     align-items: stretch;
     flex-direction: column;
-    gap: 16px;
-    margin-bottom: 20px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
 
-    > .d-flex {
-      flex-wrap: nowrap !important;
-
+    .acct-actions {
       .btn-pp-accent { flex: 1; justify-content: center; }
       .btn-pp-ghost  { flex-shrink: 0; }
     }
@@ -354,16 +329,16 @@
   .stats-strip {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin-bottom: 24px;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
   }
 
   .stat-chip {
     flex-direction: column;
     justify-content: center;
-    gap: 4px;
+    gap: var(--space-1);
     min-width: 0;
-    padding: 12px 6px;
+    padding: var(--space-3) 6px;
     text-align: center;
   }
 
@@ -381,16 +356,11 @@
 
   // Sidebar order on phones: pets first, then membership, then links
   .acct-side {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-
-    > * { margin: 0 !important; }
     .membership-banner { order: 2; }
     .dash-card:last-child { order: 3; }
   }
 
-  .quick-link { min-height: var(--tap-target-min); font-size: 14px; }
+  .quick-link { min-height: var(--tap-target-min); font-size: var(--fs-sm); }
 }
 
 // Touch layouts (phones and tablets): links need a 44px target.
@@ -398,13 +368,13 @@
   .cancel-btn {
     min-height: var(--tap-target-min);
     padding: 0 var(--space-3);
-    font-size: 13px;
+    font-size: var(--fs-sm);
   }
 
   .membership-upgrade-link {
     display: inline-flex;
     align-items: center;
     min-height: var(--tap-target-min);
-    font-size: 14px;
+    font-size: var(--fs-sm);
   }
 }

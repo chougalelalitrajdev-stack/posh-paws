@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "lint:styles": "node scripts/check-styles.mjs"
   },
   "private": true,
   "packageManager": "npm@10.9.2",

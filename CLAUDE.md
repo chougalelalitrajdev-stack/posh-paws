@@ -7,109 +7,103 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repo (PoshPaws) is **phase 1** of a larger multi-module product. Two more modules are planned:
 
 1. An **e-commerce module** (pet products/shop).
-2. A **doctor's-appointment module** (vet booking — structurally similar to the grooming booking flow).
+2. A **doctor's-appointment module** (vet booking, structurally similar to the grooming booking flow).
 
-Favor architecture that stays easy to extend when those land — keep cross-cutting infrastructure (dialog/bottom-sheet primitives, the booking/subscribe-dialog service pattern, design tokens in `_tokens.scss`/`_components.scss`, the bottom-nav primitive) generic and reusable rather than grooming-specific, so a sibling module can be added rather than requiring a rework. Don't build those modules preemptively — just avoid coupling current routes/services/components tightly enough to grooming that adding one later becomes a rewrite.
+Keep cross-cutting infrastructure (dialog/bottom-sheet primitives, the dialog-service pattern, design tokens, `shared/ui` components, the bottom-nav) generic rather than grooming-specific, so a sibling module can be added without a rework. Don't build those modules preemptively; just avoid coupling current code to grooming. The backend does not exist yet: every data source sits behind a seam (see "Data & backend seams").
 
 ## Commands
 
 ```bash
-npm start          # Dev server at http://localhost:4200 (auto-reloads)
-npm run build      # Production build → dist/
-npm run watch      # Dev build with watch mode
-npm test           # Run unit tests with Vitest
-ng generate component path/to/name   # Scaffold new component
+npm start               # Dev server at http://localhost:4200 (auto-reloads); /styleguide is available in dev only
+npm run build           # Production build → dist/posh-paws/browser
+npm test                # Unit tests (Vitest via ng test)
+npm run lint:styles     # Style guard rails (see "Styles"); add -- --update to lock in an improvement
 ```
 
-## Architecture
+## Folder structure
 
-**PoshPaws** is an Angular 21 pet grooming web app (standalone components, signals-based state).
+```
+src/app/
+  core/            app-wide logic, no UI. Group by feature, not by file type.
+    auth/          AuthProvider (port) + MockAuthProvider, AuthService, LoginDialogService, authGuard
+    pets/          PetsProvider (port) + mock, PetsService, PetDialogService, pet models/options/utils
+    catalog/       CatalogService + models + data (services, plans, testimonials, process steps). Prices are PAISE.
+    services/      dialog state services (booking, subscribe), ThemeService
+    constants/     business.ts (phone number placeholders)
+  shared/
+    ui/            presentational building blocks used by many pages (see list below)
+    layout/        navbar, footer, bottom-nav, theme-switcher
+    dialogs/       globally mounted dialogs: booking, subscribe, login, pet
+  pages/           one folder per route; compose shared/ui + core data, hold only page-specific code
+src/styles/        tokens, typography, layout/, components/, utilities/
+scripts/           check-styles.mjs (+ style-baseline.json)
+```
 
-### Key structural decisions
+Rules:
+- `core/` never imports from `shared/` or `pages/`. `shared/` never imports from `pages/`.
+- Models stay with the feature that owns them; promote to a shared place only when a second feature needs them.
+- Future modules (shop, doctor appointments) get `features/<module>/` and import only from `core/` and `shared/`, never from each other. Move pages into feature folders when module 2 starts.
 
-- **Standalone components only** — no NgModules. Every component declares its own `imports`.
-- **Signals everywhere** — use `signal()`, `computed()`, `effect()` for state; avoid RxJS Subject/BehaviorSubject for local state.
-- **`ChangeDetectionStrategy.OnPush`** is the default for all components.
-- Component selector prefix is `pp-` (e.g. `pp-theme-switcher`).
-- New components go under `src/app/shared/components/` (reusable UI) or `src/app/core/` (singleton services/guards).
+## Code conventions (modern Angular only)
 
-### Code conventions (modern Angular only)
-
-- **Standalone components only**; omit `standalone: true` in new components (it is the default since v19).
+- **Standalone components only**; omit `standalone: true` (default since v19). Selector prefix `pp-`. `ChangeDetectionStrategy.OnPush` everywhere.
 - **DI via `inject()`**, not constructor parameters.
-- **Signals for all state**: `signal`/`computed`/`effect`, `input()`/`output()`/`model()` instead of `@Input`/`@Output`, `viewChild()` instead of `@ViewChild`. Expose service state as `.asReadonly()` signals.
-- **Built-in control flow** (`@if`, `@for` with `track`, `@switch`), never `*ngIf`/`*ngFor`/`ngSwitch`. Don't import `CommonModule`.
-- **Functional guards/resolvers/interceptors** (`CanActivateFn` etc.), not class-based.
-- **`host: {}` metadata** for host bindings/listeners in new code, not `@HostBinding`/`@HostListener`.
-- **Async work**: prefer `async/await` with signals for one-shot calls; use RxJS only where streams are genuinely needed (e.g. `HttpClient`, router events).
-- **Decoupling**: depend on abstractions at boundaries (e.g. `AuthProvider` abstract class bound in `app.config.ts`), keep UI state services free of side effects, and never import from `pages/` into `core/` or `shared/`.
+- **Signals for state**: `signal`/`computed`/`effect`; `input()`/`output()`/`model()` instead of decorators; expose service state with `.asReadonly()`.
+- **Built-in control flow** (`@if`, `@for` with `track`, `@switch`); never `*ngIf`/`*ngFor`; don't import `CommonModule`.
+- **Functional guards/resolvers**; route params arrive as `input()` (router uses `withComponentInputBinding`).
+- **`host: {}`** for host bindings/listeners in new code.
+- **Async**: `async/await` with signals for one-shot work; RxJS only for real streams.
+- **Pages are thin**: shared content (services, plans, testimonials, process steps) comes from `CatalogService`; page-specific copy (e.g. About values, Membership FAQ) may stay in the page, but the moment a second page needs it, move it to the catalog. Repeated markup becomes a `shared/ui` component.
+- **Money is paise** (integer). Format with the `inr` pipe; durations with the `duration` pipe. Never store "₹1,200" strings.
 
-### Folder & model organisation
+## Data & backend seams
 
-- **Group by feature, not by file type.** A feature's models, services, and guards live together (e.g. `core/auth/`). Don't create a global `models/` folder.
-- **Models stay with the feature that owns them**; promote one to `src/app/shared/models/` only when a second feature needs it.
-- **Future modules** (shop, doctor appointments) get their own `features/<module>/` folder and import only from `core/` and `shared/`, never from each other.
+Everything is mock/static today; the seam is the only thing that changes when the backend arrives.
+- `AuthProvider`, `PetsProvider`: abstract classes bound in `app.config.ts` (`MockAuthProvider`, `MockPetsProvider` use localStorage). Swap by writing one class and changing one line.
+- `CatalogService`: static data today; load from an API inside this service later. Pages don't change.
+- Features needing login call `await loginDialog.ensureLoggedIn()` (or use `authGuard` on a route). They never touch login UI state.
+- Global dialogs: state lives in a small service (`providedIn: 'root'`, no side effects); the component (mounted once in `app.html`) owns any async work.
 
-### Theme system
+## Shared UI components (`src/app/shared/ui`)
 
-Theming is CSS-variable-based, driven by `ThemeService` (`src/app/core/services/theme.service.ts`):
+`pp-icon` (SVG icon set; add icons in `icon/icons.ts`), `pp-page-hero`, `pp-section-header`, `pp-cta-banner`, `pp-service-card`, `pp-plan-card`, `pp-testimonial-card`, `pp-feature-card`, `pp-how-it-works`, `pp-accordion`, `pp-chip-group`, pipes `inr` and `duration`. See them all at `/styleguide` (dev only).
 
-1. Five themes defined in `THEMES` array: `warm-natural` (default), `fresh-teal`, `sober-luxe`, `soft-rose`, `pure-white`.
-2. `ThemeService.setTheme(id)` sets `data-theme="<id>"` on `<html>` via an `effect()`.
-3. All theme color variables are defined in `src/styles/_tokens.scss` as `[data-theme="<id>"]` selector blocks.
-4. **Never hardcode hex values in components** — always use `var(--pp-*)` CSS custom properties.
-5. Active theme is persisted to `localStorage` under key `pp_theme`.
+- Content slots use attributes: `ppTitle`, `ppLead`, `ppActions`, `ppVisual`, `ppFooter`, `ppAside`, `ppText`, `ppAction`. Use a `<span>`/element wrapper (not `<ng-container>`) for slot content.
+- `page-hero`, `section-header` and `cta-banner` use `ViewEncapsulation.None` with `pp-` prefixed classes so headings projected from the page get styled. The cards use normal encapsulation.
+- **Before writing markup or CSS twice, make or extend a shared/ui component.**
 
-### Stylesheet import order (styles.scss)
+## Styles
 
-Order is critical — changing it will break Bootstrap variable overrides:
-1. `_tokens.scss` — CSS custom properties / theme definitions
-2. `_bootstrap-overrides.scss` — Bootstrap Sass variable overrides (must precede Bootstrap)
-3. Bootstrap SCSS
-4. `_typography.scss` — fonts and text utilities
-5. `_components.scss` — shared component styles
+`src/styles.scss` order: tokens → Bootstrap variable overrides → **Bootstrap** → our `typography` and `components` (loaded with `meta.load-css` *after* Bootstrap). Because ours come last, plain class selectors win; never add `!important` or extra specificity to beat Bootstrap (only to beat Bootstrap's own `!important` utilities, in files marked `lint:allow-important`).
 
-### CSS variable naming
+- `src/styles/_components.scss` is only an index of partials in `layout/`, `components/`, `utilities/` (order = cascade order).
+- **Tokens only**: colours `var(--pp-*)` (incl. `--pp-card-bg`, `--pp-on-primary`, `--pp-on-dark-*`), type `var(--fs-*)` (xs..6xl, `--fs-title`, `--fs-display`), spacing `var(--space-*)`, plus radius/shadow/z-index/safe-area/tap-target tokens. Themes are `[data-theme]` blocks in `_tokens.scss` (`ThemeService`, currently switcher hidden).
+- Use `.on-dark` on a dark-surface section so eyebrow/headings/intro flip to light colours.
+- **`npm run lint:styles`** fails if colour literals, `!important`, raw font sizes, raw px spacing or duplicate component classes increase. Currently 0/0/0/83/0; lower is better, never higher.
+- Page `.scss` files hold only page-specific rules. Anything used by two pages moves to `shared/ui` or `src/styles`.
 
-All design tokens follow `--pp-*` prefix. Key variables:
-- Colors: `--pp-primary`, `--pp-primary-dark`, `--pp-primary-light`, `--pp-accent`, `--pp-accent-dark`, `--pp-accent-light`
-- Surfaces: `--pp-bg`, `--pp-surface`, `--pp-surface-2`, `--pp-sand`
-- Text: `--pp-text`, `--pp-muted`, `--pp-subtle`
-- Borders: `--pp-border`, `--pp-border-strong`
-- Special: `--pp-navbar-bg`, `--pp-footer-bg`
-- Shared (not per-theme): `--ff-serif`, `--ff-sans`, `--radius`, `--radius-lg`, `--radius-pill`, `--shadow-sm/md/lg`, `--transition`
-- Spacing scale: `--space-1` through `--space-24` (rem-based; use these instead of hardcoding px values)
-- Section rhythm: `--section-y`, `--section-y-sm`, `--section-y-xs`, `--section-y-lg` (clamp-based fluid values)
+## Mobile-first layout rules
 
-### Shared utility classes (`_components.scss`)
+Phones are the primary target. Verify at 320, 360, 390, 430 (phone), 768, 820 (iPad portrait), 1024, 1366 (iPad landscape/laptop), 1920, 2560.
 
-Prefer these over writing equivalent styles per-component:
-
-- **Section spacing**: `.section-pad`, `.section-pad-sm`, `.section-pad-xs`, `.section-pad-lg` — apply to `<section>` elements
-- **Backgrounds**: `.bg-pp-surface`, `.bg-pp-surface2`, `.bg-pp-primary`, `.bg-pp-accent`
-- **Buttons**: `.btn-pp-primary`, `.btn-pp-accent`, `.btn-pp-outline`, `.btn-pp-ghost`
-- **Form**: `.pp-label`, `.pp-input`
-- **Cards**: `.service-card`, `.plan-card`, `.testimonial-card`, `.dash-card`
-- **Animations**: `.animate-blob`, `.animate-float`, `.fade-in-up` + `.delay-1/2/3`
-
-### Mobile-first layout rules
-
-Phones are the primary target; verify every change at 360, 390, 430 (phone), 768 (tablet) and 1280+ (desktop).
-
-- **No sideways scroll** at any width. Bootstrap `g-5`/`gx-5` is capped to 1.5rem below 768px (in `_components.scss`); don't re-widen it. Use `overflow-x: clip` (never `hidden`) on page hosts, since `hidden` breaks `position: sticky`.
-- **Touch targets ≥ 44px** (`--tap-target-min`) and **text ≥ 12px** on touch layouts (below 992px). Desktop nav links may be smaller.
-- **Text alignment:** left-aligned on phones; centred only from 768px up (`text-md-center`; `.eyebrow.center` is tablet-and-up).
-- **Section headers on phones:** wrap eyebrow + title in `.pp-section-head` with a `.pp-see-all d-md-none` link on the right (see Home). Phone section spacing is tightened via `--section-y*` overrides in `_tokens.scss`. Dog/cat tabs are a full-width segmented control.
-- **Long lists become swipe rows on phones:** add `pp-swipe` to a Bootstrap `.row` (keeps its `col-*` classes for tablet/desktop). Don't put `justify-content-center` on it; use `justify-content-md-center`. Add `pp-swipe-first` to a column to show it first.
-- **CTAs:** wrap in `.pp-cta-wrap` for a full-width button on phones, centred on desktop.
-- **Bottom tab bar** (`pp-bottom-nav`) shows below 992px; `app.scss` reserves space for it. Sticky bars under the navbar use `top: var(--navbar-height-mobile)`.
+- **No sideways scroll**: Bootstrap `g-5`/`gx-5` is capped below 768px; use `overflow-x: clip` (never `hidden`) on page hosts, since `hidden` breaks `position: sticky`.
+- **Touch targets ≥ 44px** (`--tap-target-min`), **text ≥ 12px** on touch layouts. `@media (pointer: coarse)` covers iPads at any width.
+- **Alignment**: left-aligned on phones; centred from 768px up (`align="center"` on section-header, hero `layout="center"`).
+- **Swipe rows**: add `pp-swipe` to a Bootstrap `.row` (keeps its `col-*` classes for desktop); add `pp-swipe-tablet` to keep swiping on iPad portrait; `pp-swipe-first` shows a column first. No `justify-content-center` on swipe rows (use `-lg-center`).
+- **CTAs**: wrap in `.pp-cta-wrap` (full-width on phones, centred on desktop).
+- **Bottom tab bar** (`pp-bottom-nav`) shows below 992px; `app.scss` reserves space on `pp-footer`. Sticky bars under the navbar use `top: var(--navbar-height-mobile)`.
 - **Dialogs** use the `.pp-sheet` bottom-sheet pattern (z-index above the tab bar).
-- **Screen tiers** (all verified): phones 320–767 (swipe rows, tab bar), iPad portrait 768–991 (`pp-swipe-tablet` rows with 46% cards, two-column hero, tab bar), iPad landscape and laptops 992–1599 (desktop layout, no tab bar), large monitors 1600+ (wider container; root font 18px from 2200px). Touch devices of any width get 44px targets via `@media (pointer: coarse)`. Phones held sideways (`max-height: 500px`) get a slimmer tab bar and a navbar that scrolls away.
-- **Specificity:** Bootstrap's CSS compiles after `_components.scss`, so equal-specificity rules lose. Use `.row.pp-swipe`, `body .container` or `!important` (documented) when overriding it.
+- **Large monitors**: container widens at 1600px and 2200px; root font 18px from 2200px.
+- **Phones on their side** (`max-height: 500px`): slim tab bar, navbar scrolls away.
 
-### Routes / pages
+## Testing
 
-All routes are lazy-loaded (`loadComponent`). `/account*` routes use `authGuard`.
+- `npm test`: Vitest unit tests (pipes, catalog invariants, app shell smoke test). Add a `*.spec.ts` next to any new service/pipe.
+- Verify UI changes in a real browser at the widths above (the `run-app` skill in `.claude/skills` describes the Playwright recipe); `ng build` alone proves nothing about layout.
+
+## Routes / pages
+
+All routes are lazy-loaded (`loadComponent`). `/account*` routes use `authGuard`. `/styleguide` exists only in dev mode.
 
 | Path | Component |
 |---|---|

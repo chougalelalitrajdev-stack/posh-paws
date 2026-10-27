@@ -1,5 +1,7 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { BookingDialogService } from '../../core/services/booking-dialog.service';
+import { CtaBannerComponent } from '../../shared/ui/cta-banner/cta-banner.component';
+import { PageHeroComponent } from '../../shared/ui/page-hero/page-hero.component';
 
 export type GalleryFilter = 'all' | 'dog' | 'cat';
 
@@ -33,7 +35,7 @@ const STATS = [
 
 @Component({
   selector: 'pp-gallery',
-  standalone: true,
+  imports: [PageHeroComponent, CtaBannerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './gallery.component.html',
   styleUrl:    './gallery.component.scss',

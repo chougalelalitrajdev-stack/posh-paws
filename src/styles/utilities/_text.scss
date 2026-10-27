@@ -1,0 +1,3 @@
+// Text rhythm: balanced headings, no orphaned last words.
+.section-title, .hero-headline { text-wrap: balance; }
+.section-sub, .about-body, .hero-sub { text-wrap: pretty; }

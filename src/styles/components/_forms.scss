@@ -1,0 +1,36 @@
+// Form inputs (.pp-input, .pp-label)
+
+// ── Form inputs ───────────────────────────────────────────────
+.pp-label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--pp-muted);
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.pp-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius);
+  font-family: var(--ff-sans);
+  font-size: var(--fs-sm);
+  color: var(--pp-text);
+  background: var(--pp-surface-2);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  appearance: none;
+
+  &::placeholder { color: var(--pp-subtle); }
+
+  &:focus {
+    border-color: var(--pp-primary);
+    box-shadow: 0 0 0 3px var(--pp-focus-ring);
+    background: var(--pp-card-bg);
+  }
+}
+
+// Red asterisk after a required field's label
+.required-dot { color: var(--pp-accent-dark); }

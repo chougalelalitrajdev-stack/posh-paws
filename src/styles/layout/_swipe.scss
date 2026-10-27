@@ -1,0 +1,44 @@
+// lint:allow-important (overrides Bootstrap gutter utilities)
+// Swipe rows: horizontal scroll-snap on phones, normal Bootstrap grid on larger screens.
+
+// Horizontal swipe row; a normal Bootstrap row on larger screens.
+// Put on a `.row`; children keep their col-* classes for the grid layout.
+//   .pp-swipe                      swipe below 768px
+//   .pp-swipe.pp-swipe-tablet      swipe below 992px (iPad portrait too), 2 cards visible on tablets
+@mixin pp-swipe-row($card-width) {
+  --bs-gutter-x: .75rem !important;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: .375rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-3);
+
+  &::-webkit-scrollbar { display: none; }
+
+  > * {
+    flex: 0 0 $card-width;
+    width: $card-width;
+    max-width: $card-width;
+    scroll-snap-align: start;
+  }
+
+  > * > * { height: 100%; }
+}
+
+@media (max-width: 767.98px) {
+  .pp-swipe { @include pp-swipe-row(84%); }
+
+  // Featured item first in a swipe row.
+  .pp-swipe-first { order: -1; }
+}
+
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .pp-swipe > * { flex-basis: 56%; width: 56%; max-width: 56%; }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .pp-swipe.pp-swipe-tablet { @include pp-swipe-row(46%); }
+  .pp-swipe-tablet > .pp-swipe-first { order: -1; }
+}
