@@ -2,21 +2,28 @@ import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from 
 import { Observable, mergeMap, of, throwError, timer } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StaffUser } from '../models/staff-user.model';
+import { handleBookings } from './mock-bookings';
+import { handleCustomers } from './mock-customers';
+import { handleDashboard } from './mock-dashboard';
+import { handlePets } from './mock-pets';
+import { handleSearch } from './mock-search';
+import { handleSubscriptions } from './mock-subscriptions';
 import { MOCK_PASSWORD, STAFF } from './mock-data';
+import { MockError, MockRequest, NO_ROUTE } from './mock-db';
 
 // ─────────────────────────────────────────────────────────────
 //  TEMPORARY fake backend. While environment.useMocks is true it answers
 //  every /admin API call, following the API contract in the root CLAUDE.md.
-//  When the FastAPI endpoints are live, set useMocks to false and delete
-//  this folder; no service or page changes.
+//  One handler file per area (mock-bookings, mock-customers, ...); each phase
+//  adds its own. When the FastAPI endpoints are live, set useMocks to false
+//  and delete this folder; no service or page changes.
 // ─────────────────────────────────────────────────────────────
 
-const LATENCY_MS = 400;
+const LATENCY_MS = 300;
 const ADMIN_API = `${environment.apiUrl}/admin`;
 
-class MockError {
-  constructor(readonly status: number, readonly detail: string) {}
-}
+/** Signed-in routes, tried in order. */
+const HANDLERS = [handleDashboard, handleBookings, handleCustomers, handlePets, handleSubscriptions, handleSearch];
 
 export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(ADMIN_API)) return next(req);
@@ -25,24 +32,35 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
 
 function respond(req: HttpRequest<unknown>): Observable<HttpResponse<unknown>> {
   try {
-    const body = route(req, req.url.slice(ADMIN_API.length));
-    return of(new HttpResponse({ status: 200, body, url: req.url }));
+    const body = dispatch(req);
+    return of(new HttpResponse({ status: 200, body: structuredClone(body), url: req.url }));
   } catch (e) {
+    if (!(e instanceof MockError)) console.error('Mock server error', e);
     const { status, detail } = e instanceof MockError ? e : new MockError(500, 'Mock server error.');
     return throwError(() => new HttpErrorResponse({ status, error: { detail }, url: req.url }));
   }
 }
 
-function route(req: HttpRequest<any>, path: string): unknown {
-  const { method, body } = req;
+function dispatch(req: HttpRequest<unknown>): unknown {
+  const r: MockRequest = {
+    method: req.method,
+    path: req.url.slice(ADMIN_API.length),
+    body: req.body ?? {},
+    param: name => req.params.get(name) ?? '',
+    staff: null,
+    raw: req,
+  };
 
   // Public
-  if (method === 'POST' && path === '/auth/login') return login(body);
-  if (method === 'POST' && path === '/auth/forgot-password') return {};
+  if (r.method === 'POST' && r.path === '/auth/login') return login(r.body);
+  if (r.method === 'POST' && r.path === '/auth/forgot-password') return {};
 
-  // Signed in (every later phase adds its routes below this line)
-  currentStaff(req);
-
+  // Signed in
+  r.staff = currentStaff(req);
+  for (const handle of HANDLERS) {
+    const result = handle(r);
+    if (result !== NO_ROUTE) return result;
+  }
   throw new MockError(404, 'Not found.');
 }
 

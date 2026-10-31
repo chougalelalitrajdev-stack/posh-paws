@@ -1,3 +1,5 @@
+:host { display: flex; flex-direction: column; gap: var(--space-6); }
+
 .pp-soon {
   padding: var(--space-10) var(--space-6);
   text-align: center;

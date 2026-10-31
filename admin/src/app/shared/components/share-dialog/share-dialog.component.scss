@@ -1,0 +1,12 @@
+.pp-share-intro { margin: 0 0 var(--space-3); font-size: var(--fs-sm); }
+.pp-share-to { font-size: var(--fs-xs); font-weight: 600; color: var(--pp-muted); }
+
+.pp-share-message {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--pp-surface);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+  white-space: pre-line;
+}

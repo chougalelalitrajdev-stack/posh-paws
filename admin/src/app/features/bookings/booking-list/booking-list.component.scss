@@ -1,0 +1,48 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-bookings-table { min-width: 1040px; }
+
+.pp-booking-id { font-weight: 700; text-decoration: none; }
+.pp-col-wrap { min-width: 150px; }
+.pp-cta-cell { text-align: right; }
+
+// ── Calendar ──────────────────────────────────────────────────
+.pp-cal-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pp-cal-nav,
+.pp-cal-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pp-cal-nav .pp-icon-btn { font-size: var(--fs-lg); }
+.pp-cal-title { font-size: var(--fs-lg); min-width: 140px; text-align: center; }
+
+.pp-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--pp-neutral);
+
+  > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+}
+
+.pp-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.pp-swatch-block {
+  border: 1px solid var(--pp-border-strong);
+  background: repeating-linear-gradient(45deg, var(--pp-chip-bg) 0, var(--pp-chip-bg) 3px, var(--pp-card-bg) 3px, var(--pp-card-bg) 6px);
+}

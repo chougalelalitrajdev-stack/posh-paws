@@ -1,0 +1,11 @@
+.pp-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+}
+
+.pp-pagination-buttons { display: flex; gap: var(--space-2); }

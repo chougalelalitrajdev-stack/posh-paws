@@ -1,0 +1,101 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-no-margin { margin: 0; }
+
+// ── Identity bar ──────────────────────────────────────────────
+.pp-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-5);
+}
+
+.pp-identity-text { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.pp-identity-name { margin: 0; font-family: var(--ff-serif); font-size: var(--fs-3xl); font-weight: 500; line-height: 1.1; }
+
+.pp-identity-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+}
+
+.pp-identity-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pp-identity-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.pp-more-btn { font-size: var(--fs-xl); line-height: 1; &::after { display: none; } }
+
+.pp-facts-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+// ── Overview ──────────────────────────────────────────────────
+.pp-overview { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-start; }
+.pp-col { flex: 1 1 380px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+
+// Cards in the overview and pets tab stack their contents.
+.pp-col .pp-card,
+.pp-pet-grid .pp-card { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.pp-pet-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2); }
+
+.pp-pet-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-px2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  color: var(--pp-text);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+
+  span { color: var(--pp-muted); font-size: var(--fs-xs); }
+  &:hover { border-color: var(--pp-primary); color: var(--pp-text); }
+}
+
+.pp-pet-note { color: var(--pp-accent-text); font-size: var(--fs-xs); }
+.pp-pet-card .pp-pet-note { color: var(--pp-accent-text); }
+
+.pp-row-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--tap-target-min);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--pp-divider);
+  color: var(--pp-text);
+  text-decoration: none;
+
+  &:hover strong { color: var(--pp-primary); }
+}
+
+.pp-row-text { display: flex; flex-direction: column; font-size: var(--fs-sm); span { color: var(--pp-muted); font-size: var(--fs-xs); } }
+
+.pp-usage { display: flex; justify-content: space-between; margin-top: var(--space-2); font-size: var(--fs-sm); }
+
+.pp-note { margin: 0; padding: var(--space-3) var(--space-4); border-radius: var(--radius); background: var(--pp-surface); font-size: var(--fs-sm); }
+.pp-note-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+
+// ── Pets tab ──────────────────────────────────────────────────
+.pp-pet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-3); }
+.pp-pet-full { font-size: var(--fs-sm); }
+.pp-pet-links { display: flex; gap: var(--space-3); }
+
+.pp-add-pet {
+  min-height: 120px;
+  border: 1.5px dashed var(--pp-border-strong);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--pp-primary);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover { border-color: var(--pp-primary); }
+}
+
+.pp-min-table { min-width: 720px; }

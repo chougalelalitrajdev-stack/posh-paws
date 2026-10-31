@@ -1,0 +1,112 @@
+<pp-page-header title="Bookings" subtitle="From first call to finished groom. Requests from the app land here too.">
+  <pp-segmented ppActions label="View" [options]="viewOptions" [(value)]="mode" />
+</pp-page-header>
+
+@if (mode() === 'list') {
+  <pp-filter-tabs label="Booking stage" [tabs]="tabs()" [value]="tab()" (valueChange)="setTab($event)" />
+
+  <div class="pp-filters">
+    <label class="pp-filter">Date
+      <select class="pp-select" (change)="onRange($event)">
+        <option value="any" [selected]="range() === 'any'">Any date</option>
+        <option value="today" [selected]="range() === 'today'">Today</option>
+        <option value="next7" [selected]="range() === 'next7'">Next 7 days</option>
+        <option value="last30" [selected]="range() === 'last30'">Last 30 days</option>
+      </select>
+    </label>
+    <label class="pp-filter">Service
+      <select class="pp-select" (change)="onService($event)">
+        <option value="">All services</option>
+        @for (s of catalog.services(); track s.id) {
+          <option [value]="s.id" [selected]="serviceId() === s.id">{{ s.name }} ({{ s.petType === 'dog' ? 'dog' : 'cat' }})</option>
+        }
+      </select>
+    </label>
+    <label class="pp-filter">Pet
+      <select class="pp-select" (change)="onPetType($event)">
+        <option value="">Dogs and cats</option>
+        <option value="dog" [selected]="petType() === 'dog'">Dogs</option>
+        <option value="cat" [selected]="petType() === 'cat'">Cats</option>
+      </select>
+    </label>
+    <label class="pp-filter">Payment
+      <select class="pp-select" (change)="onPayment($event)">
+        <option value="">Any</option>
+        @for (p of paymentOptions; track p.value) {
+          <option [value]="p.value" [selected]="paymentStatus() === p.value">{{ p.label }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="pp-table-wrap" [attr.aria-busy]="loading()">
+    <table class="pp-table pp-bookings-table">
+      <thead>
+        <tr>
+          <th scope="col">Booking</th>
+          <th scope="col">Customer</th>
+          <th scope="col">Pet</th>
+          <th scope="col">Service</th>
+          <th scope="col">Slot</th>
+          <th scope="col">Stage</th>
+          <th scope="col">Payment</th>
+          <th scope="col"><span class="pp-sr-only">Action</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (b of result()?.items ?? []; track b.id) {
+          <tr>
+            <td class="pp-nowrap"><a class="pp-booking-id" [routerLink]="['/bookings', b.id]">{{ b.id }}</a><span class="pp-table-sub">{{ whenLabel(b.createdAt) }}</span></td>
+            <td class="pp-nowrap"><strong>{{ b.customer.name }}</strong><span class="pp-table-sub">{{ formatPhone(b.customer.phone) }}</span></td>
+            <td class="pp-nowrap">{{ b.pet ? b.pet.name + (b.pet.breed ? ' · ' + b.pet.breed : '') : '—' }}</td>
+            <td class="pp-col-wrap">{{ b.service?.name ?? b.request?.interestedIn ?? '—' }}</td>
+            <td class="pp-col-wrap" [class.pp-muted]="!b.date">{{ slotText(b) }}</td>
+            <td><pp-status-pill [stage]="b.stage" [dot]="true" /></td>
+            <td><pp-status-pill [payment]="b.paymentStatus" /></td>
+            <td class="pp-cta-cell">
+              @let action = cta(b);
+              <a class="pp-btn pp-btn-sm" [class.pp-btn-primary]="action.primary" [routerLink]="action.link" [queryParams]="action.query">{{ action.label }}</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (!loading() && !result()?.items?.length) {
+      <p class="pp-table-empty">No bookings match these filters.</p>
+    }
+  </div>
+
+  @if (result(); as r) {
+    <pp-pagination [page]="r.page" [pageSize]="r.pageSize" [total]="r.total" (pageChange)="page.set($event)" />
+  }
+} @else {
+  <div class="pp-cal-bar">
+    <div class="pp-cal-nav">
+      <button class="pp-icon-btn" type="button" [attr.aria-label]="calView() === 'day' ? 'Previous day' : 'Previous week'" (click)="moveCalendar(-1)">‹</button>
+      <strong class="pp-cal-title">{{ calTitle() }}</strong>
+      <button class="pp-icon-btn" type="button" [attr.aria-label]="calView() === 'day' ? 'Next day' : 'Next week'" (click)="moveCalendar(1)">›</button>
+      @if (!isToday()) { <button class="pp-btn pp-btn-sm" type="button" (click)="goToday()">Today</button> }
+    </div>
+    <div class="pp-cal-tools">
+      <pp-segmented label="Calendar range" [options]="calOptions" [(value)]="calView" />
+      <button class="pp-btn pp-btn-sm" type="button" (click)="blockOpen.set(true)"><pp-icon name="clock" [size]="16" />Block time</button>
+    </div>
+  </div>
+
+  @if (calendar(); as cal) {
+    <pp-schedule-grid [columns]="columns()" [opens]="cal.opens" [closes]="cal.closes" [minColumnWidth]="calView() === 'day' ? 140 : 120" [compact]="calView() === 'week'" (select)="onSelect($event)" />
+  } @else {
+    <p class="pp-muted">Loading calendar…</p>
+  }
+
+  <div class="pp-legend" aria-label="Legend">
+    <span><span class="pp-swatch pp-tone-success"></span>Confirmed</span>
+    <span><span class="pp-swatch pp-tone-warn"></span>Awaiting payment</span>
+    <span><span class="pp-swatch pp-tone-neutral"></span>Completed</span>
+    <span><span class="pp-swatch pp-swatch-block"></span>Break / blocked (click a block you added to remove it)</span>
+  </div>
+
+  @if (blockOpen()) {
+    <pp-block-time [date]="calDate()" (closed)="blockOpen.set(false)" (saved)="onBlockSaved()" />
+  }
+}

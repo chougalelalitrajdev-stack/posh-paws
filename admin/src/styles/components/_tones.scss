@@ -1,0 +1,8 @@
+// Status colour families (see Tone in core/constants/status.constants.ts).
+// Used by status pills, calendar blocks and dashboard dots.
+.pp-tone-info { background: var(--pp-info-light); color: var(--pp-info); }
+.pp-tone-draft { background: var(--pp-chip-bg); color: var(--pp-draft); }
+.pp-tone-warn { background: var(--pp-accent-light); color: var(--pp-accent-text); }
+.pp-tone-success { background: var(--pp-primary-light); color: var(--pp-primary-dark); }
+.pp-tone-neutral { background: var(--pp-neutral-light); color: var(--pp-neutral); }
+.pp-tone-danger { background: var(--pp-danger-light); color: var(--pp-danger); }

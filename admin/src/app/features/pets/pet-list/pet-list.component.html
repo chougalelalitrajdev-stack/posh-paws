@@ -1,0 +1,88 @@
+<pp-page-header title="Pets" subtitle="Every pet on file. The same record is used for grooming now and vet care later.">
+  <button ppActions class="pp-btn pp-btn-primary" type="button" (click)="dialog.set(null)">Add pet</button>
+</pp-page-header>
+
+<div class="pp-filters">
+  <label class="pp-search">
+    <pp-icon name="search" [size]="18" />
+    <span class="pp-sr-only">Search pets</span>
+    <input type="search" placeholder="Pet name, breed or owner" (input)="onSearch($event)">
+  </label>
+  <pp-segmented label="Species" [options]="typeOptions()" [value]="type()" (valueChange)="setType($event)" />
+  <label class="pp-check"><input type="checkbox" [checked]="vaccinationDue()" (change)="onDueChange($event)"><span>Vaccination due</span></label>
+</div>
+
+<div class="pp-pets-layout">
+  <div class="pp-pets-list">
+    <div class="pp-table-wrap" [attr.aria-busy]="loading()">
+      <table class="pp-table pp-pets-table">
+        <thead><tr><th scope="col">Pet</th><th scope="col">Owner</th><th scope="col">Age</th><th scope="col">Vaccination</th><th scope="col">Last groom</th></tr></thead>
+        <tbody>
+          @for (row of result()?.items ?? []; track row.pet.id) {
+            <tr [class.is-selected]="selectedId() === row.pet.id">
+              <td>
+                <button class="pp-pet-btn" type="button" [attr.aria-pressed]="selectedId() === row.pet.id" (click)="select(row.pet.id)">
+                  <strong>{{ row.pet.name }}</strong>
+                  <span>{{ row.pet.type === 'dog' ? 'Dog' : 'Cat' }}@if (row.pet.breed) { · {{ row.pet.breed }} }</span>
+                </button>
+              </td>
+              <td><a [routerLink]="['/customers', row.owner.id]">{{ row.owner.name }}</a></td>
+              <td>{{ petAge(row.pet.birthDate) || '—' }}</td>
+              <td><pp-status-pill [label]="vaccination[row.pet.vaccination ?? 'unknown'].label" [tone]="vaccination[row.pet.vaccination ?? 'unknown'].tone" /></td>
+              <td class="pp-nowrap">{{ row.lastGroom ? shortDate(row.lastGroom) : '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (!loading() && !result()?.items?.length) { <p class="pp-table-empty">No pets match.</p> }
+    </div>
+    @if (result(); as r) {
+      <pp-pagination [page]="r.page" [pageSize]="r.pageSize" [total]="r.total" (pageChange)="page.set($event)" />
+    }
+  </div>
+
+  <aside #panel class="pp-card pp-record" aria-label="Pet record">
+    @if (record(); as r) {
+      <div class="pp-record-head">
+        <div class="pp-record-title">
+          <h2 class="pp-record-name">{{ r.pet.name }}</h2>
+          <span class="pp-muted">{{ r.pet.type === 'dog' ? 'Dog' : 'Cat' }}@if (r.pet.breed) { · {{ r.pet.breed }} }</span>
+          <a class="pp-strong" [routerLink]="['/customers', r.owner.id]">Owner: {{ r.owner.name }}</a>
+        </div>
+        <button class="pp-btn pp-btn-sm" type="button" (click)="dialog.set(r.pet)">Edit</button>
+      </div>
+
+      <dl class="pp-record-facts">
+        <div><dt>Age</dt><dd>{{ petAge(r.pet.birthDate) || '—' }}</dd></div>
+        <div><dt>Gender</dt><dd class="pp-capital">{{ r.pet.gender ?? '—' }}</dd></div>
+        <div><dt>Weight</dt><dd>{{ r.pet.weightKg ? r.pet.weightKg + ' kg' : '—' }}</dd></div>
+        <div><dt>Size · coat</dt><dd>{{ r.pet.coat ?? '—' }}</dd></div>
+        <div><dt>Temperament</dt><dd>{{ r.pet.temperament ?? '—' }}</dd></div>
+        <div><dt>Vaccination</dt><dd>{{ vaccination[r.pet.vaccination ?? 'unknown'].label }}</dd></div>
+      </dl>
+
+      <div class="pp-record-block">
+        <span class="pp-record-label">Grooming notes</span>
+        <p class="pp-record-note is-grooming">{{ r.pet.notes ?? 'No notes yet.' }}</p>
+      </div>
+      <div class="pp-record-block">
+        <span class="pp-record-label">Health notes</span>
+        <p class="pp-record-note">{{ r.pet.healthNotes ?? 'None recorded.' }}</p>
+      </div>
+      <div class="pp-record-block">
+        <span class="pp-record-label">Visits</span>
+        @for (v of r.visits; track v.bookingId) {
+          <a class="pp-visit" [routerLink]="['/bookings', v.bookingId]"><span>{{ v.serviceName }}</span><span class="pp-muted">{{ shortDate(v.date) }}</span></a>
+        } @empty { <span class="pp-muted pp-small">No visits yet.</span> }
+      </div>
+
+      <a class="pp-btn pp-btn-primary pp-btn-block" routerLink="/bookings/new" [queryParams]="{ customer: r.owner.id, pet: r.pet.id }">Book {{ r.pet.name }}</a>
+    } @else {
+      <p class="pp-muted pp-small">Pick a pet to see its record.</p>
+    }
+  </aside>
+</div>
+
+@if (dialog() !== undefined) {
+  <pp-pet-dialog [pet]="dialog() ?? null" [owner]="dialog() ? record()?.owner ?? null : null" (closed)="dialog.set(undefined)" (saved)="onSaved($event)" />
+}

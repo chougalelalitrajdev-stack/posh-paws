@@ -1,0 +1,188 @@
+@if (customer(); as c) {
+  <section class="pp-card pp-identity">
+    <pp-avatar [name]="c.name" size="lg" />
+    <div class="pp-identity-text">
+      <h1 class="pp-identity-name">{{ c.name }}</h1>
+      <div class="pp-identity-contact">
+        <span>{{ formatPhone(c.phone) }}</span>
+        @if (c.email) { <span>{{ c.email }}</span> }
+        @if (c.area) { <span>{{ c.area }}</span> }
+      </div>
+      <div class="pp-identity-chips">
+        @if (c.plan) { <pp-status-pill [label]="c.plan.name + ' member'" tone="success" /> }
+        @if (c.openRequests) { <pp-status-pill label="Open callback request" tone="info" /> }
+        <pp-status-pill [label]="'Customer since ' + monthYear(c.customerSince)" tone="neutral" />
+      </div>
+    </div>
+    <div class="pp-identity-actions">
+      <a class="pp-btn" [href]="telLink(c.phone)"><pp-icon name="phone" [size]="16" />Call</a>
+      <a class="pp-btn" [href]="whatsappLink(c.phone)" target="_blank" rel="noopener">WhatsApp</a>
+      <a class="pp-btn pp-btn-primary" routerLink="/bookings/new" [queryParams]="{ customer: c.id }">New booking</a>
+      <div ngbDropdown placement="bottom-end">
+        <button ngbDropdownToggle class="pp-icon-btn pp-more-btn" type="button" aria-label="More actions">⋯</button>
+        <div ngbDropdownMenu>
+          <button ngbDropdownItem type="button" (click)="editing.set(true)">Edit details</button>
+          <button ngbDropdownItem type="button" (click)="petDialog.set(null)">Add a pet</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pp-facts-row">
+    @for (f of facts(); track f.label) { <pp-stat [label]="f.label" [value]="f.value" [sub]="f.sub" /> }
+  </div>
+
+  <pp-filter-tabs label="Customer sections" [tabs]="tabs()" [value]="tab()" (valueChange)="setTab($event)" />
+
+  @switch (tab()) {
+    @case ('overview') {
+      <div class="pp-overview">
+        <div class="pp-col">
+          <section class="pp-card">
+            <h2 class="pp-card-title">Pets</h2>
+            <div class="pp-pet-cards">
+              @for (p of c.pets; track p.id) {
+                <a class="pp-pet-card" routerLink="/pets" [queryParams]="{ pet: p.id }">
+                  <strong>{{ p.name }}</strong>
+                  <span>{{ petLine(p) }}</span>
+                  @if (p.notes) { <span class="pp-pet-note">{{ p.notes }}</span> }
+                </a>
+              } @empty { <p class="pp-muted pp-small">No pets yet.</p> }
+            </div>
+          </section>
+
+          <section class="pp-card">
+            <h2 class="pp-card-title">Recent bookings</h2>
+            @for (b of bookings().slice(0, 3); track b.id) {
+              <a class="pp-row-link" [routerLink]="['/bookings', b.id]">
+                <span class="pp-row-text"><strong>{{ b.service?.name ?? b.request?.interestedIn ?? 'Request' }} · {{ b.pet?.name }}</strong><span>{{ bookingWhen(b) }}</span></span>
+                <pp-status-pill [stage]="b.stage" />
+              </a>
+            } @empty { <p class="pp-muted pp-small">No bookings yet.</p> }
+          </section>
+        </div>
+
+        <div class="pp-col">
+          <section class="pp-card">
+            <div class="pp-card-head">
+              <h2 class="pp-card-title">{{ c.plan ? c.plan.name + ' plan' : 'Membership' }}</h2>
+              <a class="pp-small pp-strong" routerLink="/subscriptions">Manage</a>
+            </div>
+            @if (c.plan; as plan) {
+              <span class="pp-muted pp-small">{{ plan.pricePaise | inr }} a month@if (plan.renewsOn) { · renews {{ shortDate(plan.renewsOn) }} }</span>
+              @if (planUsage(); as u) {
+                <div class="pp-usage"><span>Sessions this month</span><strong>{{ u.used }} of {{ u.total }} used</strong></div>
+                <div class="pp-meter"><div class="pp-meter-fill" [style.width]="u.width"></div></div>
+              } @else {
+                <div class="pp-usage"><span>Sessions</span><strong>Unlimited</strong></div>
+              }
+            } @else {
+              <p class="pp-muted pp-small pp-no-margin">Not a member. Members get priority slots and money off every visit.</p>
+            }
+          </section>
+
+          <section class="pp-card">
+            <div class="pp-card-head">
+              <h2 class="pp-card-title">Staff notes</h2>
+              @if (noteDraft() === null) {
+                <button class="pp-link pp-small" type="button" (click)="noteDraft.set(c.staffNote?.text ?? '')">{{ c.staffNote ? 'Edit' : 'Add note' }}</button>
+              }
+            </div>
+            @if (noteDraft() !== null) {
+              <label class="pp-sr-only" for="staff-note">Staff note</label>
+              <textarea id="staff-note" class="pp-input" rows="3" [value]="noteDraft()" (input)="onNoteInput($event)"
+                placeholder="Preferences, things to remember. Only staff see this."></textarea>
+              <div class="pp-note-actions">
+                <button class="pp-btn pp-btn-sm" type="button" (click)="noteDraft.set(null)">Cancel</button>
+                <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="savingNote()" (click)="saveNote()">Save note</button>
+              </div>
+            } @else if (c.staffNote; as note) {
+              <p class="pp-note">{{ note.text }}</p>
+              <span class="pp-muted pp-small">{{ note.by }} · {{ whenLabel(note.at) }}</span>
+            } @else {
+              <p class="pp-muted pp-small pp-no-margin">No notes yet.</p>
+            }
+          </section>
+        </div>
+      </div>
+    }
+
+    @case ('pets') {
+      <div class="pp-pet-grid">
+        @for (p of c.pets; track p.id) {
+          <section class="pp-card pp-pet-full">
+            <div class="pp-card-head">
+              <h2 class="pp-card-title">{{ p.name }}</h2>
+              <span class="pp-pet-links">
+                <button class="pp-link pp-small" type="button" (click)="petDialog.set(p)">Edit</button>
+                <a class="pp-small pp-strong" routerLink="/pets" [queryParams]="{ pet: p.id }">Open pet</a>
+              </span>
+            </div>
+            <span>{{ petLine(p) }}</span>
+            <span class="pp-muted pp-small">Last groom: {{ lastGroom(p) }}</span>
+            @if (p.notes) { <span class="pp-pet-note">{{ p.notes }}</span> }
+          </section>
+        }
+        <button class="pp-add-pet" type="button" (click)="petDialog.set(null)">+ Add a pet</button>
+      </div>
+    }
+
+    @case ('bookings') {
+      <div class="pp-table-wrap">
+        <table class="pp-table pp-min-table">
+          <thead><tr><th scope="col">Booking</th><th scope="col">Service</th><th scope="col">Pet</th><th scope="col">When</th><th scope="col">Stage</th><th scope="col">Payment</th></tr></thead>
+          <tbody>
+            @for (b of bookings(); track b.id) {
+              <tr>
+                <td><a class="pp-strong" [routerLink]="['/bookings', b.id]">{{ b.id }}</a></td>
+                <td>{{ b.service?.name ?? b.request?.interestedIn ?? '—' }}</td>
+                <td>{{ b.pet?.name ?? '—' }}</td>
+                <td class="pp-nowrap">{{ bookingWhen(b) }}</td>
+                <td><pp-status-pill [stage]="b.stage" [dot]="true" /></td>
+                <td><pp-status-pill [payment]="b.paymentStatus" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (!bookings().length) { <p class="pp-table-empty">No bookings yet.</p> }
+      </div>
+    }
+
+    @case ('payments') {
+      <div class="pp-table-wrap">
+        <table class="pp-table pp-min-table">
+          <thead><tr><th scope="col">Payment</th><th scope="col">For</th><th scope="col">Item</th><th scope="col" class="pp-num">Amount</th><th scope="col">Status</th><th scope="col">Date</th></tr></thead>
+          <tbody>
+            @for (p of payments() ?? []; track p.id) {
+              <tr>
+                <td class="pp-strong">{{ p.id }}</td>
+                <td>@if (p.kind === 'booking') { <a [routerLink]="['/bookings', p.reference]">{{ p.reference }}</a> } @else { {{ p.reference }} }</td>
+                <td>{{ p.item }}</td>
+                <td class="pp-num">{{ p.amountPaise | inr }}</td>
+                <td><pp-status-pill [payment]="p.status" /></td>
+                <td class="pp-nowrap">{{ whenLabel(p.at) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (payments() === null) { <p class="pp-table-empty">Loading payments…</p> }
+        @else if (!payments()!.length) { <p class="pp-table-empty">No payments yet.</p> }
+      </div>
+    }
+
+    @case ('activity') {
+      <section class="pp-card">
+        <pp-activity-list [entries]="activity() ?? []" [emptyText]="activity() === null ? 'Loading activity…' : 'Nothing yet.'" />
+      </section>
+    }
+  }
+
+  @if (editing()) {
+    <pp-customer-dialog [customer]="c" (closed)="editing.set(false)" (saved)="onSaved($event)" />
+  }
+  @if (petDialog() !== undefined) {
+    <pp-pet-dialog [pet]="petDialog() ?? null" [owner]="owner()" (closed)="petDialog.set(undefined)" (saved)="onPetSaved()" />
+  }
+} @else {
+  <p class="pp-muted">Loading customer…</p>
+}

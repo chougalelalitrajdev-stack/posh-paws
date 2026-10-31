@@ -1,0 +1,76 @@
+<pp-page-header title="Customers" subtitle="Everyone who has booked, asked for a callback or joined a plan.">
+  <ng-container ppActions>
+    <button class="pp-btn" type="button" (click)="exportCsv()">Export CSV</button>
+    <button class="pp-btn pp-btn-primary" type="button" (click)="adding.set(true)">Add customer</button>
+  </ng-container>
+</pp-page-header>
+
+<pp-filter-tabs label="Segment" [tabs]="tabs()" [value]="segment()" (valueChange)="setSegment($event)" />
+
+<div class="pp-filters">
+  <label class="pp-filter">Plan
+    <select class="pp-select" (change)="onFilter($event, 'plan')">
+      <option value="">Any</option>
+      <option value="Basic">Basic</option><option value="Posh">Posh</option><option value="Royal">Royal</option>
+      <option value="none">No plan</option>
+    </select>
+  </label>
+  <label class="pp-filter">Pets
+    <select class="pp-select" (change)="onFilter($event, 'petType')">
+      <option value="">Dogs and cats</option><option value="dog">Has a dog</option><option value="cat">Has a cat</option>
+    </select>
+  </label>
+  <label class="pp-filter">Sort by
+    <select class="pp-select" (change)="onFilter($event, 'sort')">
+      <option value="last_visit">Last visit, newest</option><option value="name">Name A–Z</option><option value="spent">Total spent</option>
+    </select>
+  </label>
+  @if (query()) {
+    <span class="pp-search-chip">Matching “{{ query() }}” <button class="pp-link" type="button" (click)="clearSearch()">Clear</button></span>
+  }
+</div>
+
+<div class="pp-table-wrap" [attr.aria-busy]="loading()">
+  <table class="pp-table pp-customers-table">
+    <thead>
+      <tr>
+        <th scope="col">Customer</th>
+        <th scope="col">Pets</th>
+        <th scope="col">Plan</th>
+        <th scope="col" class="pp-num">Bookings</th>
+        <th scope="col" class="pp-num">Spent</th>
+        <th scope="col">Last visit</th>
+        <th scope="col">Next</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (c of result()?.items ?? []; track c.id) {
+        <tr>
+          <td>
+            <a class="pp-customer-link" [routerLink]="['/customers', c.id]">
+              <pp-avatar [name]="c.name" size="sm" />
+              <span><strong>{{ c.name }}</strong><span class="pp-table-sub">{{ formatPhone(c.phone) }}</span></span>
+            </a>
+          </td>
+          <td>{{ c.petNames.join(', ') || '—' }}</td>
+          <td><pp-status-pill [label]="c.planName ?? 'No plan'" [tone]="c.planName ? planTones[c.planName] : 'neutral'" /></td>
+          <td class="pp-num">{{ c.bookingsCount }}</td>
+          <td class="pp-num">{{ c.spentPaise | inr }}</td>
+          <td [class.pp-lapsed]="c.lapsed">{{ c.lastVisit ? shortDate(c.lastVisit) : '—' }}</td>
+          <td class="pp-nowrap">{{ nextText(c) }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (!loading() && !result()?.items?.length) {
+    <p class="pp-table-empty">No customers match these filters.</p>
+  }
+</div>
+
+@if (result(); as r) {
+  <pp-pagination [page]="r.page" [pageSize]="r.pageSize" [total]="r.total" (pageChange)="page.set($event)" />
+}
+
+@if (adding()) {
+  <pp-customer-dialog (closed)="adding.set(false)" (saved)="onAdded($event)" />
+}

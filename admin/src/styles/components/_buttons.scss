@@ -67,3 +67,26 @@
 
   &:hover { border-color: var(--pp-primary); }
 }
+
+// Smaller pill for table rows and list actions (still 44px tall on touch screens).
+.pp-btn-sm {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  font-size: var(--fs-xs);
+
+  @media (pointer: coarse) { min-height: var(--tap-target-min); }
+}
+
+// Text-style link button.
+.pp-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--pp-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover { color: var(--pp-primary-dark); }
+}

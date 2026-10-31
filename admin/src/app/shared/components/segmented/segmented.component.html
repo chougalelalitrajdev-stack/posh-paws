@@ -1,0 +1,5 @@
+<div class="pp-segmented" role="group" [attr.aria-label]="label()">
+  @for (opt of options(); track opt.value) {
+    <button type="button" [class.active]="value() === opt.value" [attr.aria-pressed]="value() === opt.value" (click)="value.set(opt.value)">{{ opt.label }}</button>
+  }
+</div>

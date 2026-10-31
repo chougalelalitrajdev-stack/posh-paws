@@ -1,0 +1,7 @@
+<nav class="pp-pagination" aria-label="Pages">
+  <span>Showing {{ first() }}–{{ last() }} of {{ total() }}</span>
+  <div class="pp-pagination-buttons">
+    <button class="pp-btn pp-btn-sm" type="button" [disabled]="page() <= 1" (click)="pageChange.emit(page() - 1)">Previous</button>
+    <button class="pp-btn pp-btn-sm" type="button" [disabled]="!hasNext()" (click)="pageChange.emit(page() + 1)">Next</button>
+  </div>
+</nav>

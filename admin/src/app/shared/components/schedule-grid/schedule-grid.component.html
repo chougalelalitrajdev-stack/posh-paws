@@ -1,0 +1,32 @@
+<div class="pp-grid-scroll">
+  <div class="pp-grid" [style.min-width.px]="64 + columns().length * minColumnWidth()">
+    <div class="pp-grid-axis" aria-hidden="true">
+      @for (h of hours(); track h) { <div class="pp-grid-hour">{{ h }}</div> }
+    </div>
+
+    @for (col of columns(); track col.key) {
+      <div class="pp-grid-col">
+        <div class="pp-grid-col-head">{{ col.label }}</div>
+        <div class="pp-grid-body" [style.height.px]="height()">
+          @for (item of col.items; track item.id) {
+            @if (item.clickable) {
+              <button class="pp-grid-item" type="button" [class]="'pp-tone-' + item.tone" [class.is-compact]="compact()" [style]="place(item)"
+                [attr.aria-label]="item.time + ', ' + item.title + (item.subtitle ? ', ' + item.subtitle : '')" (click)="select.emit(item)">
+                @if (compact()) { <strong>{{ item.title }}</strong> }
+                @else {
+                  <strong>{{ item.time }} · {{ item.title }}</strong>
+                  @if (item.subtitle) { <span>{{ item.subtitle }}</span> }
+                }
+              </button>
+            } @else {
+              <div class="pp-grid-item is-static" [class]="'pp-tone-' + item.tone" [class.is-compact]="compact()" [style]="place(item)">
+                <strong>{{ compact() ? item.title : item.time + ' · ' + item.title }}</strong>
+                @if (item.subtitle && !compact()) { <span>{{ item.subtitle }}</span> }
+              </div>
+            }
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

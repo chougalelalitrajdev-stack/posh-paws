@@ -7,7 +7,7 @@
       <span class="pp-brand-text"><span class="pp-brand-name">Posh Paws</span><span class="pp-brand-sub">Admin</span></span>
     </a>
 
-    <pp-nav-list [groups]="groups()" [footer]="settings()" />
+    <pp-nav-list [groups]="groups()" [footer]="settings()" [badges]="badges()" />
   </aside>
 
   <div class="pp-main">
@@ -18,6 +18,7 @@
         <span class="pp-brand-name">Posh Paws</span>
       </a>
 
+      <pp-global-search />
       <div class="pp-topbar-spacer"></div>
 
       <a class="pp-btn pp-btn-primary pp-new-booking" routerLink="/bookings/new">
@@ -36,7 +37,10 @@
   <nav class="pp-tabbar" aria-label="Admin">
     @for (tab of tabs(); track tab.path) {
       <a class="pp-tab" [routerLink]="tab.path" routerLinkActive="active">
-        <pp-icon [name]="tab.icon" [size]="20" />{{ tab.label }}
+        <span class="pp-tab-icon">
+          <pp-icon [name]="tab.icon" [size]="20" />
+          @if (tab.badge && badges()[tab.badge]) { <span class="pp-tab-badge" [attr.aria-label]="badges()[tab.badge] + ' new'">{{ badges()[tab.badge] }}</span> }
+        </span>{{ tab.label }}
       </a>
     }
     <button class="pp-tab" type="button" [class.active]="moreOpen()" [attr.aria-expanded]="moreOpen()" (click)="moreOpen.set(!moreOpen())">
@@ -51,7 +55,7 @@
         <strong>More</strong>
         <button class="pp-icon-btn" type="button" aria-label="Close" (click)="moreOpen.set(false)"><pp-icon name="close" /></button>
       </div>
-      <pp-nav-list [groups]="moreGroups()" [footer]="settings()" (click)="moreOpen.set(false)" />
+      <pp-nav-list [groups]="moreGroups()" [footer]="settings()" [badges]="badges()" (click)="moreOpen.set(false)" />
     </div>
   }
 </div>

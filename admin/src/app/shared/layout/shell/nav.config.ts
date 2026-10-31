@@ -10,6 +10,8 @@ export interface NavItem {
   /** Only these roles see the item. Missing = everyone. */
   roles?: StaffRole[];
   soon?: boolean;
+  /** Shows a live count from the shell's badge map (e.g. new requests). */
+  badge?: 'requests';
 }
 
 export interface NavGroup {
@@ -23,7 +25,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Operations',
     items: [
-      { label: 'Requests', icon: 'phone', path: '/requests' },
+      { label: 'Requests', icon: 'phone', path: '/requests', badge: 'requests' },
       { label: 'Bookings', icon: 'calendar', path: '/bookings' },
       { label: 'Customers', icon: 'users', path: '/customers' },
       { label: 'Pets', icon: 'paw', path: '/pets' },

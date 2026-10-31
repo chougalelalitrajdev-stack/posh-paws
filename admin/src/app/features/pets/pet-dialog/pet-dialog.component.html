@@ -1,0 +1,83 @@
+<pp-modal [title]="pet() ? 'Edit ' + pet()!.name : 'Add pet'" (closed)="closed.emit()">
+  @if (!foundOwner()) {
+    <form class="pp-form-grid" (submit)="$event.preventDefault(); findOwner()" novalidate>
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="owner-phone">Owner's mobile number</label>
+        <input id="owner-phone" class="pp-input" type="tel" inputmode="tel" placeholder="e.g. 98220 41763" [formControl]="ownerPhone"
+          [class.is-invalid]="ownerPhone.invalid && ownerPhone.touched">
+        @if (ownerPhone.invalid && ownerPhone.touched) { <p class="pp-field-error">Enter a 10-digit mobile number.</p> }
+        @if (lookup() === 'not-found') {
+          <p class="pp-field-error">No customer with this number. Add them in Customers first, then add the pet.</p>
+        }
+      </div>
+      <div class="pp-span"><button class="pp-btn pp-btn-primary" type="submit" [disabled]="lookup() === 'searching'">
+        @if (lookup() === 'searching') { Searching… } @else { Find owner }
+      </button></div>
+    </form>
+  } @else {
+    <form class="pp-form-grid" id="pet-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (!pet()) {
+        <p class="pp-alert pp-alert-info pp-span">Owner: <strong>{{ foundOwner()!.name }}</strong> · {{ formatPhone(foundOwner()!.phone) }}</p>
+      }
+      @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+
+      <div class="pp-field">
+        <label class="pp-label" for="pet-name">Name</label>
+        <input id="pet-name" class="pp-input" type="text" autocomplete="off" formControlName="name"
+          [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched">
+        @if (form.controls.name.invalid && form.controls.name.touched) { <p class="pp-field-error">Enter the pet's name.</p> }
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-type">Dog or cat</label>
+        <select id="pet-type" class="pp-input" formControlName="type"><option value="dog">Dog</option><option value="cat">Cat</option></select>
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-breed">Breed</label>
+        <input id="pet-breed" class="pp-input" type="text" autocomplete="off" formControlName="breed">
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-birth">Birth date <span class="pp-muted">(roughly is fine)</span></label>
+        <input id="pet-birth" class="pp-input" type="date" [max]="maxDate" formControlName="birthDate">
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-gender">Gender</label>
+        <select id="pet-gender" class="pp-input" formControlName="gender">
+          <option value="">Not set</option><option value="female">Female</option><option value="male">Male</option>
+        </select>
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-weight">Weight (kg)</label>
+        <input id="pet-weight" class="pp-input" type="number" min="0" step="0.5" inputmode="decimal" formControlName="weightKg">
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-coat">Size · coat</label>
+        <input id="pet-coat" class="pp-input" type="text" placeholder="e.g. Small · long" formControlName="coat">
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="pet-temper">Temperament</label>
+        <input id="pet-temper" class="pp-input" type="text" placeholder="e.g. Calm, shy with strangers" formControlName="temperament">
+      </div>
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="pet-vax">Vaccination</label>
+        <select id="pet-vax" class="pp-input" formControlName="vaccination">
+          @for (o of vaccinationOptions; track o.value) { <option [value]="o.value">{{ o.label }}</option> }
+        </select>
+      </div>
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="pet-notes">Grooming notes</label>
+        <textarea id="pet-notes" class="pp-input" rows="2" placeholder="What groomers should know before every visit" formControlName="notes"></textarea>
+      </div>
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="pet-health">Health notes</label>
+        <textarea id="pet-health" class="pp-input" rows="2" placeholder="Allergies, conditions, medicines" formControlName="healthNotes"></textarea>
+      </div>
+    </form>
+  }
+
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  @if (foundOwner()) {
+    <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="pet-form" [disabled]="saving()">
+      @if (saving()) { Saving… } @else { {{ pet() ? 'Save changes' : 'Add pet' }} }
+    </button>
+  }
+</pp-modal>

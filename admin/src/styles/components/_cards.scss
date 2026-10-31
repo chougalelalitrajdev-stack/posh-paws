@@ -5,3 +5,17 @@
   border-radius: var(--radius-lg);
   padding: var(--space-6);
 }
+
+// Title row of a card; links or buttons sit on the right.
+.pp-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.pp-card-title {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}

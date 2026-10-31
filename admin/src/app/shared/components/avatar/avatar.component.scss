@@ -1,0 +1,17 @@
+:host { display: inline-flex; flex-shrink: 0; }
+
+.pp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--pp-primary-light);
+  color: var(--pp-primary-dark);
+
+  :host(.is-lg) & { width: 64px; height: 64px; font-size: var(--fs-xl); }
+  :host(.is-md) & { width: 44px; height: 44px; font-size: var(--fs-sm); }
+}

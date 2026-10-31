@@ -1,0 +1,91 @@
+<pp-page-header [title]="title()" [subtitle]="subtitle()" />
+
+@if (data(); as d) {
+  <div class="pp-kpis">
+    @for (k of kpis(); track k.label) {
+      <a class="pp-kpi" [routerLink]="k.link" [queryParams]="k.query ?? null">
+        <span class="pp-kpi-label"><span class="pp-dot" [class]="'pp-tone-' + k.tone"></span>{{ k.label }}</span>
+        <span class="pp-kpi-value">{{ k.value }}</span>
+        <span class="pp-kpi-sub">{{ k.sub }}</span>
+        <span class="pp-kpi-action">{{ k.action }} →</span>
+      </a>
+    }
+  </div>
+
+  <div class="pp-today-row">
+    <section class="pp-card pp-attention" aria-labelledby="attention-title">
+      <div class="pp-section-head">
+        <h2 id="attention-title" class="pp-section-title">Needs your attention</h2>
+        <span class="pp-muted pp-small">Oldest first</span>
+      </div>
+      @for (a of d.attention; track $index) {
+        <div class="pp-attention-row">
+          <pp-status-pill [label]="attentionTags[a.kind].label" [tone]="attentionTags[a.kind].tone" [dot]="true" />
+          <span class="pp-attention-text"><strong>{{ a.title }}</strong><span>{{ a.detail }}</span></span>
+          <a class="pp-btn pp-btn-sm" [routerLink]="a.link" [queryParams]="a.queryParams ?? null">{{ a.action }}</a>
+        </div>
+      } @empty {
+        <p class="pp-muted pp-small">Nothing waiting. Nice work.</p>
+      }
+    </section>
+
+    <section class="pp-card pp-schedule" aria-labelledby="schedule-title">
+      <div class="pp-section-head">
+        <h2 id="schedule-title" class="pp-section-title">Today's schedule</h2>
+        <a class="pp-small pp-strong" routerLink="/bookings" [queryParams]="{ view: 'calendar' }">Calendar</a>
+      </div>
+      @for (b of d.schedule; track b.id) {
+        <a class="pp-schedule-row" [routerLink]="['/bookings', b.id]">
+          <span class="pp-schedule-time">{{ b.time }}</span>
+          <span class="pp-schedule-text">
+            <strong>{{ b.pet?.name }}@if (b.pet?.breed) { · {{ b.pet?.breed }} }</strong>
+            <span>{{ b.service?.name }} · {{ catalog.stationName(b.stationId) }}</span>
+          </span>
+          <pp-status-pill [label]="scheduleStatus(b).label" [tone]="scheduleStatus(b).tone" />
+        </a>
+      } @empty {
+        <p class="pp-muted pp-small">No appointments today.</p>
+      }
+    </section>
+  </div>
+
+  <div class="pp-today-cards">
+    <section class="pp-card pp-mini" aria-labelledby="payments-title">
+      <h2 id="payments-title" class="pp-mini-title">Payments collected · last 7 days</h2>
+      <span class="pp-mini-value">{{ d.payments.totalPaise | inr }}</span>
+      <span class="pp-muted pp-small">{{ d.payments.count }} payments · {{ d.payments.failed }} failed · {{ d.payments.refunds }} refund{{ d.payments.refunds === 1 ? '' : 's' }}</span>
+      <div class="pp-bars" role="img" [attr.aria-label]="barsLabel()">
+        @for (b of bars(); track $index) {
+          <div class="pp-bar-slot"><div class="pp-bar" [class.is-today]="b.isToday" [style.height]="b.height" [title]="b.label + ': ' + b.amount"></div></div>
+        }
+      </div>
+      <div class="pp-bar-labels" aria-hidden="true">
+        @for (b of bars(); track $index) { <span>{{ b.label }}</span> }
+      </div>
+    </section>
+
+    <section class="pp-card pp-mini" aria-labelledby="members-title">
+      <h2 id="members-title" class="pp-mini-title">Active memberships</h2>
+      <span class="pp-mini-value">{{ d.memberships.active }}</span>
+      <span class="pp-muted pp-small">{{ d.memberships.renewThisWeek }} renew this week · {{ d.memberships.expired }} expired</span>
+      @for (p of planBars(); track p.name) {
+        <div class="pp-plan">
+          <div class="pp-plan-row"><span>{{ p.name }}</span><strong>{{ p.count }}</strong></div>
+          <div class="pp-meter"><div class="pp-meter-fill" [style.width]="p.width"></div></div>
+        </div>
+      }
+    </section>
+
+    <section class="pp-card pp-mini" aria-labelledby="content-title">
+      <h2 id="content-title" class="pp-mini-title">Customer app content</h2>
+      @for (c of d.content; track c.title) {
+        <div class="pp-content-row">
+          <span class="pp-attention-text"><strong>{{ c.title }}</strong><span>{{ c.where }}</span></span>
+          <pp-status-pill [label]="c.status" [tone]="c.tone" />
+        </div>
+      }
+    </section>
+  </div>
+} @else {
+  <p class="pp-muted">Loading today…</p>
+}

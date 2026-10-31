@@ -32,13 +32,51 @@ export const routes: Routes = [
     loadComponent: () => import('./shared/layout/shell/shell.component').then(m => m.ShellComponent),
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'today' },
-      later('today', 'Today', 'B'),
-      later('requests', 'Requests', 'B'),
-      later('bookings', 'Bookings', 'B'),
-      later('bookings/new', 'New booking', 'B'),
-      later('customers', 'Customers', 'C'),
-      later('pets', 'Pets', 'C'),
-      later('subscriptions', 'Subscriptions', 'C'),
+      {
+        path: 'today',
+        title: 'Today · Posh Paws Admin',
+        loadComponent: () => import('./features/today/today.component').then(m => m.TodayComponent),
+      },
+      {
+        path: 'requests',
+        title: 'Requests · Posh Paws Admin',
+        loadComponent: () => import('./features/requests/requests.component').then(m => m.RequestsComponent),
+      },
+      {
+        path: 'bookings',
+        title: 'Bookings · Posh Paws Admin',
+        loadComponent: () => import('./features/bookings/booking-list/booking-list.component').then(m => m.BookingListComponent),
+      },
+      {
+        path: 'bookings/new',
+        title: 'New booking · Posh Paws Admin',
+        loadComponent: () => import('./features/bookings/new-booking/new-booking.component').then(m => m.NewBookingComponent),
+      },
+      {
+        path: 'bookings/:id',
+        title: 'Booking · Posh Paws Admin',
+        loadComponent: () => import('./features/bookings/booking-detail/booking-detail.component').then(m => m.BookingDetailComponent),
+      },
+      {
+        path: 'customers',
+        title: 'Customers · Posh Paws Admin',
+        loadComponent: () => import('./features/customers/customer-list/customer-list.component').then(m => m.CustomerListComponent),
+      },
+      {
+        path: 'customers/:id',
+        title: 'Customer · Posh Paws Admin',
+        loadComponent: () => import('./features/customers/customer-detail/customer-detail.component').then(m => m.CustomerDetailComponent),
+      },
+      {
+        path: 'pets',
+        title: 'Pets · Posh Paws Admin',
+        loadComponent: () => import('./features/pets/pet-list/pet-list.component').then(m => m.PetListComponent),
+      },
+      {
+        path: 'subscriptions',
+        title: 'Subscriptions · Posh Paws Admin',
+        loadComponent: () => import('./features/subscriptions/subscription-list.component').then(m => m.SubscriptionListComponent),
+      },
       later('services', 'Services', 'D'),
       later('plans', 'Membership plans', 'D'),
       later('offers', 'Offers', 'D'),

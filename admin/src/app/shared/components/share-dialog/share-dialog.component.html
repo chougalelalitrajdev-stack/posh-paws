@@ -1,0 +1,10 @@
+<pp-modal [title]="title()" (closed)="closed.emit()">
+  @if (intro()) { <p class="pp-share-intro">{{ intro() }}</p> }
+  <span class="pp-share-to">To {{ to() }} on WhatsApp</span>
+  <p class="pp-share-message">{{ message() }}</p>
+
+  <button ppModalActions class="pp-btn" type="button" (click)="copy()">Copy message</button>
+  <a ppModalActions class="pp-btn pp-btn-primary" [href]="href()" target="_blank" rel="noopener" (click)="closed.emit()">
+    <pp-icon name="message" [size]="16" />Open WhatsApp
+  </a>
+</pp-modal>

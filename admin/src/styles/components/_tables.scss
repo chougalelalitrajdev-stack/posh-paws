@@ -1,0 +1,49 @@
+// Data tables: wrap in .pp-table-wrap so wide tables scroll inside the card on small screens.
+.pp-table-wrap {
+  // Positioned so visually hidden labels inside stay within the scroll box
+  // (otherwise they escape it and make the whole page scroll sideways on phones).
+  position: relative;
+  overflow-x: auto;
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  background: var(--pp-card-bg);
+}
+
+.pp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+
+  th {
+    padding: var(--space-3);
+    background: var(--pp-surface);
+    color: var(--pp-muted);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: var(--space-3);
+    border-top: 1px solid var(--pp-divider);
+    vertical-align: middle;
+  }
+
+  th:first-child, td:first-child { padding-left: var(--space-4); }
+  th:last-child, td:last-child { padding-right: var(--space-4); }
+
+  .pp-table-sub {
+    display: block;
+    font-size: var(--fs-xs);
+    color: var(--pp-muted);
+  }
+}
+
+.pp-table-empty {
+  margin: 0;
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+}

@@ -1,0 +1,60 @@
+.pp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog-backdrop);
+  background: rgba(0, 0, 0, .4);
+}
+
+// Bottom sheet on phones, centred dialog from 768px.
+.pp-modal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-dialog);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-5) calc(var(--space-5) + var(--safe-bottom));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--pp-card-bg);
+  box-shadow: var(--shadow-lg);
+  animation: ppSheetUp .2s ease both;
+
+  &:focus { outline: none; }
+
+  @media (min-width: 768px) {
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    top: 50%;
+    width: min(560px, calc(100vw - 2 * var(--space-6)));
+    border-radius: var(--radius-lg);
+    transform: translate(-50%, -50%);
+    animation: ppDialogIn .18s ease both;
+  }
+}
+
+.pp-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.pp-modal-title {
+  margin: 0;
+  font-family: var(--ff-serif);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+}
+
+.pp-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+
+  &:empty { display: none; }
+}

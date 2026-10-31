@@ -1,0 +1,12 @@
+<pp-modal title="Reschedule" (closed)="closed.emit()">
+  <p class="pp-muted pp-resched-note">
+    {{ booking().service?.name }} · {{ formatDuration(booking().service?.durationMinutes ?? 0) }}. Times shown have a station free for the whole appointment.
+  </p>
+  @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+  <pp-slot-picker [days]="days()" [loading]="loading()" [(date)]="date" [(time)]="time" />
+
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  <button ppModalActions class="pp-btn pp-btn-primary" type="button" [disabled]="!time() || saving()" (click)="save()">
+    @if (saving()) { Saving… } @else { Move booking }
+  </button>
+</pp-modal>

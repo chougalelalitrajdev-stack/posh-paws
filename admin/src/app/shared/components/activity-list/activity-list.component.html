@@ -1,0 +1,13 @@
+<ol class="pp-activity">
+  @for (a of entries(); track $index) {
+    <li class="pp-activity-item" [class]="'is-' + a.kind">
+      <span class="pp-activity-dot" aria-hidden="true"></span>
+      <span class="pp-activity-text">
+        <strong>{{ a.title }}</strong>
+        <span>@if (a.detail) { {{ a.detail }} · } {{ whenLabel(a.at) }}@if (a.by) { · {{ a.by }} }</span>
+      </span>
+    </li>
+  } @empty {
+    <li class="pp-activity-empty">{{ emptyText() }}</li>
+  }
+</ol>

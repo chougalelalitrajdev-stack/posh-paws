@@ -1,0 +1,227 @@
+<pp-page-header [title]="title()" [subtitle]="source() ? source()!.id + ' · ' + sources[source()!.source] : 'Book an appointment for a customer who called or walked in.'">
+  @if (!done()) {
+    <button ppActions class="pp-btn" type="button" [disabled]="!canSaveDraft() || busy()" (click)="saveDraft()">Save as draft</button>
+  }
+</pp-page-header>
+
+@if (loadingSource()) {
+  <p class="pp-muted">Loading…</p>
+} @else {
+  <div class="pp-nb">
+    <div class="pp-nb-steps">
+
+      <!-- 1 · Customer and pet -->
+      <pp-booking-step [number]="1" title="Customer and pet" [state]="stepState(1)"
+        [summary]="(customer()?.name ?? '') + (pet() ? ' · ' + pet()!.name : '')" (change)="goTo(1)">
+        @if (customer(); as c) {
+          <div class="pp-alert pp-alert-info pp-found">
+            <pp-icon name="check" [size]="18" />
+            <span><strong>{{ customerIsNew() ? 'New customer added.' : 'Existing customer found by phone.' }}</strong>
+              {{ c.name }} · {{ formatPhone(c.phone) }} · {{ customerLine() }}</span>
+            @if (!source()) { <button class="pp-link" type="button" (click)="changeCustomer()">Change</button> }
+          </div>
+
+          <div class="pp-field">
+            <span class="pp-label">Which pet?</span>
+            <div class="pp-choices" role="group" aria-label="Pet">
+              @for (p of c.pets; track p.id) {
+                <button class="pp-choice" type="button" [class.active]="petId() === p.id" [attr.aria-pressed]="petId() === p.id" (click)="petId.set(p.id)">
+                  <strong>{{ p.name }}</strong>
+                  <span>{{ petLine(p) }}</span>
+                  @if (p.notes) { <span class="pp-choice-note">{{ p.notes }}</span> }
+                </button>
+              }
+              @if (!addingPet()) {
+                <button class="pp-choice pp-choice-add" type="button" (click)="addingPet.set(true)">+ Add a pet</button>
+              }
+            </div>
+          </div>
+
+          @if (addingPet()) {
+            <form class="pp-inline-form" [formGroup]="petForm" (ngSubmit)="addPet()" novalidate>
+              <div class="pp-field">
+                <label class="pp-label" for="pet-name">Pet's name</label>
+                <input id="pet-name" class="pp-input" type="text" formControlName="name" autocomplete="off">
+              </div>
+              <div class="pp-field">
+                <label class="pp-label" for="pet-type">Dog or cat</label>
+                <select id="pet-type" class="pp-input" formControlName="type"><option value="dog">Dog</option><option value="cat">Cat</option></select>
+              </div>
+              <div class="pp-field">
+                <label class="pp-label" for="pet-breed">Breed <span class="pp-muted">(optional)</span></label>
+                <input id="pet-breed" class="pp-input" type="text" formControlName="breed" autocomplete="off">
+              </div>
+              <div class="pp-inline-actions">
+                <button class="pp-btn pp-btn-primary" type="submit" [disabled]="busy()">Save pet</button>
+                @if (c.pets.length) { <button class="pp-btn pp-btn-ghost" type="button" (click)="addingPet.set(false)">Cancel</button> }
+              </div>
+            </form>
+          }
+
+          @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+          <div class="pp-step-actions">
+            <button class="pp-btn pp-btn-primary" type="button" [disabled]="!pet()" (click)="continueFromPet()">Continue</button>
+          </div>
+        } @else {
+          <form class="pp-inline-form" (submit)="$event.preventDefault(); findCustomer()" novalidate>
+            <div class="pp-field">
+              <label class="pp-label" for="phone">Customer's mobile number</label>
+              <input id="phone" class="pp-input" type="tel" inputmode="tel" placeholder="e.g. 98220 41763" [formControl]="phone"
+                [class.is-invalid]="phone.invalid && phone.touched">
+              @if (phone.invalid && phone.touched) { <p class="pp-field-error">Enter a 10-digit mobile number.</p> }
+            </div>
+            <div class="pp-inline-actions">
+              <button class="pp-btn pp-btn-primary" type="submit" [disabled]="lookup() === 'searching'">
+                @if (lookup() === 'searching') { Searching… } @else { Find customer }
+              </button>
+            </div>
+          </form>
+
+          @if (lookup() === 'not-found') {
+            <form class="pp-inline-form" (submit)="$event.preventDefault(); createCustomer()" novalidate>
+              <p class="pp-muted pp-small">No customer with this number yet. Add them:</p>
+              <div class="pp-field">
+                <label class="pp-label" for="new-name">Customer's name</label>
+                <input id="new-name" class="pp-input" type="text" autocomplete="off" [formControl]="newName"
+                  [class.is-invalid]="newName.invalid && newName.touched">
+              </div>
+              @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+              <div class="pp-inline-actions">
+                <button class="pp-btn pp-btn-primary" type="submit" [disabled]="busy()">Add customer</button>
+              </div>
+            </form>
+          }
+        }
+      </pp-booking-step>
+
+      <!-- 2 · Service -->
+      <pp-booking-step [number]="2" title="Service" [state]="stepState(2)"
+        [summary]="service() ? service()!.name + ' · ' + durationText(service()?.durationMinutes) : ''" (change)="goTo(2)">
+        @if (requested() || discount()) {
+          <p class="pp-step-note">
+            @if (requested()) { Asked for in the request: {{ requested() }}. }
+            @if (discount()) { Member prices include the {{ discount() }}% {{ plan()?.name }} discount. }
+          </p>
+        }
+        <div class="pp-services" role="radiogroup" aria-label="Service">
+          @for (s of services(); track s.id) {
+            <button class="pp-choice pp-service" type="button" role="radio" [class.active]="serviceId() === s.id" [attr.aria-checked]="serviceId() === s.id" (click)="serviceId.set(s.id)">
+              <span class="pp-radio" aria-hidden="true"></span>
+              <span class="pp-service-name">{{ s.name }}</span>
+              <span class="pp-muted">{{ s.durationMinutes | duration }}</span>
+              <span class="pp-service-price">
+                {{ memberPrice(s) | inr }}
+                @if (discount()) { <s class="pp-muted">{{ s.pricePaise | inr }}</s> }
+              </span>
+            </button>
+          }
+        </div>
+        <div class="pp-step-actions">
+          <button class="pp-btn pp-btn-primary" type="button" [disabled]="!service()" (click)="continueFromService()">Continue</button>
+        </div>
+      </pp-booking-step>
+
+      <!-- 3 · Date and slot -->
+      <pp-booking-step [number]="3" title="Date and slot" [state]="stepState(3)" [summary]="when()" (change)="goTo(3)">
+        <p class="pp-step-note">{{ rulesNote }}</p>
+        @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+        <pp-slot-picker [days]="days()" [loading]="daysLoading()" [(date)]="date" [(time)]="time" />
+        <div class="pp-step-actions">
+          <button class="pp-btn pp-btn-primary" type="button" [disabled]="!time()" (click)="continueFromSlot()">Review booking</button>
+        </div>
+      </pp-booking-step>
+
+      <!-- 4 · Payment link -->
+      <pp-booking-step [number]="4" title="Payment link" [state]="stepState(4)" summary="Link created" (change)="goTo(4)">
+        <div class="pp-field">
+          <span class="pp-label">Amount to collect</span>
+          <div class="pp-amounts" role="radiogroup" aria-label="Amount to collect">
+            <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'full'" [attr.aria-checked]="amountType() === 'full'" (click)="amountType.set('full')">
+              <span><strong>Full amount</strong><span>Nothing to pay at the visit</span></span>
+              <strong>{{ price() | inr }}</strong>
+            </button>
+            @if ((price() ?? 0) > holdPaise) {
+              <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'hold'" [attr.aria-checked]="amountType() === 'hold'" (click)="amountType.set('hold')">
+                <span><strong>Slot hold</strong><span>Refundable · balance at the visit</span></span>
+                <strong>{{ holdPaise | inr }}</strong>
+              </button>
+            }
+          </div>
+          <p class="pp-step-note">The link expires in {{ linkHours }} hours. Paying confirms the booking automatically.</p>
+        </div>
+
+        <div class="pp-field">
+          <span class="pp-label">WhatsApp message</span>
+          <p class="pp-message">{{ message() }}</p>
+        </div>
+
+        @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+        <div class="pp-step-actions">
+          <button class="pp-btn" type="button" [disabled]="busy()" (click)="createLink(true)">Create and copy link</button>
+          <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="createLink(false)">
+            <pp-icon name="message" [size]="16" />
+            @if (busy()) { Creating… } @else { Create booking and send on WhatsApp }
+          </button>
+        </div>
+      </pp-booking-step>
+
+      @if (done(); as b) {
+        <div class="pp-alert pp-alert-success pp-done" role="status">
+          <strong>Payment link ready for {{ formatPhone(b.customer.phone) }}</strong>
+          <span>Booking {{ b.id }} is now Awaiting payment and holds {{ when() }}. It confirms by itself when {{ b.customer.name.split(' ')[0] }} pays;
+            if it isn't paid in 6 hours you'll see it under Needs your attention.</span>
+          <div class="pp-done-actions">
+            <a class="pp-btn pp-btn-primary" [href]="whatsappHref()" target="_blank" rel="noopener"><pp-icon name="message" [size]="16" />Open WhatsApp to send</a>
+            <button class="pp-btn" type="button" (click)="copy(message(), 'Message copied.')">Copy message</button>
+            <a class="pp-btn" [routerLink]="['/bookings', b.id]">Open booking</a>
+            <a class="pp-btn pp-btn-ghost" routerLink="/requests">Next request</a>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Right rail -->
+    <aside class="pp-nb-side">
+      @if (source()?.request; as req) {
+        <section class="pp-card pp-callback" aria-label="Callback request">
+          <div class="pp-callback-top">
+            <pp-status-pill label="Callback request" tone="info" />
+            <span class="pp-muted pp-small">{{ sources[source()!.source] }} · {{ whenLabel(source()!.createdAt) }}</span>
+          </div>
+          <div class="pp-callback-who">
+            <strong>{{ source()!.customer.name }}</strong>
+            <span>{{ formatPhone(source()!.customer.phone) }}</span>
+          </div>
+          <div class="pp-callback-actions">
+            <a class="pp-btn pp-btn-primary" [href]="telLink(source()!.customer.phone)"><pp-icon name="phone" [size]="16" />Call</a>
+            <a class="pp-btn" [href]="whatsappHref()" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+          <dl class="pp-rows">
+            <div><dt>Pet</dt><dd>{{ source()!.pet ? source()!.pet!.name + (source()!.pet!.breed ? ' · ' + source()!.pet!.breed : '') : (req.petNote ?? '—') }}</dd></div>
+            <div><dt>Interested in</dt><dd>{{ req.interestedIn ?? '—' }}</dd></div>
+            <div><dt>Best time</dt><dd>{{ req.bestTime ?? '—' }}</dd></div>
+          </dl>
+          @if (req.message) { <p class="pp-quote">“{{ req.message }}”</p> }
+          <div class="pp-field">
+            <span class="pp-label">Call outcome</span>
+            <pp-segmented label="Call outcome" [options]="callOutcomes" [value]="req.callOutcome ?? ''" (valueChange)="setOutcome($event)" />
+          </div>
+        </section>
+      }
+
+      <section class="pp-card" aria-labelledby="summary-title">
+        <div class="pp-summary-head">
+          <h2 id="summary-title" class="pp-summary-title">Booking summary</h2>
+          <pp-status-pill [stage]="done() ? 'awaiting_payment' : 'draft'" />
+        </div>
+        <dl class="pp-rows">
+          <div><dt>Customer</dt><dd>{{ customer()?.name ?? '—' }}</dd></div>
+          <div><dt>Pet</dt><dd>{{ pet() ? pet()!.name + (pet()!.breed ? ' · ' + pet()!.breed : '') : '—' }}</dd></div>
+          <div><dt>Service</dt><dd>{{ service() ? service()!.name + ' · ' + durationText(service()?.durationMinutes) : '—' }}</dd></div>
+          <div><dt>When</dt><dd>{{ when() || 'Not picked yet' }}</dd></div>
+          <div><dt>To collect</dt><dd>{{ amount() | inr }}</dd></div>
+        </dl>
+      </section>
+    </aside>
+  </div>
+}

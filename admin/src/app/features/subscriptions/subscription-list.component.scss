@@ -1,0 +1,22 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-intro { margin: calc(-1 * var(--space-3)) 0 0; color: var(--pp-muted); }
+.pp-cta { text-align: right; white-space: nowrap; }
+
+.pp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.pp-subs-table { min-width: 960px; }
+
+.pp-sessions-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.pp-sessions { width: 72px; height: 6px; }

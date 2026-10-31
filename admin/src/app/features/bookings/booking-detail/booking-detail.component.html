@@ -1,0 +1,127 @@
+@if (booking(); as b) {
+  <pp-page-header [title]="title()">
+    @if (b.stage === 'request' || b.stage === 'draft') {
+      <ng-container ppActions>
+        <a class="pp-btn pp-btn-primary" routerLink="/bookings/new" [queryParams]="{ from: b.id }">{{ b.stage === 'request' ? 'Start booking' : 'Continue booking' }}</a>
+        <button class="pp-btn" type="button" [disabled]="busy()" (click)="cancel()">{{ b.stage === 'request' ? 'Cancel request' : 'Cancel booking' }}</button>
+      </ng-container>
+    }
+    @if (b.stage === 'awaiting_payment') {
+      <ng-container ppActions>
+        <button class="pp-btn" type="button" [disabled]="busy()" (click)="rescheduling.set(true)">Reschedule</button>
+        <button class="pp-btn" type="button" [disabled]="busy()" (click)="cancel()">Cancel booking</button>
+        <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="resendLink()">
+          {{ b.paymentStatus === 'failed' ? 'Send new link' : 'Resend payment link' }}
+        </button>
+      </ng-container>
+    }
+    @if (b.stage === 'confirmed') {
+      <ng-container ppActions>
+        <button class="pp-btn" type="button" [disabled]="busy()" (click)="rescheduling.set(true)">Reschedule</button>
+        <button class="pp-btn" type="button" [disabled]="busy()" (click)="cancel()">Cancel booking</button>
+        @if (hasStarted()) {
+          <button class="pp-btn" type="button" [disabled]="busy()" (click)="noShow()">No-show</button>
+        }
+        <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="complete()">Mark completed</button>
+      </ng-container>
+    }
+  </pp-page-header>
+
+  <div class="pp-detail-status">
+    <pp-status-pill [stage]="b.stage" [dot]="true" />
+    <pp-status-pill [payment]="b.paymentStatus" />
+    <span class="pp-muted">{{ meta() }}</span>
+  </div>
+
+  <pp-booking-progress [steps]="progress()" />
+
+  <div class="pp-detail-grid">
+    <div class="pp-detail-main">
+      <section class="pp-card" aria-labelledby="pay-title">
+        <div class="pp-card-head"><h2 id="pay-title" class="pp-card-title">Payment</h2></div>
+        @if (paymentText(); as pt) {
+          <div class="pp-pay-facts">
+            <div><span>Amount</span><strong>{{ pt.amount }}</strong><span>{{ pt.amountNote }}</span></div>
+            <div><span>Sent</span><strong>{{ pt.sent }}</strong><span>to {{ formatPhone(b.customer.phone) }}</span></div>
+            <div><span>{{ pt.expiresLabel }}</span><strong>{{ pt.expires }}</strong><span>{{ pt.expiresNote }}</span></div>
+          </div>
+          <div class="pp-pay-link">
+            <code>{{ b.payment?.link }}</code>
+            <button class="pp-btn pp-btn-sm" type="button" (click)="copyLink()">Copy link</button>
+            @if (b.stage === 'awaiting_payment') {
+              <a class="pp-btn pp-btn-sm" [href]="whatsappHref()" target="_blank" rel="noopener">Send on WhatsApp</a>
+              <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busy()" (click)="markPaid()">Mark paid at desk</button>
+              @if (useMocks) {
+                <button class="pp-link pp-demo" type="button" [disabled]="busy()" (click)="simulatePayment()">Demo: customer pays online</button>
+              }
+            }
+          </div>
+        } @else {
+          <p class="pp-muted pp-empty-line">No payment requested yet. Pick a slot and send a payment link to hold it.</p>
+        }
+      </section>
+
+      <section class="pp-card" aria-labelledby="appt-title">
+        <h2 id="appt-title" class="pp-card-title">Appointment</h2>
+        <dl class="pp-facts">
+          <div><dt>Service</dt><dd>{{ b.service ? b.service.name + ' · ' + durationText() : (b.request?.interestedIn ?? '—') }}</dd></div>
+          <div><dt>When</dt><dd>{{ whenText() }}</dd></div>
+          <div><dt>Station</dt><dd>{{ catalog.stationName(b.stationId) || '—' }}</dd></div>
+          <div><dt>Booked by</dt><dd>{{ b.bookedBy ? b.bookedBy + (b.request ? ' from a callback' : '') : sources[b.source] }}</dd></div>
+          @if (b.pricePaise !== null) { <div><dt>Price</dt><dd>{{ b.pricePaise | inr }}</dd></div> }
+        </dl>
+      </section>
+
+      @if (b.pet) {
+        <section class="pp-card" aria-labelledby="pet-title">
+          <h2 id="pet-title" class="pp-card-title">Pet · {{ b.pet.name }}</h2>
+          <dl class="pp-facts">
+            <div><dt>Breed</dt><dd>{{ b.pet.breed ?? '—' }}</dd></div>
+            <div><dt>Age</dt><dd>{{ petAge(petInfo()?.birthDate) || '—' }}</dd></div>
+            <div><dt>Coat</dt><dd>{{ petInfo()?.coat ?? '—' }}</dd></div>
+            <div><dt>Vaccination</dt><dd>{{ vaccination[petInfo()?.vaccination ?? 'unknown'].label }}</dd></div>
+          </dl>
+          @if (petInfo()?.notes) {
+            <p class="pp-pet-notes"><strong>Grooming notes:</strong> {{ petInfo()?.notes }}</p>
+          }
+        </section>
+      }
+    </div>
+
+    <div class="pp-detail-side">
+      <section class="pp-card pp-customer" aria-label="Customer">
+        <div class="pp-customer-head">
+          <pp-avatar [name]="b.customer.name" />
+          <a class="pp-customer-name" [routerLink]="['/customers', b.customer.id]"><strong>{{ b.customer.name }}</strong><span>{{ formatPhone(b.customer.phone) }}</span></a>
+        </div>
+        @if (customer(); as c) {
+          <div class="pp-chips">
+            <span class="pp-chip">{{ c.plan ? c.plan.name + ' member' : 'No membership' }}</span>
+            <span class="pp-chip">{{ c.pastBookings }} past booking{{ c.pastBookings === 1 ? '' : 's' }}</span>
+            @if (c.lastVisit) { <span class="pp-chip">Last visit {{ shortDate(c.lastVisit.date) }}</span> }
+          </div>
+        }
+        <div class="pp-customer-actions">
+          <a class="pp-btn pp-btn-primary" [href]="telLink(b.customer.phone)">Call</a>
+          <a class="pp-btn" [href]="whatsappLink(b.customer.phone)" target="_blank" rel="noopener">WhatsApp</a>
+        </div>
+      </section>
+
+      <section class="pp-card" aria-labelledby="activity-title">
+        <h2 id="activity-title" class="pp-card-title">Activity</h2>
+        <pp-activity-list [entries]="b.activity" />
+        <div class="pp-field pp-note-field">
+          <label class="pp-label" for="note">Add a note</label>
+          <textarea id="note" class="pp-input" rows="2" placeholder="e.g. Customer asked for a reminder the evening before." [value]="note()" (input)="onNoteInput($event)"></textarea>
+          <button class="pp-btn pp-btn-sm" type="button" [disabled]="!note().trim() || busy()" (click)="saveNote()">Save note</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  @if (rescheduling()) {
+    <pp-reschedule [booking]="b" (closed)="rescheduling.set(false)" (saved)="onRescheduled($event)" />
+  }
+} @else {
+  <p class="pp-muted">Loading booking…</p>
+}

@@ -33,6 +33,24 @@ a:hover { color: var(--pp-primary-dark); }
 }
 
 .pp-muted { color: var(--pp-muted); }
+.pp-small { font-size: var(--fs-sm); }
+.pp-strong { font-weight: 600; }
+.pp-nowrap { white-space: nowrap; }
+.pp-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+// Thin progress bar (plan sessions, plan mix).
+.pp-meter {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--pp-chip-bg);
+  overflow: hidden;
+}
+
+.pp-meter-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--pp-primary);
+}
 
 @keyframes ppFadeUp {
   from { opacity: 0; transform: translateY(12px); }

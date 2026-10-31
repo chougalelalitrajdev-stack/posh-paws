@@ -70,3 +70,50 @@ textarea.pp-input {
 .pp-alert-error { background: var(--pp-danger-light); color: var(--pp-danger); }
 .pp-alert-info { background: var(--pp-info-light); color: var(--pp-info); }
 .pp-alert-success { background: var(--pp-primary-light); color: var(--pp-primary-dark); }
+
+// Row of filters above a list.
+.pp-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+// Compact select/input for filter bars (label above).
+.pp-filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--pp-muted);
+}
+
+.pp-select {
+  min-height: var(--tap-target-min);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--pp-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 400;
+
+  &:focus { outline: none; border-color: var(--pp-primary); box-shadow: 0 0 0 3px var(--pp-focus-ring); }
+}
+
+// Two-column form inside dialogs; .pp-span takes the full width. One column on phones.
+.pp-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+
+  @media (min-width: 576px) {
+    grid-template-columns: 1fr 1fr;
+
+    .pp-span { grid-column: 1 / -1; }
+  }
+
+  .pp-alert { margin: 0; }
+}
