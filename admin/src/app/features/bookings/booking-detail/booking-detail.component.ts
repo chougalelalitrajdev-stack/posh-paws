@@ -8,12 +8,13 @@ import { Customer } from '../../../core/models/customer.model';
 import { AlertService } from '../../../core/services/alert.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogService } from '../../../core/services/catalog.service';
+import { TemplateService } from '../../../core/services/template.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { CustomerService } from '../../../core/services/customer.service';
 import { formatPhone, telLink, whatsappLink } from '../../../core/utils/contact.utils';
 import { formatDuration, minutesSince, petAge, shortDate, slotStart, timeRange, untilLabel, whenLabel } from '../../../core/utils/date.utils';
 import { formatInr } from '../../../core/utils/money.utils';
-import { paymentLinkMessage } from '../../../core/utils/message.utils';
+import { firstName } from '../../../core/utils/message.utils';
 import { ActivityListComponent } from '../../../shared/components/activity-list/activity-list.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
@@ -36,6 +37,7 @@ export class BookingDetailComponent {
   private confirm = inject(ConfirmService);
   private alert = inject(AlertService);
   protected catalog = inject(CatalogService);
+  private templates = inject(TemplateService);
 
   /** Route param. */
   readonly id = input.required<string>();
@@ -130,9 +132,10 @@ export class BookingDetailComponent {
   protected whatsappHref = computed(() => {
     const b = this.booking();
     if (!b?.payment || !b.pet || !b.service || !b.date || !b.time) return '';
-    return whatsappLink(b.customer.phone, paymentLinkMessage({
-      customerName: b.customer.name, petName: b.pet.name, serviceName: b.service.name,
-      when: `${shortDate(b.date)} · ${b.time}`, amountPaise: b.payment.amountPaise, link: b.payment.link,
+    const hours = Math.round((new Date(b.payment.expiresAt).getTime() - new Date(b.payment.sentAt).getTime()) / 3_600_000);
+    return whatsappLink(b.customer.phone, this.templates.render('payment_link', {
+      customer_name: firstName(b.customer.name), pet_name: b.pet.name, service: b.service.name, date_time: `${shortDate(b.date)} · ${b.time}`,
+      amount: formatInr(b.payment.amountPaise), payment_link: b.payment.link, link_hours: String(hours),
     }));
   });
 
@@ -143,6 +146,7 @@ export class BookingDetailComponent {
 
   constructor() {
     void this.catalog.load();
+    void this.templates.load();
     effect(() => {
       const id = this.id();
       untracked(() => void this.load(id));

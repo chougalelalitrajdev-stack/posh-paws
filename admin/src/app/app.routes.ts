@@ -3,16 +3,6 @@ import { SETTINGS_ROLES } from './core/constants/app.constants';
 import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
-const comingSoon = () => import('./features/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent);
-
-/** A screen that isn't built yet: the "coming soon" page, told its title and build phase. */
-const later = (path: string, heading: string, phase: string) => ({
-  path,
-  title: `${heading} · Posh Paws Admin`,
-  loadComponent: comingSoon,
-  data: { heading, phase },
-});
-
 export const routes: Routes = [
   {
     path: 'login',
@@ -77,15 +67,52 @@ export const routes: Routes = [
         title: 'Subscriptions · Posh Paws Admin',
         loadComponent: () => import('./features/subscriptions/subscription-list.component').then(m => m.SubscriptionListComponent),
       },
-      later('services', 'Services', 'D'),
-      later('plans', 'Membership plans', 'D'),
-      later('offers', 'Offers', 'D'),
-      later('banners', 'Banners', 'E'),
-      later('gallery', 'Gallery', 'E'),
-      later('pages', 'Pages & FAQs', 'E'),
-      later('payments', 'Payments', 'F'),
-      later('templates', 'Message templates', 'F'),
-      { ...later('settings', 'Settings', 'F'), canActivate: [roleGuard(...SETTINGS_ROLES)] },
+      {
+        path: 'services',
+        title: 'Services · Posh Paws Admin',
+        loadComponent: () => import('./features/catalog/services/services.component').then(m => m.ServicesComponent),
+      },
+      {
+        path: 'plans',
+        title: 'Membership plans · Posh Paws Admin',
+        loadComponent: () => import('./features/catalog/plans/plans.component').then(m => m.PlansComponent),
+      },
+      {
+        path: 'offers',
+        title: 'Offers · Posh Paws Admin',
+        loadComponent: () => import('./features/catalog/offers/offers.component').then(m => m.OffersComponent),
+      },
+      {
+        path: 'banners',
+        title: 'Banners · Posh Paws Admin',
+        loadComponent: () => import('./features/content/banners/banners.component').then(m => m.BannersComponent),
+      },
+      {
+        path: 'gallery',
+        title: 'Gallery · Posh Paws Admin',
+        loadComponent: () => import('./features/content/gallery/gallery.component').then(m => m.GalleryComponent),
+      },
+      {
+        path: 'pages',
+        title: 'Pages & FAQs · Posh Paws Admin',
+        loadComponent: () => import('./features/content/pages/pages.component').then(m => m.PagesComponent),
+      },
+      {
+        path: 'payments',
+        title: 'Payments · Posh Paws Admin',
+        loadComponent: () => import('./features/payments/payment-list.component').then(m => m.PaymentListComponent),
+      },
+      {
+        path: 'templates',
+        title: 'Message templates · Posh Paws Admin',
+        loadComponent: () => import('./features/templates/templates.component').then(m => m.TemplatesComponent),
+      },
+      {
+        path: 'settings',
+        title: 'Settings · Posh Paws Admin',
+        canActivate: [roleGuard(...SETTINGS_ROLES)],
+        loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

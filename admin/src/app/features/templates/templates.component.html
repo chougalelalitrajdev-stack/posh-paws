@@ -1,0 +1,75 @@
+<pp-page-header title="Message templates" subtitle="The words Posh Paws sends on WhatsApp. Words in braces are filled in for each customer." />
+@if (!canEdit()) { <p class="pp-intro pp-small">View only. Ask an Admin to change templates.</p> }
+
+<div class="pp-side-layout">
+  <nav class="pp-card pp-side-nav" aria-label="Templates">
+    @for (g of groups(); track g.name) {
+      <span class="pp-side-nav-label">{{ g.name }}</span>
+      @for (t of g.items; track t.key) {
+        <button class="pp-side-nav-item" type="button" [class.active]="selectedKey() === t.key" [attr.aria-current]="selectedKey() === t.key ? 'true' : null" (click)="select(t)">
+          <span>{{ t.name }}</span>
+          <span class="pp-tpl-mode" [class.is-auto]="t.canAutoSend && t.autoSend">{{ t.canAutoSend && t.autoSend ? 'Auto' : t.canAutoSend ? 'Off' : 'Manual' }}</span>
+        </button>
+      }
+    }
+  </nav>
+
+  @if (selected(); as t) {
+    <section class="pp-card pp-side-main pp-tpl-editor" aria-labelledby="tpl-title">
+      <div class="pp-card-head">
+        <h2 id="tpl-title" class="pp-card-title">{{ t.name }}</h2>
+        <pp-status-pill [label]="approvals[t.approval].label" [tone]="approvals[t.approval].tone" />
+      </div>
+      @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+      <div class="pp-tpl-columns">
+        <div class="pp-tpl-write">
+          <div class="pp-field">
+            <label class="pp-label" for="tpl-body">Message <span class="pp-muted">· WhatsApp (SMS and email later)</span></label>
+            <textarea #textarea id="tpl-body" class="pp-input pp-tpl-body" rows="7" [formControl]="body" aria-describedby="tpl-count"
+              [class.is-invalid]="body.invalid && body.touched"></textarea>
+            <span id="tpl-count" class="pp-hint" [class.is-over]="text().length > maxLength">{{ text().length }} / {{ maxLength }}</span>
+          </div>
+          @if (canEdit()) {
+            <div class="pp-field">
+              <span class="pp-label">Insert</span>
+              <div class="pp-tpl-fields">
+                @for (f of fields; track f.field) {
+                  <button class="pp-tpl-field" type="button" [attr.aria-label]="'Insert ' + f.field.replace('_', ' ')" (click)="insert(f.field)">{{ '{' + f.field + '}' }}</button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="pp-tpl-preview">
+          <span class="pp-label">Preview with sample data</span>
+          <div class="pp-tpl-chat"><p class="pp-tpl-bubble">{{ preview() }}</p></div>
+        </div>
+      </div>
+
+      <div class="pp-tpl-when">
+        <span class="pp-label">When it's sent</span>
+        <span class="pp-small">{{ t.trigger }}</span>
+        @if (t.canAutoSend) {
+          <label class="pp-check"><input type="checkbox" [formControl]="autoSend"><span>Send automatically</span></label>
+          <span class="pp-hint">Starts once WhatsApp sending is connected. Until then staff send messages with Open WhatsApp on each screen.</span>
+        } @else {
+          <span class="pp-hint">Staff send this one by hand with Open WhatsApp.</span>
+        }
+      </div>
+
+      <div class="pp-editor-foot" [class.is-dirty]="dirty()">
+        @if (dirty()) { <span class="pp-editor-dirty">Unsaved changes</span> }
+        @else { <span class="pp-editor-note">Saved {{ agoLabel(t.updatedAt) }} by {{ t.updatedBy }}</span> }
+        <a class="pp-btn pp-btn-sm pp-btn-ghost" [href]="tryHref()" target="_blank" rel="noopener">Try in WhatsApp</a>
+        @if (canEdit()) {
+          <button class="pp-btn pp-btn-sm" type="button" [disabled]="!dirty()" (click)="discard()">Discard</button>
+          <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="saving() || !dirty()" (click)="save()">
+            @if (saving()) { Saving… } @else { Save template }
+          </button>
+        }
+      </div>
+    </section>
+  }
+</div>

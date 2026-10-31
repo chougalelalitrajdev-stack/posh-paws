@@ -2,7 +2,9 @@ import { Component, ChangeDetectionStrategy, computed, effect, inject, input, si
 import { RouterLink } from '@angular/router';
 import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { ActivityEntry, Booking } from '../../../core/models/booking.model';
-import { Customer, CustomerPet, PaymentRecord } from '../../../core/models/customer.model';
+import { Customer, CustomerPet } from '../../../core/models/customer.model';
+import { Payment } from '../../../core/models/payment.model';
+import { PAYMENT_STATES } from '../../../core/constants/status.constants';
 import { AlertService } from '../../../core/services/alert.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CustomerService } from '../../../core/services/customer.service';
@@ -49,7 +51,8 @@ export class CustomerDetailComponent {
 
   protected customer = signal<Customer | null>(null);
   protected bookings = signal<Booking[]>([]);
-  protected payments = signal<PaymentRecord[] | null>(null);
+  protected payments = signal<Payment[] | null>(null);
+  protected readonly paymentStates = PAYMENT_STATES;
   protected activity = signal<ActivityEntry[] | null>(null);
   protected tab = signal<Tab>('overview');
   protected editing = signal(false);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, ageLabel, dateRange, petAge, shortDate, timeRange, toIsoDate, whenLabel } from './date.utils';
+import { addDays, ageLabel, agoLabel, dateRange, petAge, shortDate, timeRange, toIsoDate, whenLabel } from './date.utils';
 
 describe('date utils', () => {
   it('formats local dates without shifting to UTC', () => {
@@ -20,6 +20,8 @@ describe('date utils', () => {
     const now = new Date(2026, 9, 27, 10, 0);
     expect(ageLabel(new Date(2026, 9, 27, 9, 18).toISOString(), now)).toBe('42 min');
     expect(ageLabel(new Date(2026, 9, 27, 8, 50).toISOString(), now)).toBe('1 h 10 min');
+    expect(agoLabel(new Date(now.getTime() - 20_000).toISOString(), now)).toBe('just now');
+    expect(agoLabel(new Date(2026, 9, 27, 9, 18).toISOString(), now)).toBe('42 min ago');
     expect(whenLabel(new Date(2026, 9, 27, 9, 12).toISOString(), now)).toBe('Today 09:12');
     expect(whenLabel(new Date(2026, 9, 26, 18, 5).toISOString(), now)).toBe('Yesterday 18:05');
   });

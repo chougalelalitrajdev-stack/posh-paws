@@ -2,7 +2,6 @@ import { Component, ChangeDetectionStrategy, computed, effect, inject, input, si
 import { HttpErrorResponse } from '@angular/common/http';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { BOOKING_RULES_NOTE, PAYMENT_LINK_HOURS, SLOT_HOLD_PAISE } from '../../../core/constants/app.constants';
 import { CALL_OUTCOMES, SOURCES } from '../../../core/constants/status.constants';
 import { AmountType, Booking, BookingDetails, CallOutcome } from '../../../core/models/booking.model';
 import { DayAvailability } from '../../../core/models/calendar.model';
@@ -11,13 +10,15 @@ import { Customer, CustomerPet, CustomerPlan } from '../../../core/models/custom
 import { AlertService } from '../../../core/services/alert.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogService } from '../../../core/services/catalog.service';
+import { SettingsService } from '../../../core/services/settings.service';
+import { TemplateService } from '../../../core/services/template.service';
 import { CustomerService } from '../../../core/services/customer.service';
 import { PetService } from '../../../core/services/pet.service';
 import { formatPhone, telLink, whatsappLink } from '../../../core/utils/contact.utils';
 import { formatDuration, monthYear, shortDate, today, whenLabel } from '../../../core/utils/date.utils';
 import { errorMessage } from '../../../core/utils/error.utils';
-import { discounted } from '../../../core/utils/money.utils';
-import { paymentLinkMessage } from '../../../core/utils/message.utils';
+import { discounted, formatInr } from '../../../core/utils/money.utils';
+import { firstName } from '../../../core/utils/message.utils';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { SegmentedComponent } from '../../../shared/components/segmented/segmented.component';
@@ -50,6 +51,8 @@ export class NewBookingComponent {
   private alert = inject(AlertService);
   private fb = inject(NonNullableFormBuilder);
   protected catalog = inject(CatalogService);
+  private settings = inject(SettingsService);
+  private templates = inject(TemplateService);
 
   /** Query params: the request or draft to continue, or a customer (and pet) to start with. */
   readonly from = input<string>();
@@ -58,9 +61,9 @@ export class NewBookingComponent {
 
   protected readonly callOutcomes = CALL_OUTCOMES;
   protected readonly sources = SOURCES;
-  protected readonly holdPaise = SLOT_HOLD_PAISE;
-  protected readonly linkHours = PAYMENT_LINK_HOURS;
-  protected readonly rulesNote = BOOKING_RULES_NOTE;
+  protected readonly holdPaise = this.settings.holdPaise;
+  protected readonly linkHours = this.settings.linkHours;
+  protected readonly rulesNote = this.settings.rulesNote;
   protected readonly formatPhone = formatPhone;
   protected readonly telLink = telLink;
   protected readonly whenLabel = whenLabel;
@@ -107,7 +110,7 @@ export class NewBookingComponent {
   protected amount = computed(() => {
     const price = this.price();
     if (price === null) return null;
-    return this.amountType() === 'hold' ? Math.min(SLOT_HOLD_PAISE, price) : price;
+    return this.amountType() === 'hold' ? Math.min(this.holdPaise(), price) : price;
   });
   protected when = computed(() => {
     const d = this.date();
@@ -115,13 +118,14 @@ export class NewBookingComponent {
     return d && t ? `${shortDate(d)} · ${t}` : '';
   });
   protected message = computed(() =>
-    paymentLinkMessage({
-      customerName: this.customer()?.name ?? '',
-      petName: this.pet()?.name ?? 'Your pet',
-      serviceName: this.service()?.name ?? '[service]',
-      when: this.when(),
-      amountPaise: this.amount() ?? 0,
-      link: this.done()?.payment?.link,
+    this.templates.render('payment_link', {
+      customer_name: firstName(this.customer()?.name ?? ''),
+      pet_name: this.pet()?.name ?? 'Your pet',
+      service: this.service()?.name ?? '[service]',
+      date_time: this.when() || '[date and time]',
+      amount: formatInr(this.amount() ?? 0),
+      payment_link: this.done()?.payment?.link ?? '[payment link]',
+      link_hours: String(this.linkHours()),
     }),
   );
   protected whatsappHref = computed(() => {
@@ -143,6 +147,8 @@ export class NewBookingComponent {
 
   constructor() {
     void this.catalog.load();
+    void this.settings.load();
+    void this.templates.load();
 
     effect(() => {
       const id = this.from();

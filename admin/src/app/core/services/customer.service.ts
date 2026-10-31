@@ -4,7 +4,8 @@ import { firstValueFrom } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
 import { ActivityEntry } from '../models/booking.model';
-import { Customer, CustomerDetails, CustomerFilters, CustomerSegment, CustomerSummary, PaymentRecord } from '../models/customer.model';
+import { Customer, CustomerDetails, CustomerFilters, CustomerSegment, CustomerSummary } from '../models/customer.model';
+import { Payment } from '../models/payment.model';
 import { Paged } from '../models/paged.model';
 
 /** Customers: the list with segments, the profile, and its tabs. Pets have their own PetService. */
@@ -46,8 +47,8 @@ export class CustomerService {
     return firstValueFrom(this.http.put<Customer>(`${API.customers}/${id}/note`, { text }));
   }
 
-  payments(id: string): Promise<PaymentRecord[]> {
-    return firstValueFrom(this.http.get<PaymentRecord[]>(`${API.customers}/${id}/payments`));
+  payments(id: string): Promise<Payment[]> {
+    return firstValueFrom(this.http.get<Payment[]>(`${API.customers}/${id}/payments`));
   }
 
   activity(id: string): Promise<ActivityEntry[]> {

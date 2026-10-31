@@ -35,8 +35,12 @@ a:hover { color: var(--pp-primary-dark); }
 .pp-muted { color: var(--pp-muted); }
 .pp-small { font-size: var(--fs-sm); }
 .pp-strong { font-weight: 600; }
+.pp-danger-text { color: var(--pp-danger); }
 .pp-nowrap { white-space: nowrap; }
 .pp-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+// One line under the page header (sits close to it).
+.pp-intro { margin: calc(-1 * var(--space-3)) 0 0; color: var(--pp-muted); }
 
 // Thin progress bar (plan sessions, plan mix).
 .pp-meter {

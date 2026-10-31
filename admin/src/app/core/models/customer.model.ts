@@ -101,15 +101,3 @@ export interface CustomerDetails {
   area?: string;
 }
 
-/** A payment shown on a customer's Payments tab. */
-export interface PaymentRecord {
-  id: string;
-  kind: 'booking' | 'plan';
-  /** Booking ID or "Posh plan · Oct". */
-  reference: string;
-  item: string;
-  amountPaise: Paise;
-  status: 'paid' | 'refunded' | 'failed' | 'link_sent';
-  /** ISO timestamp */
-  at: string;
-}

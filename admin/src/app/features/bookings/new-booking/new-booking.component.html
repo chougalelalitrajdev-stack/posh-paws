@@ -123,7 +123,7 @@
 
       <!-- 3 · Date and slot -->
       <pp-booking-step [number]="3" title="Date and slot" [state]="stepState(3)" [summary]="when()" (change)="goTo(3)">
-        <p class="pp-step-note">{{ rulesNote }}</p>
+        <p class="pp-step-note">{{ rulesNote() }}</p>
         @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
         <pp-slot-picker [days]="days()" [loading]="daysLoading()" [(date)]="date" [(time)]="time" />
         <div class="pp-step-actions">
@@ -140,14 +140,14 @@
               <span><strong>Full amount</strong><span>Nothing to pay at the visit</span></span>
               <strong>{{ price() | inr }}</strong>
             </button>
-            @if ((price() ?? 0) > holdPaise) {
+            @if ((price() ?? 0) > holdPaise()) {
               <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'hold'" [attr.aria-checked]="amountType() === 'hold'" (click)="amountType.set('hold')">
                 <span><strong>Slot hold</strong><span>Refundable · balance at the visit</span></span>
-                <strong>{{ holdPaise | inr }}</strong>
+                <strong>{{ holdPaise() | inr }}</strong>
               </button>
             }
           </div>
-          <p class="pp-step-note">The link expires in {{ linkHours }} hours. Paying confirms the booking automatically.</p>
+          <p class="pp-step-note">The link expires in {{ linkHours() }} hours. Paying confirms the booking automatically.</p>
         </div>
 
         <div class="pp-field">

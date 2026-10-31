@@ -1,0 +1,25 @@
+<div class="pp-field">
+  <span class="pp-label">{{ label() }}</span>
+  @if (url(); as src) {
+    <div class="pp-upload-preview">
+      <img [src]="src" alt="" [style.aspect-ratio]="aspect()">
+      @if (!disabled()) {
+        <div class="pp-upload-actions">
+          <label class="pp-btn pp-btn-sm">Replace<input class="pp-sr-only" type="file" [accept]="accept" (change)="onPick($event)"></label>
+          <button class="pp-btn pp-btn-sm" type="button" (click)="url.set(undefined)">Remove</button>
+        </div>
+      }
+    </div>
+  } @else {
+    <label class="pp-upload-drop" [class.is-dragging]="dragging()" [class.is-disabled]="disabled()"
+      (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+      @if (uploading()) {
+        <span>Uploading…</span>
+      } @else {
+        <span>Drop an image or <span class="pp-upload-browse">browse</span>. {{ hint() }}</span>
+      }
+      <input class="pp-sr-only" type="file" [accept]="accept" [disabled]="disabled()" (change)="onPick($event)">
+    </label>
+  }
+  @if (error()) { <p class="pp-field-error" role="alert">{{ error() }}</p> }
+</div>

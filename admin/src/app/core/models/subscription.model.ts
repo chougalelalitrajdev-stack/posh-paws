@@ -8,7 +8,10 @@ export type SubscriptionTab = 'all' | 'active' | 'renewing' | 'pending' | 'ended
 export interface Subscription {
   id: string;
   customer: { id: string; name: string; phone: string };
+  planId: string;
+  /** Name when subscribed (a snapshot). */
   planName: string;
+  /** What this member pays. Plan price changes reach them at their next renewal. */
   pricePaise: Paise;
   /** null = unlimited sessions. */
   sessionsTotal: number | null;

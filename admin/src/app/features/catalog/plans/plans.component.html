@@ -1,0 +1,131 @@
+<pp-page-header title="Membership plans">
+  <button *ppHasRole="editors" ppActions class="pp-btn pp-btn-primary" type="button" (click)="add()">New plan</button>
+</pp-page-header>
+<p class="pp-intro">What each plan costs and includes. Customers on plans are under <a routerLink="/subscriptions">Subscriptions</a>.</p>
+
+<div class="pp-plan-cards" role="group" aria-label="Plans">
+  @for (p of plans(); track p.id) {
+    <button class="pp-plan-card" type="button" [class.active]="selectedId() === p.id && !adding()" [attr.aria-pressed]="selectedId() === p.id && !adding()" (click)="select(p)">
+      <span class="pp-plan-card-head">
+        <strong>{{ p.name }}</strong>
+        <pp-status-pill [label]="!p.subscribable ? 'Hidden' : p.featured ? 'Live · recommended' : 'Live'" [tone]="p.subscribable ? 'success' : 'neutral'" />
+      </span>
+      <span>{{ priceLabel(p) }}</span>
+      <span class="pp-muted pp-small">{{ p.activeSubscribers }} active subscriber{{ p.activeSubscribers === 1 ? '' : 's' }}</span>
+    </button>
+  }
+</div>
+
+@if (selected() || adding()) {
+  <div class="pp-plan-layout">
+    <section class="pp-card pp-plan-editor" aria-labelledby="plan-title">
+      <h2 id="plan-title" class="pp-card-title">{{ adding() ? 'New plan' : value().name + ' plan' }}</h2>
+
+      <form class="pp-plan-form" id="plan-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+        <div class="pp-form-grid">
+          <div class="pp-field">
+            <label class="pp-label" for="plan-name">Name</label>
+            <input id="plan-name" class="pp-input" type="text" formControlName="name" [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched">
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="plan-tagline">Tagline</label>
+            <input id="plan-tagline" class="pp-input" type="text" formControlName="tagline">
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="plan-price">Price (₹)</label>
+            <input id="plan-price" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="priceRupees"
+              [class.is-invalid]="form.controls.priceRupees.invalid && form.controls.priceRupees.touched">
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="plan-billing">Billed</label>
+            <select id="plan-billing" class="pp-input" formControlName="billing">
+              @for (b of billing; track b.value) { <option [value]="b.value">{{ b.label }}</option> }
+            </select>
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="plan-sessions">Sessions per period</label>
+            <input id="plan-sessions" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="sessions">
+            <label class="pp-check"><input type="checkbox" formControlName="unlimited"><span>Unlimited</span></label>
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="plan-discount">Discount on services (%)</label>
+            <input id="plan-discount" class="pp-input" type="number" min="0" max="90" step="1" inputmode="numeric" formControlName="discountPercent">
+          </div>
+        </div>
+
+        <div class="pp-field">
+          <span class="pp-label">A session can be used for</span>
+          <div class="pp-toggle-chips" role="group" aria-label="Services a session can be used for">
+            @for (s of bookable(); track s.id) {
+              <button class="pp-toggle-chip" type="button" [class.active]="value().eligibleServiceIds.includes(s.id)"
+                [attr.aria-pressed]="value().eligibleServiceIds.includes(s.id)" [disabled]="!canEdit()" (click)="toggleService(s.id)">
+                {{ value().eligibleServiceIds.includes(s.id) ? '✓' : '+' }} {{ s.name }} <small>· {{ s.petType === 'dog' ? 'Dog' : 'Cat' }}</small>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="pp-field">
+          <div class="pp-card-head">
+            <span class="pp-label">Benefits shown to customers</span>
+            @if (canEdit()) { <button class="pp-link pp-small" type="button" (click)="addBenefit()">+ Add benefit</button> }
+          </div>
+          <div class="pp-benefits" formArrayName="benefits" cdkDropList [cdkDropListDisabled]="!canEdit()" (cdkDropListDropped)="dropBenefit($event)">
+            @for (b of benefits.controls; track b; let i = $index) {
+              <div class="pp-benefit" cdkDrag [formGroupName]="i">
+                @if (canEdit()) {
+                  <button class="pp-benefit-handle" cdkDragHandle type="button" [id]="'benefit-handle-' + i"
+                    aria-label="Reorder benefit. Drag, or use the arrow keys." (keydown)="moveWithKeys($event, i)">⠿</button>
+                }
+                <label class="pp-sr-only" [for]="'benefit-' + i">Benefit {{ i + 1 }}</label>
+                <input class="pp-benefit-text" [id]="'benefit-' + i" type="text" formControlName="text" [class.is-off]="!b.value.included">
+                <span class="pp-benefit-state">{{ b.value.included ? 'Included' : 'Not included' }}</span>
+                <pp-switch [label]="'Included: ' + b.value.text" [checked]="!!b.value.included" [disabled]="!canEdit()"
+                  (checkedChange)="b.controls.included.setValue($event); form.markAsDirty()" />
+                @if (canEdit()) {
+                  <button class="pp-icon-btn pp-benefit-remove" type="button" [attr.aria-label]="'Remove ' + b.value.text" (click)="removeBenefit(i)">✕</button>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="pp-plan-checks">
+          <label class="pp-check"><input type="checkbox" formControlName="featured"><span>Mark as recommended (one plan at a time)</span></label>
+          <label class="pp-check"><input type="checkbox" formControlName="subscribable"><span>Customers can subscribe in the app</span></label>
+        </div>
+      </form>
+
+      @if (canEdit()) {
+        <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
+          @if (form.dirty) { <span class="pp-editor-dirty">Unsaved changes</span> }
+          @else { <span class="pp-editor-note">Price changes apply to new subscribers and to current ones at their next renewal.</span> }
+          <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty && !adding()" (click)="discard()">Discard</button>
+          <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" form="plan-form" [disabled]="saving() || (!form.dirty && !adding())">
+            @if (saving()) { Saving… } @else { Save plan }
+          </button>
+        </div>
+      } @else {
+        <p class="pp-muted pp-small">View only. Ask an Admin to change plans.</p>
+      }
+    </section>
+
+    <aside class="pp-plan-preview" aria-label="Customer preview">
+      <span class="pp-label">How customers see it</span>
+      <div class="pp-preview-card" [class.is-featured]="value().featured">
+        @if (value().featured) { <span class="pp-preview-badge">Most popular</span> }
+        <strong class="pp-preview-name">{{ value().name || 'Plan name' }}</strong>
+        <span class="pp-muted pp-small">{{ value().tagline || 'Tagline' }}</span>
+        <span class="pp-preview-price"><span>{{ (value().priceRupees || 0) * 100 | inr }}</span><span class="pp-muted pp-small">/ {{ per() }}</span></span>
+        @for (b of value().benefits; track $index) {
+          @if (b.text) {
+            <span class="pp-preview-benefit" [class.is-off]="!b.included"><span class="pp-preview-mark" aria-hidden="true">{{ b.included ? '✓' : '✗' }}</span>{{ b.text }}</span>
+          }
+        }
+        <span class="pp-btn pp-btn-primary pp-btn-block pp-preview-cta" aria-hidden="true">Subscribe</span>
+      </div>
+    </aside>
+  </div>
+}

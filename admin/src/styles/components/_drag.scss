@@ -1,0 +1,3 @@
+// Angular CDK drag and drop (reordering services and plan benefits).
+.cdk-drag-preview { box-shadow: var(--shadow-lg); }
+.cdk-drag-animating, .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) { transition: transform .2s ease; }

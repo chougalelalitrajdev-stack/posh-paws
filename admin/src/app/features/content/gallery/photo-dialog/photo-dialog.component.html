@@ -1,0 +1,30 @@
+<pp-modal title="Edit photo" (closed)="closed.emit()">
+  <img class="pp-photo-preview" [src]="photo().imageUrl" alt="">
+  <form class="pp-form-grid" id="photo-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+    <div class="pp-field pp-span">
+      <label class="pp-label" for="photo-caption">Caption</label>
+      <input id="photo-caption" class="pp-input" type="text" formControlName="caption" placeholder="Bruno after his Royal Package">
+    </div>
+    <div class="pp-field">
+      <label class="pp-label" for="photo-category">Category</label>
+      <select id="photo-category" class="pp-input" formControlName="categoryId">
+        @for (c of categories(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+      </select>
+    </div>
+    <div class="pp-field">
+      <label class="pp-label" for="photo-pet">Pet or breed <span class="pp-muted">(optional)</span></label>
+      <input id="photo-pet" class="pp-input" type="text" formControlName="pet" placeholder="Golden Retriever">
+    </div>
+    <div class="pp-photo-visible pp-span">
+      <pp-switch label="Show in the app" [checked]="form.controls.visible.value" (checkedChange)="form.controls.visible.setValue($event); form.markAsDirty()" />
+      <span>{{ form.controls.visible.value ? 'Shown in the app' : 'Hidden from the app' }}</span>
+    </div>
+  </form>
+
+  <button ppModalActions class="pp-btn pp-btn-ghost pp-danger-text pp-photo-delete" type="button" (click)="deleted.emit(photo())">Delete</button>
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="photo-form" [disabled]="saving()">
+    @if (saving()) { Saving… } @else { Save }
+  </button>
+</pp-modal>

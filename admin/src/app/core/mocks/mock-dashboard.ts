@@ -1,9 +1,10 @@
-import { UNPAID_ALERT_HOURS } from '../constants/app.constants';
 import { Booking } from '../models/booking.model';
+import { BANNER_PLACEMENTS } from '../constants/content.constants';
 import { AttentionItem, DashboardSummary } from '../models/dashboard.model';
-import { addDays, ageLabel, dateRange, minutesSince, toIsoDate, today } from '../utils/date.utils';
+import { addDays, ageLabel, agoLabel, dateRange, minutesSince, parseIsoDate, toIsoDate, today } from '../utils/date.utils';
 import { formatInr } from '../utils/money.utils';
-import { DASHBOARD_LATER, STATIONS } from './mock-data';
+import { STATIONS } from './mock-data';
+import { bannerStatus } from './mock-banners';
 import { subscriptionSummary } from './mock-subscriptions';
 import { MockRequest, NO_ROUTE, db, route } from './mock-db';
 
@@ -55,7 +56,7 @@ function summary(): DashboardSummary {
       })),
     },
     memberships: { active: subs.active, renewThisWeek: subs.renewingSoon, expired: subs.expiredThisMonth, plans: subs.byPlan },
-    content: DASHBOARD_LATER.content,
+    content: content(),
   };
 }
 
@@ -77,7 +78,7 @@ function attention(all: Booking[]): AttentionItem[] {
         title: `Payment failed for ${b.id}`,
         detail: `${b.customer.name} · ${formatInr(b.payment!.amountPaise)}`,
       });
-    } else if (b.stage === 'awaiting_payment' && b.payment && minutesSince(b.payment.sentAt) > UNPAID_ALERT_HOURS * 60) {
+    } else if (b.stage === 'awaiting_payment' && b.payment && minutesSince(b.payment.sentAt) > db().settings.notifications.unpaidNudgeHours * 60) {
       items.push({
         kind: 'unpaid', at: b.payment.sentAt, action: 'Resend', link: `/bookings/${b.id}`,
         title: 'Payment link not paid yet',
@@ -92,6 +93,32 @@ function attention(all: Booking[]): AttentionItem[] {
     }
   }
   items.sort((a, b) => a.at.localeCompare(b.at));
-  items.push({ kind: 'content', at: new Date().toISOString(), action: 'Review', link: '/banners', title: 'Diwali offer banner ends in 2 days', detail: 'Home hero · Banners' });
+  for (const b of shownBanners().filter(b => endsIn(b.endsOn) <= 3)) {
+    items.push({ kind: 'content', at: new Date().toISOString(), action: 'Review', link: '/banners', title: `${b.title} banner ${endsLabel(b.endsOn!)}`, detail: `${placementLabel(b.placement)} · Banners` });
+  }
   return items;
+}
+
+// ── Customer app content ──────────────────────────────────────
+
+const placementLabel = (p: string) => BANNER_PLACEMENTS.find(x => x.value === p)?.label ?? p;
+const endsIn = (endsOn: string | null) => (endsOn ? Math.round((parseIsoDate(endsOn).getTime() - parseIsoDate(today()).getTime()) / 86_400_000) : Infinity);
+const endsLabel = (endsOn: string) => (endsIn(endsOn) === 0 ? 'ends today' : `ends in ${endsIn(endsOn)} day${endsIn(endsOn) === 1 ? '' : 's'}`);
+
+/** The banner customers see in each placement: the first live one. */
+function shownBanners() {
+  return BANNER_PLACEMENTS.map(p => db().banners.find(b => b.placement === p.value && bannerStatus(b) === 'live')).filter(b => b !== undefined);
+}
+
+function content(): DashboardSummary['content'] {
+  const rows: DashboardSummary['content'] = shownBanners().map(b => ({
+    title: b.title, where: `${placementLabel(b.placement)} banner`,
+    status: endsIn(b.endsOn) <= 3 ? endsLabel(b.endsOn!).replace(/^e/, 'E') : 'Live', tone: endsIn(b.endsOn) <= 3 ? 'warn' : 'success',
+  }));
+  const hidden = db().gallery.filter(p => !p.visible).length;
+  if (hidden) rows.push({ title: `${hidden} photo${hidden === 1 ? '' : 's'} not shown yet`, where: 'Gallery', status: 'Hidden', tone: 'draft' });
+  for (const page of db().pages.filter(p => p.draft)) {
+    rows.push({ title: page.title, where: `Pages & FAQs · draft saved ${agoLabel(page.draftSavedAt!)}`, status: 'Draft', tone: 'draft' });
+  }
+  return rows.slice(0, 5);
 }

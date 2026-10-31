@@ -1,4 +1,8 @@
 import { BookingSource, BookingStage, CallOutcome, PaymentStatus } from '../models/booking.model';
+import { BannerStatus } from '../models/banner.model';
+import { OfferStatus } from '../models/offer.model';
+import { PaymentState } from '../models/payment.model';
+import { TemplateApproval } from '../models/template.model';
 
 /** Colour family of a pill or calendar block; each has a .pp-tone-* class in styles/components/_tones.scss. */
 export type Tone = 'info' | 'draft' | 'warn' | 'success' | 'neutral' | 'danger';
@@ -43,3 +47,34 @@ export const BOOKING_TABS: { key: string; label: string; stages: BookingStage[] 
   { key: 'completed', label: 'Completed', stages: ['completed'] },
   { key: 'cancelled', label: 'Cancelled', stages: ['cancelled', 'no_show'] },
 ];
+
+export const OFFER_STATUSES: Record<OfferStatus, { label: string; tone: Tone }> = {
+  live: { label: 'Live', tone: 'success' },
+  scheduled: { label: 'Scheduled', tone: 'info' },
+  paused: { label: 'Paused', tone: 'warn' },
+  draft: { label: 'Draft', tone: 'draft' },
+  used_up: { label: 'Used up', tone: 'neutral' },
+  expired: { label: 'Ended', tone: 'neutral' },
+};
+
+export const BANNER_STATUSES: Record<BannerStatus, { label: string; tone: Tone }> = {
+  live: { label: 'Live', tone: 'success' },
+  scheduled: { label: 'Scheduled', tone: 'info' },
+  paused: { label: 'Paused', tone: 'warn' },
+  ended: { label: 'Ended', tone: 'neutral' },
+};
+
+/** Payments list and a customer's Payments tab (a link that ran out shows as Expired). */
+export const PAYMENT_STATES: Record<PaymentState, { label: string; tone: Tone }> = {
+  link_sent: { label: 'Link sent', tone: 'warn' },
+  expired: { label: 'Expired', tone: 'neutral' },
+  paid: { label: 'Paid', tone: 'success' },
+  failed: { label: 'Failed', tone: 'danger' },
+  refunded: { label: 'Refunded', tone: 'info' },
+};
+
+export const TEMPLATE_APPROVALS: Record<TemplateApproval, { label: string; tone: Tone }> = {
+  approved: { label: 'Approved by WhatsApp', tone: 'success' },
+  pending: { label: 'Waiting for WhatsApp approval', tone: 'warn' },
+  draft: { label: 'Draft', tone: 'draft' },
+};

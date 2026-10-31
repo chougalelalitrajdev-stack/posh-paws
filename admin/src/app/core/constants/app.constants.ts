@@ -9,20 +9,24 @@ export const ROLE_LABELS: Record<StaffRole, string> = {
 /** Roles that can open Settings (Team & roles inside it is Super Admin only). */
 export const SETTINGS_ROLES: StaffRole[] = ['super_admin', 'admin'];
 
-/** Refundable "slot hold" amount when the customer doesn't pay in full. */
-export const SLOT_HOLD_PAISE = 10000;
-
-/** Payment links stop working after this long. */
-export const PAYMENT_LINK_HOURS = 24;
-
-/** Unpaid links older than this show under "Needs your attention". */
-export const UNPAID_ALERT_HOURS = 6;
+/** Team & roles, and refunds. */
+export const OWNER_ROLES: StaffRole[] = ['super_admin'];
 
 /** Requests waiting longer than this are shown as urgent. */
 export const URGENT_REQUEST_MINUTES = 30;
 
-/** Business details used in messages. Placeholders until Settings › Business exists (Phase F). */
-export const BUSINESS_NAME = 'Posh Paws';
+/** Roles that can change catalog and content (services, plans, offers, banners, gallery, pages). Staff see them read-only. */
+export const CATALOG_EDIT_ROLES: StaffRole[] = ['super_admin', 'admin'];
 
-/** Shown under the slot picker. Matches the booking rules until Settings › Booking & availability exists (Phase F). */
-export const BOOKING_RULES_NOTE = 'Start times have a station free for the whole service plus a 15 min buffer. Lunch 14:00–14:30 is blocked.';
+/** What each role can do (Settings › Team & roles). Keep in step with nav roles, roleGuard and the server's checks. */
+export const ROLE_MATRIX: { area: string; super_admin: string; admin: string; staff: string }[] = [
+  { area: 'Requests, bookings, calendar', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
+  { area: 'Customers and pets', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
+  { area: 'Payments: view', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
+  { area: 'Payments: refunds', super_admin: 'Yes', admin: 'No', staff: 'No' },
+  { area: 'Services, plans, offers', super_admin: 'Yes', admin: 'Yes', staff: 'View only' },
+  { area: 'Banners, gallery, pages', super_admin: 'Yes', admin: 'Yes', staff: 'View only' },
+  { area: 'Message templates', super_admin: 'Yes', admin: 'Yes', staff: 'View only' },
+  { area: 'Settings', super_admin: 'Yes', admin: 'All except team', staff: 'No' },
+  { area: 'Team & roles', super_admin: 'Yes', admin: 'No', staff: 'No' },
+];

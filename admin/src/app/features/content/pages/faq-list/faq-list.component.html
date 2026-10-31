@@ -1,0 +1,58 @@
+<section class="pp-card pp-faqs" aria-labelledby="faqs-title">
+  <div class="pp-card-head">
+    <h2 id="faqs-title" class="pp-card-title">FAQs</h2>
+    @if (canEdit()) { <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" (click)="open(null)">Add question</button> }
+  </div>
+  <p class="pp-hint">Changes to questions go live as soon as you save them.</p>
+
+  @for (g of groups(); track g.id) {
+    <div class="pp-faq-group">
+      <h3 class="pp-faq-group-title">{{ g.name }} <span>· shown on {{ g.shownOn }}</span></h3>
+      <div class="pp-faq-list" cdkDropList [cdkDropListData]="g.faqs" [cdkDropListDisabled]="!canEdit()" (cdkDropListDropped)="drop(g.id, $event)">
+        @for (f of g.faqs; track f.id; let i = $index) {
+          <div class="pp-faq" cdkDrag>
+            @if (canEdit()) {
+              <button class="pp-faq-handle" cdkDragHandle type="button" [id]="'faq-handle-' + f.id"
+                [attr.aria-label]="'Reorder ' + f.question + '. Drag, or use the arrow keys.'" (keydown)="moveWithKeys($event, g.id, i, g.faqs.length)">⠿</button>
+            }
+            <span class="pp-faq-text"><strong>{{ f.question }}</strong><span>{{ f.answer }}</span></span>
+            @if (canEdit()) { <button class="pp-btn pp-btn-sm" type="button" (click)="open(f)">Edit</button> }
+          </div>
+        } @empty {
+          <p class="pp-faq-empty">No questions in this group.</p>
+        }
+      </div>
+    </div>
+  }
+</section>
+
+@if (editing() !== undefined) {
+  <pp-modal [title]="editing() ? 'Edit question' : 'Add question'" (closed)="editing.set(undefined)">
+    <form class="pp-form-grid" id="faq-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="faq-group">Group</label>
+        <select id="faq-group" class="pp-input" formControlName="groupId">
+          @for (g of data().groups; track g.id) { <option [value]="g.id">{{ g.name }} · shown on {{ g.shownOn }}</option> }
+        </select>
+      </div>
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="faq-question">Question</label>
+        <input id="faq-question" class="pp-input" type="text" formControlName="question"
+          [class.is-invalid]="form.controls.question.invalid && form.controls.question.touched">
+      </div>
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="faq-answer">Answer</label>
+        <textarea id="faq-answer" class="pp-input" rows="4" formControlName="answer"
+          [class.is-invalid]="form.controls.answer.invalid && form.controls.answer.touched"></textarea>
+      </div>
+    </form>
+    @if (editing(); as f) {
+      <button ppModalActions class="pp-btn pp-btn-ghost pp-danger-text pp-faq-delete" type="button" (click)="remove(f)">Delete</button>
+    }
+    <button ppModalActions class="pp-btn" type="button" (click)="editing.set(undefined)">Cancel</button>
+    <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="faq-form" [disabled]="saving()">
+      @if (saving()) { Saving… } @else { {{ editing() ? 'Save question' : 'Add question' }} }
+    </button>
+  </pp-modal>
+}

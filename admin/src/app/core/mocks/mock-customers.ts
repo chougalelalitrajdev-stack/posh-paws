@@ -1,20 +1,18 @@
 import { ActivityEntry } from '../models/booking.model';
-import { Customer, CustomerDetails, CustomerPet, CustomerSegment, CustomerSummary, PaymentRecord, PetDraft } from '../models/customer.model';
+import { Customer, CustomerDetails, CustomerPet, CustomerSegment, CustomerSummary, PetDraft } from '../models/customer.model';
+import { Payment } from '../models/payment.model';
 import { Paged } from '../models/paged.model';
 import { addDays, toIsoDate, today } from '../utils/date.utils';
-import { SERVICES, STATIONS } from './mock-data';
 import { MockError, MockRequest, NO_ROUTE, StoredCustomer, db, requireStaff, route, save } from './mock-db';
+import { allPayments } from './mock-payments';
 import { planOf } from './mock-subscriptions';
 
 const LAPSED_DAYS = 90;
 const SEGMENTS: CustomerSegment[] = ['all', 'members', 'new', 'lapsed', 'no_plan'];
 
-/** Customers and their pets, plus the catalog lists (services, stations). */
+/** Customers and their pets. */
 export function handleCustomers(r: MockRequest): unknown {
   let m: string[] | null;
-
-  if ((m = route(r, 'GET', /^\/services$/))) return SERVICES;
-  if ((m = route(r, 'GET', /^\/stations$/))) return STATIONS;
 
   if ((m = route(r, 'GET', /^\/customers$/))) return list(r);
   if ((m = route(r, 'GET', /^\/customers\/counts$/))) return Object.fromEntries(SEGMENTS.map(s => [s, db().customers.filter(c => inSegment(c, s)).length]));
@@ -179,29 +177,8 @@ function addPet(c: StoredCustomer, body: PetDraft): CustomerPet {
 
 // ── Payments and activity tabs ────────────────────────────────
 
-function payments(c: StoredCustomer): PaymentRecord[] {
-  const fromBookings: PaymentRecord[] = bookingsOf(c.id)
-    .filter(b => b.payment)
-    .map(b => ({
-      id: `PAY-${b.id.slice(3)}`,
-      kind: 'booking',
-      reference: b.id,
-      item: b.service?.name ?? 'Booking',
-      amountPaise: b.stage === 'completed' ? b.pricePaise ?? b.payment!.amountPaise : b.payment!.amountPaise,
-      status: b.paymentStatus === 'not_requested' ? 'link_sent' : b.paymentStatus,
-      at: b.payment!.paidAt ?? b.payment!.sentAt,
-    }));
-  const month = new Intl.DateTimeFormat('en-IN', { month: 'short' });
-  const fromPlans: PaymentRecord[] = db().subscriptions
-    .filter(s => s.customer.id === c.id && s.status === 'active' && s.renewsOn)
-    .flatMap(s => [1, 2].map(k => {
-      const paidOn = addDays(s.renewsOn!, -30 * k);
-      return {
-        id: `PAY-${s.id.slice(4)}${k}`, kind: 'plan' as const, reference: `${s.planName} plan · ${month.format(new Date(paidOn))}`,
-        item: 'Plan renewal', amountPaise: s.pricePaise, status: 'paid' as const, at: `${paidOn}T10:00:00`,
-      };
-    }).filter(p => p.at.slice(0, 10) >= s.startedOn));
-  return [...fromBookings, ...fromPlans].sort((a, b) => b.at.localeCompare(a.at));
+function payments(c: StoredCustomer): Payment[] {
+  return allPayments().filter(p => p.customer.id === c.id);
 }
 
 function activity(c: StoredCustomer): ActivityEntry[] {

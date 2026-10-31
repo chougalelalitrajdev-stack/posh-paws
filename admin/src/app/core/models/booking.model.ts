@@ -28,6 +28,7 @@ export interface BookingPayment {
   paidAt?: string;
   /** 'online' when paid through the link, 'desk' when marked at the salon. */
   method?: 'online' | 'desk';
+  refundedAt?: string;
 }
 
 export interface ActivityEntry {

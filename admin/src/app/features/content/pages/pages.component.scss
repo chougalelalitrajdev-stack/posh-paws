@@ -1,0 +1,54 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-pages-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+
+  &.is-draft { background: var(--pp-accent-light); border-color: var(--pp-accent); strong { color: var(--pp-accent-text); } }
+}
+
+.pp-pages-status-text { flex: 1 1 240px; font-size: var(--fs-sm); }
+
+.pp-pages-editor { display: flex; flex-direction: column; gap: var(--space-4); }
+.pp-sections { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.pp-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+
+  &.is-hidden { background: var(--pp-surface); .pp-input { color: var(--pp-muted); } }
+  // Grows with the text where the browser supports it.
+  textarea { resize: vertical; line-height: 1.5; field-sizing: content; min-height: 7rem; max-height: 32rem; }
+}
+
+.pp-section-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+.pp-section-handle {
+  width: 28px;
+  height: var(--tap-target-min);
+  border: 0;
+  background: transparent;
+  color: var(--pp-subtle);
+  font-size: var(--fs-lg);
+  cursor: grab;
+}
+
+.pp-section-kind { flex: 1; min-width: 0; font-size: var(--fs-sm); font-weight: 700; color: var(--pp-muted); }
+.pp-pages-add { align-self: flex-start; }
+
+.pp-page-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  h3 { margin: var(--space-3) 0 0; font-size: var(--fs-xl); }
+  p { margin: 0; line-height: 1.6; color: var(--pp-text); }
+}

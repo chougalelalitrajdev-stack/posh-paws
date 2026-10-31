@@ -1,0 +1,64 @@
+<section class="pp-card pp-team-card" aria-labelledby="team-title">
+  <div class="pp-card-head">
+    <h2 id="team-title" class="pp-card-title">Team</h2>
+    <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" (click)="openInvite()">Invite staff</button>
+  </div>
+  <div class="pp-team-list">
+    @for (m of team(); track m.id) {
+      <div class="pp-team-row">
+        <pp-avatar [name]="m.name" />
+        <span class="pp-team-who">
+          <strong>{{ m.name }}</strong>
+          <span>{{ m.email }} · {{ seen(m) }}</span>
+        </span>
+        @if (m.status === 'invited') { <pp-status-pill label="Invite sent" tone="draft" /> }
+        @if (m.id === meId()) {
+          <span class="pp-small pp-strong">{{ roleLabels[m.role] }}</span>
+        } @else {
+          <label class="pp-sr-only" [for]="'role-' + m.id">Role for {{ m.name }}</label>
+          <select class="pp-select" [id]="'role-' + m.id" [value]="m.role" [disabled]="busyId() === m.id" (change)="changeRole(m, $event)">
+            @for (r of roles; track r.value) { <option [value]="r.value" [selected]="r.value === m.role">{{ r.label }}</option> }
+          </select>
+          <button class="pp-btn pp-btn-sm pp-btn-ghost pp-danger-text" type="button" [attr.aria-label]="'Remove ' + m.name" (click)="remove(m)">Remove</button>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<section class="pp-card pp-team-card" aria-labelledby="matrix-title">
+  <h2 id="matrix-title" class="pp-card-title">What each role can do</h2>
+  <div class="pp-table-wrap">
+    <table class="pp-table pp-matrix">
+      <thead><tr><th scope="col">Area</th><th scope="col">Super Admin</th><th scope="col">Admin</th><th scope="col">Staff</th></tr></thead>
+      <tbody>
+        @for (row of matrix; track row.area) {
+          <tr>
+            <th scope="row">{{ row.area }}</th>
+            <td [class.pp-muted]="row.super_admin === 'No'">{{ row.super_admin }}</td>
+            <td [class.pp-muted]="row.admin === 'No'">{{ row.admin }}</td>
+            <td [class.pp-muted]="row.staff === 'No'">{{ row.staff }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (inviteOpen()) {
+  <pp-modal title="Invite staff" (closed)="inviteOpen.set(false)">
+    <form class="pp-form-grid" id="invite-form" [formGroup]="inviteForm" (ngSubmit)="invite()" novalidate>
+      @if (inviteError()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ inviteError() }}</div> }
+      <div class="pp-field pp-span"><label class="pp-label" for="inv-name">Name</label>
+        <input id="inv-name" class="pp-input" formControlName="name" [class.is-invalid]="inviteForm.controls.name.invalid && inviteForm.controls.name.touched"></div>
+      <div class="pp-field"><label class="pp-label" for="inv-email">Email</label>
+        <input id="inv-email" class="pp-input" type="email" formControlName="email" [class.is-invalid]="inviteForm.controls.email.invalid && inviteForm.controls.email.touched"></div>
+      <div class="pp-field"><label class="pp-label" for="inv-role">Role</label>
+        <select id="inv-role" class="pp-input" formControlName="role">@for (r of roles; track r.value) { <option [value]="r.value">{{ r.label }}</option> }</select></div>
+    </form>
+    <button ppModalActions class="pp-btn" type="button" (click)="inviteOpen.set(false)">Cancel</button>
+    <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="invite-form" [disabled]="inviting()">
+      @if (inviting()) { Adding… } @else { Invite }
+    </button>
+  </pp-modal>
+}

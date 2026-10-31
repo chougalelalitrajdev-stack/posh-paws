@@ -1,0 +1,133 @@
+<pp-page-header title="Offers" subtitle="Discounts and coupon codes customers use at checkout.">
+  <button *ppHasRole="editors" ppActions class="pp-btn pp-btn-primary" type="button" (click)="add()">New offer</button>
+</pp-page-header>
+@if (!canEdit()) { <p class="pp-intro pp-small">View only. Ask an Admin to change offers.</p> }
+
+<div class="pp-split">
+  <div class="pp-split-list">
+    @for (o of offers(); track o.id) {
+      <button class="pp-offer" type="button" [class.is-selected]="selectedId() === o.id && !adding()" [class.is-over]="o.status === 'expired' || o.status === 'used_up'"
+        [attr.aria-pressed]="selectedId() === o.id && !adding()" (click)="select(o)">
+        <span class="pp-offer-value"><strong>{{ valueLabel(o) }}</strong><span>off</span></span>
+        <span class="pp-offer-main">
+          <span class="pp-offer-title">
+            <strong>{{ o.title }}</strong>
+            <pp-status-pill [label]="statuses[o.status].label" [tone]="statuses[o.status].tone" />
+          </span>
+          <span>{{ scopeLabel(o) }} · {{ datesLabel(o) }}</span>
+          <span>
+            @if (o.code) { <span class="pp-offer-code">{{ o.code }}</span> } @else { Applied automatically }
+            · {{ usesLabel(o) }}
+          </span>
+        </span>
+      </button>
+    } @empty {
+      <div class="pp-card pp-offer-empty">No offers yet.</div>
+    }
+  </div>
+
+  <section #editor class="pp-card pp-split-editor" aria-labelledby="offer-title">
+    @if (selected() || adding()) {
+      <div class="pp-card-head">
+        <h2 id="offer-title" class="pp-card-title">{{ adding() ? 'New offer' : canEdit() ? 'Edit offer' : selected()!.title }}</h2>
+        @if (selected(); as o) { <pp-status-pill [label]="statuses[o.status].label" [tone]="statuses[o.status].tone" /> }
+      </div>
+
+      <form class="pp-form-grid" id="offer-form" [formGroup]="form" (ngSubmit)="save(false)" novalidate>
+        @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+        <div class="pp-field pp-span">
+          <label class="pp-label" for="offer-title-input">Title</label>
+          <input id="offer-title-input" class="pp-input" type="text" formControlName="title" placeholder="Diwali grooming week"
+            [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched">
+        </div>
+        <div class="pp-field">
+          <span class="pp-label">Discount</span>
+          @if (canEdit()) {
+            <pp-segmented label="Discount type" [options]="discountTypes" [value]="value().discountType" (valueChange)="setDiscountType($event)" />
+          } @else {
+            <span>{{ value().discountType === 'percent' ? '% off' : '₹ flat' }}</span>
+          }
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="offer-value">{{ value().discountType === 'percent' ? 'Percent off' : 'Amount off (₹)' }}</label>
+          <input id="offer-value" class="pp-input" type="number" min="1" [max]="value().discountType === 'percent' ? 100 : null" step="1" inputmode="numeric"
+            formControlName="value" [class.is-invalid]="form.controls.value.invalid && form.controls.value.touched">
+        </div>
+        <div class="pp-field pp-span">
+          <label class="pp-label" for="offer-code">Code</label>
+          <div class="pp-offer-code-row">
+            <input id="offer-code" class="pp-input pp-offer-code-input" type="text" formControlName="code" placeholder="DIWALI20" autocapitalize="characters"
+              aria-describedby="offer-code-hint" [class.is-invalid]="form.controls.code.invalid && form.controls.code.touched">
+            @if (canEdit()) { <button class="pp-btn" type="button" (click)="generateCode()">Generate</button> }
+          </div>
+          <span id="offer-code-hint" class="pp-hint" [class.is-over]="form.controls.code.invalid && form.controls.code.touched">
+            3–20 letters and numbers. Leave empty to apply it automatically at checkout, no code needed.
+          </span>
+        </div>
+
+        <fieldset class="pp-field pp-span pp-offer-scope">
+          <legend class="pp-label">Applies to</legend>
+          @for (s of scopes; track s.value) {
+            <label class="pp-check"><input type="radio" formControlName="appliesTo" [value]="s.value"><span>{{ s.label }}</span></label>
+          }
+          <label class="pp-check pp-offer-later"><input type="radio" disabled><span>Shop products · later</span></label>
+        </fieldset>
+        @if (value().appliesTo === 'some_services') {
+          <div class="pp-field pp-span">
+            <span class="pp-label">Services ({{ value().serviceIds.length }} picked)</span>
+            <div class="pp-toggle-chips" role="group" aria-label="Services the offer applies to">
+              @for (s of bookable(); track s.id) {
+                <button class="pp-toggle-chip" type="button" [class.active]="value().serviceIds.includes(s.id)"
+                  [attr.aria-pressed]="value().serviceIds.includes(s.id)" [disabled]="!canEdit()" (click)="toggleService(s.id)">
+                  {{ value().serviceIds.includes(s.id) ? '✓' : '+' }} {{ s.name }} <small>· {{ s.petType === 'dog' ? 'Dog' : 'Cat' }}</small>
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="pp-field">
+          <label class="pp-label" for="offer-starts">Starts</label>
+          <input id="offer-starts" class="pp-input" type="date" formControlName="startsOn"
+            [class.is-invalid]="form.controls.startsOn.invalid && form.controls.startsOn.touched">
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="offer-ends">Ends</label>
+          <input id="offer-ends" class="pp-input" type="date" formControlName="endsOn" [min]="value().startsOn" aria-describedby="offer-ends-hint">
+          <span id="offer-ends-hint" class="pp-hint">Empty = keeps running.</span>
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="offer-total">Total uses</label>
+          <input id="offer-total" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="totalUses" aria-describedby="offer-total-hint">
+          <span id="offer-total-hint" class="pp-hint">Empty = no limit.@if (selected(); as o) { Used {{ o.used }} so far. }</span>
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="offer-per">Uses per customer</label>
+          <input id="offer-per" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="perCustomer" aria-describedby="offer-per-hint">
+          <span id="offer-per-hint" class="pp-hint">Empty = no limit.</span>
+        </div>
+        <label class="pp-check pp-span"><input type="checkbox" formControlName="newCustomersOnly"><span>New customers only (first booking)</span></label>
+      </form>
+
+      @if (canEdit()) {
+        <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
+          @if (selected(); as o) {
+            @if (o.status === 'paused') { <button class="pp-btn pp-btn-sm" type="button" (click)="setPaused(false)">Resume</button> }
+            @else if (o.status === 'live' || o.status === 'scheduled') { <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" (click)="setPaused(true)">Pause</button> }
+          }
+          <span class="pp-editor-dirty">@if (form.dirty) { Unsaved changes }</span>
+          @if (canDraft()) {
+            <button class="pp-btn pp-btn-sm" type="button" [disabled]="saving()" (click)="save(true)">Save as draft</button>
+          } @else {
+            <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty" (click)="discard()">Discard</button>
+          }
+          <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" form="offer-form" [disabled]="saving() || (!form.dirty && !canDraft())">
+            @if (saving()) { Saving… } @else { {{ primaryLabel() }} }
+          </button>
+        </div>
+      }
+    } @else {
+      <p class="pp-muted pp-small">Pick an offer to see its details.</p>
+    }
+  </section>
+</div>

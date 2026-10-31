@@ -1,11 +1,11 @@
-import { PAYMENT_LINK_HOURS, SLOT_HOLD_PAISE } from '../constants/app.constants';
 import { STAGES } from '../constants/status.constants';
 import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, CallOutcome, StageCounts } from '../models/booking.model';
 import { CalendarData, DayAvailability, NewTimeBlock, TimeBlock } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
-import { addDays, dateRange, minutesOfDay, shortDate, timeFromMinutes, today } from '../utils/date.utils';
+import { addDays, dateRange, minutesOfDay, shortDate, slotStart, timeFromMinutes, today } from '../utils/date.utils';
 import { discounted } from '../utils/money.utils';
-import { HOURS, SERVICES, STATIONS } from './mock-data';
+import { STATIONS } from './mock-data';
+import { closureOn, dayHours, openingSpan } from './mock-settings';
 import { MockError, MockRequest, NO_ROUTE, db, requireStaff, route, save } from './mock-db';
 import { planOf } from './mock-subscriptions';
 
@@ -91,57 +91,70 @@ function calendar(from: string, days: number): CalendarData {
     stations: STATIONS,
     bookings: db().bookings.filter(b => b.date && dates.includes(b.date) && HOLDS_SLOT.includes(b.stage)),
     blocks: dates.flatMap(blocksOn),
-    opens: HOURS.opens,
-    closes: HOURS.closes,
+    ...openingSpan(),
   };
 }
 
 // ── Availability ──────────────────────────────────────────────
 
-/** Lunch on every station plus any blocks staff added. */
+/** Breaks and closures (from Settings) on every station, plus any blocks staff added. */
 function blocksOn(date: string): TimeBlock[] {
-  const lunch = STATIONS.map(st => ({
-    id: `lunch-${date}-${st.id}`, stationId: st.id, date, time: HOURS.lunch.time,
-    durationMinutes: HOURS.lunch.durationMinutes, reason: 'Lunch', fixed: true,
+  const hours = dayHours(date);
+  const closure = closureOn(date);
+  const span = openingSpan();
+  const fixed = (key: string, from: string, to: string, reason: string) => STATIONS.map(st => ({
+    id: `${key}-${date}-${st.id}`, stationId: st.id, date, time: from, durationMinutes: minutesOfDay(to) - minutesOfDay(from), reason, fixed: true,
   }));
-  return [...lunch, ...db().blocks.filter(b => b.date === date)];
+  let blocks: TimeBlock[];
+  if (!hours.open || (closure && !closure.closesAt)) blocks = fixed('closed', span.opens, span.closes, closure ? `Closed · ${closure.name}` : 'Closed');
+  else {
+    blocks = hours.breakFrom && hours.breakTo ? fixed('break', hours.breakFrom, hours.breakTo, 'Break') : [];
+    if (closure?.closesAt && closure.closesAt < hours.closes) blocks.push(...fixed('closed', closure.closesAt, hours.closes, `Closed · ${closure.name}`));
+  }
+  return [...blocks, ...db().blocks.filter(b => b.date === date)];
 }
 
 /** Busy [start, end) minutes on one station; bookings keep a cleaning buffer after them. */
 function busy(date: string, stationId: string, excludeId?: string): [number, number][] {
   const booked = db().bookings
     .filter(b => b.id !== excludeId && b.date === date && b.stationId === stationId && b.time && b.service && HOLDS_SLOT.includes(b.stage))
-    .map(b => [minutesOfDay(b.time!), minutesOfDay(b.time!) + b.service!.durationMinutes + HOURS.bufferMinutes] as [number, number]);
+    .map(b => [minutesOfDay(b.time!), minutesOfDay(b.time!) + b.service!.durationMinutes + rules().bufferMinutes] as [number, number]);
   const blocked = blocksOn(date)
     .filter(b => b.stationId === stationId)
     .map(b => [minutesOfDay(b.time), minutesOfDay(b.time) + b.durationMinutes] as [number, number]);
   return [...booked, ...blocked];
 }
 
-/** The first station free for the whole appointment, or null. */
+const rules = () => db().settings.booking;
+
+/**
+ * The first station free for the whole appointment, or null. Follows Settings › Booking & availability:
+ * opening hours, breaks, closures, buffer, minimum notice and how far ahead bookings can be made.
+ */
 export function freeStation(date: string, time: string, durationMinutes: number, excludeId?: string): string | null {
+  const hours = dayHours(date);
   const start = minutesOfDay(time);
   const end = start + durationMinutes;
-  if (start < minutesOfDay(HOURS.opens) || end > minutesOfDay(HOURS.closes)) return null;
-  if (date < today() || (date === today() && start < nowMinutes() + 30)) return null;
-  const station = STATIONS.find(st => busy(date, st.id, excludeId).every(([from, to]) => end + HOURS.bufferMinutes <= from || start >= to));
+  if (!hours.open || start < minutesOfDay(hours.opens) || end > minutesOfDay(hours.closes)) return null;
+  if (slotStart(date, time).getTime() - Date.now() < rules().minNoticeMinutes * 60_000) return null;
+  if (date > addDays(today(), rules().bookAheadDays)) return null;
+  const buffer = rules().bufferMinutes;
+  const station = STATIONS.find(st => busy(date, st.id, excludeId).every(([from, to]) => end + buffer <= from || start >= to));
   return station?.id ?? null;
 }
 
+/** Start times every slotStepMinutes inside each day's hours (none on closed days). */
 function slots(serviceId: string, from: string, days: number, excludeId?: string): DayAvailability[] {
-  const service = SERVICES.find(s => s.id === serviceId);
+  const service = db().services.find(s => s.id === serviceId);
   if (!service) throw new MockError(404, 'Service not found.');
-  const starts: string[] = [];
-  for (let t = minutesOfDay(HOURS.opens); t + service.durationMinutes <= minutesOfDay(HOURS.closes); t += HOURS.step) starts.push(timeFromMinutes(t));
-  return dateRange(from, Math.min(days, 14)).map(date => ({
-    date,
-    slots: starts.map(time => ({ time, available: freeStation(date, time, service.durationMinutes, excludeId) !== null })),
-  }));
-}
-
-function nowMinutes(): number {
-  const n = new Date();
-  return n.getHours() * 60 + n.getMinutes();
+  return dateRange(from, Math.min(days, 14)).map(date => {
+    const hours = dayHours(date);
+    const starts: string[] = [];
+    if (hours.open) {
+      for (let t = minutesOfDay(hours.opens); t + service.durationMinutes <= minutesOfDay(hours.closes); t += rules().slotStepMinutes) starts.push(timeFromMinutes(t));
+    }
+    return { date, slots: starts.map(time => ({ time, available: freeStation(date, time, service.durationMinutes, excludeId) !== null })) };
+  });
 }
 
 function addBlock(body: NewTimeBlock): TimeBlock {
@@ -182,8 +195,9 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   if (!customer) throw new MockError(404, 'Customer not found.');
   const pet = customer.pets.find(p => p.id === d.petId);
   if (!pet) throw new MockError(400, 'Pick one of the customer’s pets.');
-  const service = SERVICES.find(s => s.id === d.serviceId);
+  const service = db().services.find(s => s.id === d.serviceId);
   if (!service) throw new MockError(400, 'Pick a service.');
+  if (service.archived) throw new MockError(400, `${service.name} is archived. Pick another service.`);
   if (service.petType !== pet.type) throw new MockError(400, `${service.name} is for ${service.petType}s.`);
   if (d.date && d.time && !freeStation(d.date, d.time, service.durationMinutes, id ?? undefined)) {
     throw new MockError(409, 'That slot was just taken. Pick another time.');
@@ -237,10 +251,10 @@ function paymentLink(b: Booking, amountType: AmountType, by: string): Booking {
   b.paymentStatus = 'link_sent';
   b.payment = {
     amountType: type,
-    amountPaise: type === 'hold' ? Math.min(SLOT_HOLD_PAISE, b.pricePaise) : b.pricePaise,
+    amountPaise: type === 'hold' ? Math.min(db().settings.payments.slotHoldPaise, b.pricePaise) : b.pricePaise,
     link: `https://pay.poshpaws.in/l/${b.id}${resend ? `-${sentAt.getTime().toString(36)}` : ''}`,
     sentAt: sentAt.toISOString(),
-    expiresAt: new Date(sentAt.getTime() + PAYMENT_LINK_HOURS * 3_600_000).toISOString(),
+    expiresAt: new Date(sentAt.getTime() + db().settings.payments.linkExpiryHours * 3_600_000).toISOString(),
   };
   log(b, { kind: 'payment', title: resend ? 'New payment link sent' : 'Payment link sent on WhatsApp', by });
   return commit(b);

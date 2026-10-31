@@ -159,7 +159,7 @@
                 <td>@if (p.kind === 'booking') { <a [routerLink]="['/bookings', p.reference]">{{ p.reference }}</a> } @else { {{ p.reference }} }</td>
                 <td>{{ p.item }}</td>
                 <td class="pp-num">{{ p.amountPaise | inr }}</td>
-                <td><pp-status-pill [payment]="p.status" /></td>
+                <td><pp-status-pill [label]="paymentStates[p.status].label" [tone]="paymentStates[p.status].tone" /></td>
                 <td class="pp-nowrap">{{ whenLabel(p.at) }}</td>
               </tr>
             }

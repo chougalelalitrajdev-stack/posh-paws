@@ -2,7 +2,7 @@
   <p class="pp-muted pp-resched-note">
     {{ booking().service?.name }} · {{ formatDuration(booking().service?.durationMinutes ?? 0) }}. Times shown have a station free for the whole appointment.
   </p>
-  @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+  @if (error()) { <div class="pp-alert pp-alert-error pp-resched-alert" role="alert">{{ error() }}</div> }
   <pp-slot-picker [days]="days()" [loading]="loading()" [(date)]="date" [(time)]="time" />
 
   <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>

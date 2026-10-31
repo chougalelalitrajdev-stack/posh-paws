@@ -1,0 +1,108 @@
+<section class="pp-card pp-bs-card" aria-labelledby="hours-title">
+  <div>
+    <h2 id="hours-title" class="pp-card-title">Opening hours</h2>
+    <p class="pp-hint pp-bs-lead">Slots are only offered inside these hours. Breaks and closures are blocked on every station.</p>
+  </div>
+  @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+  <form id="booking-settings-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="pp-table-wrap">
+      <table class="pp-table pp-hours-table" formArrayName="hours">
+        <thead>
+          <tr><th scope="col">Day</th><th scope="col">Open</th><th scope="col">Hours</th><th scope="col">Break <span class="pp-muted">(empty = none)</span></th></tr>
+        </thead>
+        <tbody>
+          @for (h of hours.controls; track $index; let i = $index) {
+            <tr [formGroupName]="i" [class.pp-muted]="!h.controls.open.value">
+              <th scope="row" class="pp-nowrap">{{ days[i] }}</th>
+              <td><pp-switch [label]="'Open on ' + days[i]" [checked]="h.controls.open.value" (checkedChange)="setOpen(h, $event)" /></td>
+              <td>
+                <span class="pp-bs-times">
+                  <input class="pp-input" type="time" formControlName="opens" [attr.aria-label]="days[i] + ' opens'">
+                  <span aria-hidden="true">–</span>
+                  <input class="pp-input" type="time" formControlName="closes" [attr.aria-label]="days[i] + ' closes'">
+                </span>
+              </td>
+              <td>
+                <span class="pp-bs-times">
+                  <input class="pp-input" type="time" formControlName="breakFrom" [attr.aria-label]="days[i] + ' break starts'">
+                  <span aria-hidden="true">–</span>
+                  <input class="pp-input" type="time" formControlName="breakTo" [attr.aria-label]="days[i] + ' break ends'">
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="pp-bs-subtitle">Slot rules</h3>
+    <div class="pp-form-grid">
+      <div class="pp-field"><label class="pp-label" for="bs-step">Start times every</label>
+        <select id="bs-step" class="pp-input" formControlName="slotStepMinutes">@for (o of options.step; track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }</select>
+        <span class="pp-hint">How often a slot can begin.</span></div>
+      <div class="pp-field"><label class="pp-label" for="bs-buffer">Buffer after each booking</label>
+        <select id="bs-buffer" class="pp-input" formControlName="bufferMinutes">@for (o of options.buffer; track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }</select>
+        <span class="pp-hint">Clean-up time between pets.</span></div>
+      <div class="pp-field"><label class="pp-label" for="bs-ahead">Book up to</label>
+        <select id="bs-ahead" class="pp-input" formControlName="bookAheadDays">@for (o of options.ahead; track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }</select>
+        <span class="pp-hint">The furthest date offered.</span></div>
+      <div class="pp-field"><label class="pp-label" for="bs-notice">Minimum notice</label>
+        <select id="bs-notice" class="pp-input" formControlName="minNoticeMinutes">@for (o of options.notice; track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }</select>
+        <span class="pp-hint">No slots sooner than this from now.</span></div>
+      <div class="pp-field"><span class="pp-label">Grooming stations</span><span class="pp-small">{{ catalog.stations().length }} · {{ stations() }}</span></div>
+      <div class="pp-field"><span class="pp-label">Service lengths</span><span class="pp-small">Set per service in <a routerLink="/services">Services</a>.</span></div>
+    </div>
+  </form>
+
+  <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
+    <span class="pp-editor-dirty">@if (form.dirty) { Unsaved changes }</span>
+    <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty" (click)="discard()">Discard</button>
+    <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" form="booking-settings-form" [disabled]="saving() || !form.dirty">
+      @if (saving()) { Saving… } @else { Save changes }
+    </button>
+  </div>
+</section>
+
+<section class="pp-card pp-bs-card" aria-labelledby="closures-title">
+  <div class="pp-card-head">
+    <h2 id="closures-title" class="pp-card-title">Holidays and closures</h2>
+    <button class="pp-btn pp-btn-sm" type="button" (click)="openClosure()">Add closure</button>
+  </div>
+  <div class="pp-bs-closures">
+    @for (c of closures(); track c.id) {
+      <div class="pp-bs-closure">
+        <strong class="pp-nowrap">{{ longDate(c.date) }}</strong>
+        <span class="pp-bs-closure-name">{{ c.name }} <span class="pp-muted">· {{ closureLabel(c) }}</span></span>
+        <span class="pp-small" [class.pp-danger-text]="c.affectedBookings > 0" [class.pp-muted]="!c.affectedBookings">
+          {{ c.affectedBookings ? c.affectedBookings + ' booking' + (c.affectedBookings === 1 ? '' : 's') + ' to move' : 'No bookings' }}
+        </span>
+        <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" [attr.aria-label]="'Remove ' + c.name" (click)="removeClosure(c)">Remove</button>
+      </div>
+    } @empty {
+      <p class="pp-muted pp-small">No closures planned.</p>
+    }
+  </div>
+</section>
+
+@if (closureOpen()) {
+  <pp-modal title="Add closure" (closed)="closureOpen.set(false)">
+    <form class="pp-form-grid" id="closure-form" [formGroup]="closureForm" (ngSubmit)="addClosure()" novalidate>
+      @if (closureError()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ closureError() }}</div> }
+      <div class="pp-field"><label class="pp-label" for="cl-date">Date</label>
+        <input id="cl-date" class="pp-input" type="date" [min]="today" formControlName="date"
+          [class.is-invalid]="closureForm.controls.date.invalid && closureForm.controls.date.touched"></div>
+      <div class="pp-field"><label class="pp-label" for="cl-name">Name</label>
+        <input id="cl-name" class="pp-input" placeholder="Diwali" formControlName="name"
+          [class.is-invalid]="closureForm.controls.name.invalid && closureForm.controls.name.touched"></div>
+      <label class="pp-check pp-span"><input type="checkbox" formControlName="allDay"><span>Closed all day</span></label>
+      @if (!closureForm.controls.allDay.value) {
+        <div class="pp-field"><label class="pp-label" for="cl-time">Closing at</label><input id="cl-time" class="pp-input" type="time" formControlName="closesAt"></div>
+      }
+    </form>
+    <button ppModalActions class="pp-btn" type="button" (click)="closureOpen.set(false)">Cancel</button>
+    <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="closure-form" [disabled]="addingClosure()">
+      @if (addingClosure()) { Adding… } @else { Add closure }
+    </button>
+  </pp-modal>
+}

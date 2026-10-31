@@ -106,6 +106,11 @@ export function ageLabel(timestamp: string, now = new Date()): string {
   return `${days} day${days > 1 ? 's' : ''}`;
 }
 
+/** "just now", "4 min ago", "3 days ago". */
+export function agoLabel(timestamp: string, now = new Date()): string {
+  return now.getTime() - new Date(timestamp).getTime() < 60_000 ? 'just now' : `${ageLabel(timestamp, now)} ago`;
+}
+
 /** Time left until a moment: "21 h", "45 min". */
 export function untilLabel(timestamp: string, now = new Date()): string {
   return ageLabel(now.toISOString(), new Date(timestamp));

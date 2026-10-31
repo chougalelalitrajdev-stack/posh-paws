@@ -14,7 +14,8 @@ export function telLink(phone: string): string {
 
 /** Opens WhatsApp (app or web) with the message ready to send. */
 export function whatsappLink(phone: string, text = ''): string {
-  const to = `${COUNTRY}${phone.replace(/\D/g, '').slice(-10)}`;
+  // No phone: WhatsApp asks who to send it to.
+  const to = phone ? `${COUNTRY}${phone.replace(/\D/g, '').slice(-10)}` : '';
   return `https://wa.me/${to}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 }
 

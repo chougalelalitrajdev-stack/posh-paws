@@ -4,10 +4,11 @@ import { Tone } from '../../core/constants/status.constants';
 import { Paged } from '../../core/models/paged.model';
 import { Subscription, SubscriptionSummary, SubscriptionTab } from '../../core/models/subscription.model';
 import { SubscriptionService } from '../../core/services/subscription.service';
+import { TemplateService } from '../../core/services/template.service';
 import { formatPhone } from '../../core/utils/contact.utils';
 import { downloadCsv } from '../../core/utils/csv.utils';
 import { addDays, shortDate, today } from '../../core/utils/date.utils';
-import { planPaymentMessage, winBackMessage } from '../../core/utils/message.utils';
+import { firstName } from '../../core/utils/message.utils';
 import { formatInr } from '../../core/utils/money.utils';
 import { FilterTab, FilterTabsComponent } from '../../shared/components/filter-tabs/filter-tabs.component';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
@@ -39,6 +40,7 @@ interface Share { title: string; intro: string; phone: string; message: string }
 })
 export class SubscriptionListComponent {
   private subscriptionService = inject(SubscriptionService);
+  private templates = inject(TemplateService);
   private router = inject(Router);
 
   protected readonly formatPhone = formatPhone;
@@ -67,6 +69,7 @@ export class SubscriptionListComponent {
 
   constructor() {
     void this.loadSummary();
+    void this.templates.load();
     effect(() => {
       const tab = this.tab();
       const page = this.page();
@@ -118,7 +121,7 @@ export class SubscriptionListComponent {
     if (a.kind === 'winback') {
       this.share.set({
         title: 'Win back', intro: `${s.customer.name}'s ${s.planName} plan has ended.`, phone: s.customer.phone,
-        message: winBackMessage({ customerName: s.customer.name, planName: s.planName }),
+        message: this.templates.render('win_back', { customer_name: firstName(s.customer.name), plan: s.planName }),
       });
       return;
     }
@@ -129,9 +132,9 @@ export class SubscriptionListComponent {
         title: updated.status === 'payment_pending' ? 'Payment link' : 'Renewal link',
         intro: `Link created for ${updated.customer.name}. Send it on WhatsApp:`,
         phone: updated.customer.phone,
-        message: planPaymentMessage({
-          customerName: updated.customer.name, planName: updated.planName, amountPaise: updated.pricePaise,
-          renewsOn: updated.renewsOn ? shortDate(updated.renewsOn) : null, link: updated.paymentLink!.link,
+        message: this.templates.render(updated.status === 'payment_pending' ? 'plan_payment' : 'plan_renewal', {
+          customer_name: firstName(updated.customer.name), plan: updated.planName, amount: formatInr(updated.pricePaise),
+          renewal_date: updated.renewsOn ? shortDate(updated.renewsOn) : '', payment_link: updated.paymentLink!.link,
         }),
       });
       await Promise.all([this.load(this.tab(), this.page()), this.loadSummary()]);

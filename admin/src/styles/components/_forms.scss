@@ -117,3 +117,32 @@ textarea.pp-input {
 
   .pp-alert { margin: 0; }
 }
+
+// Small help text under a field; .is-over when a limit is passed.
+.pp-hint {
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+
+  &.is-over { color: var(--pp-danger); font-weight: 600; }
+}
+
+// Pick several from a list (services a plan or offer covers). Buttons with aria-pressed.
+.pp-toggle-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.pp-toggle-chip {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--pp-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--pp-card-bg);
+  color: var(--pp-muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+
+  small { font-size: inherit; font-weight: 400; }
+  &.active { border-color: var(--pp-primary); background: var(--pp-primary-tint); color: var(--pp-primary-dark); }
+  &:disabled { cursor: default; }
+  @media (pointer: coarse) { min-height: var(--tap-target-min); }
+}

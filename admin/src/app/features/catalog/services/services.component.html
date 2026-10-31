@@ -1,0 +1,104 @@
+<pp-page-header title="Services" subtitle="What customers see on the Services page and in booking. Drag rows to change the order.">
+  <button *ppHasRole="editors" ppActions class="pp-btn pp-btn-primary" type="button" (click)="add()">Add service</button>
+</pp-page-header>
+
+<div class="pp-svc-bar">
+  <pp-segmented label="Services shown" [options]="viewOptions()" [value]="view()" (valueChange)="setView($event)" />
+  @if (!canEdit()) { <span class="pp-muted pp-small">View only. Ask an Admin to change services.</span> }
+</div>
+
+<div class="pp-split">
+  <div class="pp-split-list" cdkDropList [cdkDropListData]="rows()" [cdkDropListDisabled]="!canEdit() || view() === 'archived'" (cdkDropListDropped)="drop($event)">
+    @for (s of rows(); track s.id; let i = $index) {
+      <div class="pp-svc-row" cdkDrag [class.is-selected]="selectedId() === s.id && !adding()">
+        @if (canEdit() && view() !== 'archived') {
+          <button class="pp-svc-handle" cdkDragHandle type="button" [id]="'handle-' + s.id"
+            [attr.aria-label]="'Reorder ' + s.name + '. Drag, or use the arrow keys.'" (keydown)="moveWithKeys($event, i)">⠿</button>
+        }
+        <span class="pp-svc-thumb" aria-hidden="true">
+          @if (s.imageUrl) { <img [src]="s.imageUrl" alt=""> } @else { <pp-icon name="scissors" [size]="18" /> }
+        </span>
+        <button class="pp-svc-name" type="button" [attr.aria-pressed]="selectedId() === s.id" (click)="select(s)">
+          <strong>{{ s.name }}</strong>
+          <span>{{ s.category }} · {{ s.durationMinutes | duration }}</span>
+        </button>
+        <strong class="pp-svc-price">{{ s.pricePaise | inr }}</strong>
+        @if (view() !== 'archived') {
+          <pp-switch [label]="'Show ' + s.name + ' in the app'" [checked]="s.visible" [disabled]="!canEdit()" (checkedChange)="toggleVisible(s, $event)" />
+        }
+        <div class="pp-svc-placeholder" *cdkDragPlaceholder></div>
+      </div>
+    } @empty {
+      <div class="pp-card pp-svc-empty">{{ view() === 'archived' ? 'No archived services.' : 'No services yet.' }}</div>
+    }
+  </div>
+
+  <section #editor class="pp-card pp-split-editor" aria-labelledby="editor-title">
+    @if (selected() || adding()) {
+      <div class="pp-card-head">
+        <h2 id="editor-title" class="pp-card-title">{{ adding() ? 'New service' : canEdit() ? 'Edit service' : selected()!.name }}</h2>
+        @if (selected(); as s) {
+          @if (s.archived) { <pp-status-pill label="Archived" tone="neutral" /> }
+          @else { <pp-status-pill [label]="s.visible ? 'Shown in app' : 'Hidden from app'" [tone]="s.visible ? 'success' : 'neutral'" /> }
+        }
+      </div>
+
+      <form class="pp-form-grid" id="service-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+        @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+        <div class="pp-field pp-span">
+          <label class="pp-label" for="svc-name">Name</label>
+          <input id="svc-name" class="pp-input" type="text" formControlName="name"
+            [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched">
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="svc-price">Price (₹)</label>
+          <input id="svc-price" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="priceRupees"
+            [class.is-invalid]="form.controls.priceRupees.invalid && form.controls.priceRupees.touched">
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="svc-duration">Duration</label>
+          <select id="svc-duration" class="pp-input" formControlName="durationMinutes">
+            @for (d of durations(); track d.value) { <option [ngValue]="d.value">{{ d.label }}</option> }
+          </select>
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="svc-category">Category</label>
+          <select id="svc-category" class="pp-input" formControlName="category">
+            @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+          </select>
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="svc-pet">For</label>
+          <select id="svc-pet" class="pp-input" formControlName="petType"><option value="dog">Dogs</option><option value="cat">Cats</option></select>
+        </div>
+        <div class="pp-field pp-span">
+          <label class="pp-label" for="svc-desc">Description</label>
+          <textarea id="svc-desc" class="pp-input" rows="3" formControlName="description" aria-describedby="svc-desc-hint"
+            [class.is-invalid]="form.controls.description.invalid"></textarea>
+          <span id="svc-desc-hint" class="pp-hint" [class.is-over]="descriptionLength() > maxDescription">
+            Shown on the service card. {{ descriptionLength() }} / {{ maxDescription }} characters.
+          </span>
+        </div>
+        <div class="pp-span">
+          <pp-image-upload [url]="form.controls.imageUrl.value" (urlChange)="form.controls.imageUrl.setValue($event); form.markAsDirty()" [disabled]="!canEdit()" />
+        </div>
+      </form>
+
+      @if (canEdit()) {
+        <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
+          @if (selected(); as s) {
+            @if (s.archived) { <button class="pp-btn pp-btn-sm" type="button" (click)="restore()">Restore</button> }
+            @else { <button class="pp-btn pp-btn-sm pp-btn-ghost pp-danger-text" type="button" (click)="archive()">Archive</button> }
+          }
+          <span class="pp-editor-dirty">@if (form.dirty) { Unsaved changes }</span>
+          <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty && !adding()" (click)="discard()">Discard</button>
+          <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" form="service-form" [disabled]="saving() || (!form.dirty && !adding())">
+            @if (saving()) { Saving… } @else { Save }
+          </button>
+        </div>
+      }
+    } @else {
+      <p class="pp-muted pp-small">Pick a service to see its details.</p>
+    }
+  </section>
+</div>

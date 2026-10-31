@@ -19,3 +19,47 @@
   font-size: var(--fs-lg);
   font-weight: 700;
 }
+
+// Save bar at the bottom of an editor card (Services, Plans, Offers). Tinted while there are unsaved changes.
+.pp-editor-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 calc(-1 * var(--space-6)) calc(-1 * var(--space-6));
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--pp-divider);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+
+  &.is-dirty { background: var(--pp-accent-light); }
+  // Stays on the right when the bar wraps on a phone.
+  > .pp-btn-primary { margin-left: auto; }
+}
+
+.pp-editor-note { flex: 1 1 240px; font-size: var(--fs-sm); color: var(--pp-muted); }
+.pp-editor-dirty { flex: 1; font-size: var(--fs-sm); font-weight: 600; color: var(--pp-accent-text); }
+
+// List on the left, editor card on the right (Services, Offers). Stacks on smaller screens; on desktop the editor stays in view.
+.pp-split { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-start; }
+.pp-split-list { flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.pp-split-editor {
+  flex: 1 1 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  scroll-margin-top: calc(var(--mobile-header-height) + var(--space-3));
+
+  @media (min-width: 992px) { max-width: 520px; position: sticky; top: var(--space-4); }
+}
+
+// Row of pp-stat cards above a list (Subscriptions, Payments).
+.pp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+
+  // Two per row on phones instead of a long stack.
+  @media (max-width: 575.98px) { grid-template-columns: 1fr 1fr; }
+}
