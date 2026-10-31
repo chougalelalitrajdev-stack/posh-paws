@@ -1,0 +1,11 @@
+<div class="pp-page-header">
+  <div class="pp-page-heading">
+    <h1 class="pp-page-title">{{ title() }}</h1>
+    @if (subtitle()) {
+      <p class="pp-page-subtitle">{{ subtitle() }}</p>
+    }
+  </div>
+  <div class="pp-page-actions">
+    <ng-content select="[ppActions]" />
+  </div>
+</div>

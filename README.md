@@ -4,7 +4,7 @@ Pet grooming platform. One repo, three independent apps, each with its own depen
 
 ```
 customer/   Angular: the customer website and booking flow   → http://localhost:4200
-admin/      Angular: staff dashboard (not started yet)       → http://localhost:4300
+admin/      Angular: staff dashboard                         → http://localhost:4300
 backend/    Python FastAPI: REST API for both front-ends     → http://localhost:8000/api
 ```
 
@@ -23,6 +23,11 @@ Open a terminal per app.
 ```bash
 # Customer app
 cd customer
+npm install
+npm start
+
+# Admin app (demo login: meera@poshpaws.in / pawsword)
+cd admin
 npm install
 npm start
 

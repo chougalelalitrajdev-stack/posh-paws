@@ -9,7 +9,7 @@ One git repo, three independent apps. Each app has its own dependencies, lock fi
 | Folder | What | Stack | Local URL | App guide |
 |---|---|---|---|---|
 | `customer/` | Customer website + booking flow | Angular 21 | http://localhost:4200 | `customer/CLAUDE.md` |
-| `admin/` | Staff dashboard (not started) | Angular, same structure as customer | http://localhost:4300 | `admin/README.md` |
+| `admin/` | Staff dashboard | Angular 21, same structure as customer | http://localhost:4300 | `admin/CLAUDE.md` |
 | `backend/` | REST API for both front-ends | Python FastAPI | http://localhost:8000/api | `backend/README.md` |
 
 `netlify.toml` (root) deploys `customer/`.
@@ -22,7 +22,7 @@ One git repo, three independent apps. Each app has its own dependencies, lock fi
 
 ## API contract (all apps follow it)
 
-- JSON over REST, under `/api`. Routes are plural nouns: `/api/pets`, `/api/bookings/{id}`.
+- JSON over REST, under `/api`. Routes are plural nouns: `/api/pets`, `/api/bookings/{id}`. Staff-only routes live under `/api/admin/...` and require a staff token (role checked server-side).
 - **JSON field names are camelCase** (`pricePaise`, `durationMinutes`), so Angular models match the API one-to-one. The backend converts from its snake_case Python names.
 - **Money is integer paise** (`120000` = ₹1,200). Dates are `YYYY-MM-DD`, times `HH:mm`, timestamps ISO 8601.
 - **Errors use FastAPI's shape**: `{"detail": "Human-readable message"}` with the right HTTP status (400 bad input, 401 not logged in, 403 not allowed, 404 not found, 409 conflict such as a slot already taken, 422 validation). Angular's error interceptor shows `detail` to the user.

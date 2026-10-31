@@ -1,0 +1,57 @@
+<div class="pp-shell">
+
+  <!-- ── Sidebar (992px and up) ── -->
+  <aside class="pp-sidebar">
+    <a class="pp-brand" routerLink="/today">
+      <img class="pp-brand-logo" src="icon/logo.png" alt="" width="40" height="40">
+      <span class="pp-brand-text"><span class="pp-brand-name">Posh Paws</span><span class="pp-brand-sub">Admin</span></span>
+    </a>
+
+    <pp-nav-list [groups]="groups()" [footer]="settings()" />
+  </aside>
+
+  <div class="pp-main">
+    <!-- ── Top bar (header on phones) ── -->
+    <header class="pp-topbar">
+      <a class="pp-brand pp-brand-compact" routerLink="/today" aria-label="Posh Paws Admin home">
+        <img class="pp-brand-logo" src="icon/logo.png" alt="" width="36" height="36">
+        <span class="pp-brand-name">Posh Paws</span>
+      </a>
+
+      <div class="pp-topbar-spacer"></div>
+
+      <a class="pp-btn pp-btn-primary pp-new-booking" routerLink="/bookings/new">
+        <pp-icon name="plus" [size]="16" /><span class="pp-new-booking-text">New booking</span>
+      </a>
+
+      <pp-profile-menu />
+    </header>
+
+    <main class="pp-content" id="main">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- ── Bottom tab bar (below 992px) ── -->
+  <nav class="pp-tabbar" aria-label="Admin">
+    @for (tab of tabs(); track tab.path) {
+      <a class="pp-tab" [routerLink]="tab.path" routerLinkActive="active">
+        <pp-icon [name]="tab.icon" [size]="20" />{{ tab.label }}
+      </a>
+    }
+    <button class="pp-tab" type="button" [class.active]="moreOpen()" [attr.aria-expanded]="moreOpen()" (click)="moreOpen.set(!moreOpen())">
+      <pp-icon name="menu" [size]="20" />More
+    </button>
+  </nav>
+
+  @if (moreOpen()) {
+    <div class="pp-more-backdrop" (click)="moreOpen.set(false)"></div>
+    <div class="pp-more" role="dialog" aria-modal="true" aria-label="More pages">
+      <div class="pp-more-head">
+        <strong>More</strong>
+        <button class="pp-icon-btn" type="button" aria-label="Close" (click)="moreOpen.set(false)"><pp-icon name="close" /></button>
+      </div>
+      <pp-nav-list [groups]="moreGroups()" [footer]="settings()" (click)="moreOpen.set(false)" />
+    </div>
+  }
+</div>

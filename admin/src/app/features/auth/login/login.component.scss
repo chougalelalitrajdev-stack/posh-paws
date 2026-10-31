@@ -1,0 +1,200 @@
+:host { display: block; }
+
+.pp-login {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: 992px) { flex-direction: row; }
+}
+
+// ── Brand panel (full on desktop, a slim bar on phones) ───────
+.pp-login-brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: var(--space-5) var(--space-6);
+  background: var(--pp-sidebar-bg);
+  color: var(--pp-on-primary);
+
+  @media (min-width: 992px) {
+    flex: 1 1 0;
+    padding: var(--space-12) var(--space-14);
+  }
+}
+
+.pp-login-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  img { border-radius: 50%; background: var(--pp-card-bg); object-fit: cover; }
+}
+
+.pp-login-logo-text {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-sm);
+  color: var(--pp-sidebar-text);
+}
+
+.pp-login-logo-name {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  color: var(--pp-on-primary);
+}
+
+.pp-login-pitch,
+.pp-login-foot {
+  display: none;
+
+  @media (min-width: 992px) { display: flex; }
+}
+
+.pp-login-pitch {
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 460px;
+}
+
+.pp-login-headline {
+  margin: 0;
+  font-family: var(--ff-serif);
+  font-size: var(--fs-4xl);
+  font-weight: 500;
+  line-height: 1.15;
+
+  em { color: var(--pp-accent); }
+}
+
+.pp-login-lead {
+  margin: 0;
+  font-size: var(--fs-lg);
+  line-height: 1.6;
+  color: var(--pp-sidebar-text);
+}
+
+.pp-login-points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--fs-base);
+
+  li { display: flex; align-items: flex-start; gap: var(--space-3); }
+  pp-icon { color: var(--pp-accent); }
+}
+
+.pp-login-foot {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--pp-sidebar-label);
+}
+
+// ── Form ──────────────────────────────────────────────────────
+.pp-login-main {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-5);
+}
+
+.pp-login-form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.pp-login-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  p { margin: 0; }
+}
+
+.pp-login-title {
+  margin: 0;
+  font-size: var(--fs-3xl);
+}
+
+.pp-password {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-1);
+
+  &:focus-within {
+    border-color: var(--pp-primary);
+    box-shadow: 0 0 0 3px var(--pp-focus-ring);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+
+    &:focus { outline: none; }
+  }
+}
+
+.pp-password-toggle {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--pp-chip-bg);
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--pp-primary);
+  cursor: pointer;
+}
+
+.pp-login-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+
+  a { font-weight: 600; }
+}
+
+.pp-login-submit { min-height: 50px; font-size: var(--fs-base); }
+
+.pp-login-note {
+  margin: 0;
+  font-size: var(--fs-sm);
+  text-align: center;
+  color: var(--pp-muted);
+}
+
+.pp-login-demo {
+  padding: var(--space-4);
+  border: 1px dashed var(--pp-border-strong);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+
+  code { color: var(--pp-primary-dark); }
+}
+
+.pp-login-demo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

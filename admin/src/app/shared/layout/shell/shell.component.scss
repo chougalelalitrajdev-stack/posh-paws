@@ -1,0 +1,194 @@
+// Desktop: fixed-width sidebar + content column. Below 992px: header + bottom tab bar.
+$desktop: 992px;
+
+.pp-shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────
+.pp-sidebar {
+  display: none;
+
+  @media (min-width: $desktop) {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    padding: var(--space-5) var(--space-3);
+    background: var(--pp-sidebar-bg);
+    color: var(--pp-on-primary);
+  }
+}
+
+.pp-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-2);
+  color: inherit;
+  text-decoration: none;
+
+  &:hover { color: inherit; }
+}
+
+.pp-brand-logo {
+  border-radius: 50%;
+  background: var(--pp-card-bg);
+  object-fit: cover;
+}
+
+.pp-brand-text { display: flex; flex-direction: column; }
+.pp-brand-name { font-family: var(--ff-serif); font-size: var(--fs-lg); font-weight: 600; }
+.pp-brand-sub { font-size: var(--fs-xs); color: var(--pp-sidebar-text); }
+
+// ── Main column & top bar ─────────────────────────────────────
+.pp-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pp-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-mobile-header);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--mobile-header-height);
+  padding: var(--space-2) var(--space-4);
+  background: var(--pp-sidebar-bg);
+  color: var(--pp-on-primary);
+
+  @media (min-width: $desktop) {
+    position: static;
+    padding: var(--space-3) var(--space-8);
+    background: var(--pp-card-bg);
+    border-bottom: 1px solid var(--pp-border);
+    color: var(--pp-text);
+  }
+}
+
+.pp-brand-compact {
+  padding: 0;
+
+  .pp-brand-name { font-size: var(--fs-lg); }
+
+  @media (min-width: $desktop) { display: none; }
+}
+
+.pp-topbar-spacer { flex: 1; }
+
+// Phones: icon-only button (text stays for screen readers).
+.pp-new-booking {
+  @media (max-width: 575.98px) {
+    width: var(--tap-target-min);
+    padding: 0;
+    border-color: var(--pp-accent);
+    background: var(--pp-accent);
+    color: var(--pp-text);
+  }
+
+  @media (max-width: 991.98px) and (min-width: 576px) {
+    border-color: var(--pp-accent);
+    background: var(--pp-accent);
+    color: var(--pp-text);
+  }
+}
+
+.pp-new-booking-text {
+  @media (max-width: 575.98px) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+// ── Content ───────────────────────────────────────────────────
+.pp-content {
+  width: 100%;
+  max-width: var(--content-max);
+  padding: var(--space-5) var(--space-4) calc(var(--bottom-nav-total-height) + var(--space-6));
+
+  @media (min-width: $desktop) {
+    padding: var(--space-7) var(--space-8) var(--space-12);
+  }
+}
+
+// ── Bottom tab bar (phones & tablets) ─────────────────────────
+.pp-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-bottom-nav);
+  display: flex;
+  padding-bottom: var(--safe-bottom);
+  background: var(--pp-card-bg);
+  border-top: 1px solid var(--pp-border);
+
+  @media (min-width: $desktop) { display: none; }
+}
+
+.pp-tab {
+  flex: 1;
+  min-height: var(--bottom-nav-height);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-px2);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--pp-muted);
+  text-decoration: none;
+  cursor: pointer;
+
+  &.active { color: var(--pp-primary); }
+}
+
+// ── "More" sheet ──────────────────────────────────────────────
+.pp-more-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog-backdrop);
+  background: rgba(0, 0, 0, .4);
+}
+
+.pp-more {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-dialog);
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-3) calc(var(--space-6) + var(--safe-bottom));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--pp-sidebar-bg);
+  color: var(--pp-on-primary);
+  animation: ppSheetUp .22s ease both;
+}
+
+.pp-more-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-3) var(--space-3);
+  font-size: var(--fs-lg);
+
+  .pp-icon-btn { border-color: var(--pp-sidebar-faint); background: transparent; color: inherit; }
+}
+

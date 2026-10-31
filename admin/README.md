@@ -1,14 +1,17 @@
 # Posh Paws: admin
 
-Staff dashboard: bookings calendar, customers, pets, services and prices, memberships.
-
-**Not started yet.** When we begin, create it here as its own Angular app with its own dependencies:
+Staff dashboard: requests, bookings, customers, pets, catalog, content, payments and settings.
+Built from the "Posh Paws Admin" design.
 
 ```bash
-# from the repo root
-npx @angular/cli@21 new admin --directory admin --style scss --routing --ssr false
-# then serve it on its own port so it can run next to the customer app
-npm start -- --port 4300
+npm install          # once (uses the same versions as customer/)
+npm start            # http://localhost:4300
+npm run build        # → dist/admin/browser
+npm test             # Vitest unit tests
+npm run lint:styles  # style guard rails
 ```
 
-It will follow the same folder structure and conventions as `customer/` (see `customer/CLAUDE.md`), and call the same backend at `http://localhost:8000/api`.
+Until the backend exists, `src/app/core/mocks` answers every API call. Demo accounts (password `pawsword`):
+`owner@poshpaws.in` (Super Admin), `meera@poshpaws.in` (Admin), `amit@poshpaws.in` (Staff).
+
+Conventions and folder layout: see `CLAUDE.md`.

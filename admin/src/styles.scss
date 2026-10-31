@@ -1,0 +1,28 @@
+// ─────────────────────────────────────────────────────────────
+//  Root stylesheet. Order matters:
+//  1. Tokens          CSS variables
+//  2. BS overrides    Bootstrap compile-time variables
+//  3. Bootstrap       only the parts the admin uses: reboot, grid, dropdown, utilities
+//  4. Our styles      loaded after Bootstrap so plain class selectors win
+// ─────────────────────────────────────────────────────────────
+@use 'styles/tokens';
+@use 'styles/bootstrap-overrides' as *;
+@use 'sass:meta';
+
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/variables-dark';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
+@import 'bootstrap/scss/root';
+@import 'bootstrap/scss/reboot';
+@import 'bootstrap/scss/containers';
+@import 'bootstrap/scss/grid';
+@import 'bootstrap/scss/dropdown';
+@import 'bootstrap/scss/utilities/api';
+
+@include meta.load-css('styles/base');
+@include meta.load-css('styles/components');
+
+*, *::before, *::after { box-sizing: border-box; }

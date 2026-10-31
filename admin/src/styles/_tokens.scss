@@ -1,0 +1,102 @@
+// ─────────────────────────────────────────────────────────────
+//  Design tokens: the only place colours and sizes are written as
+//  raw values. Everything else uses var(--pp-*), var(--fs-*), var(--space-*).
+//  Colours come from the Posh Paws Admin design (same brand as the customer app).
+// ─────────────────────────────────────────────────────────────
+:root {
+  // ── Brand ───────────────────────────────────────────────────
+  --pp-primary: #2D6A4F;
+  --pp-primary-dark: #1B4332;
+  --pp-primary-light: #D8F3DC;
+  --pp-primary-tint: #F0F8F1;        // selected table row
+  --pp-accent: #F4A261;
+  --pp-accent-dark: #E07B39;
+  --pp-accent-light: #FDE8D8;
+  --pp-accent-text: #8A3F0E;         // text on accent-light
+  --pp-on-primary: #FFFFFF;
+  --pp-focus-ring: rgba(45, 106, 79, .18);
+
+  // ── Surfaces & text ─────────────────────────────────────────
+  --pp-bg: #F7F3EC;                  // page
+  --pp-card-bg: #FFFFFF;             // cards, tables, top bar
+  --pp-surface: #FBF8F3;             // table heads, soft panels, search box
+  --pp-surface-2: #EFE6D8;           // segmented controls
+  --pp-chip-bg: #F1E9DC;
+  --pp-text: #1E1A16;
+  --pp-muted: #6E6357;
+  --pp-subtle: #8A7E70;
+  --pp-border: #E6DCCB;
+  --pp-border-strong: #D9CDB8;
+  --pp-divider: #EFE6D8;
+
+  // ── Status colours (pills, alerts) ──────────────────────────
+  --pp-danger: #9B2C2C;
+  --pp-danger-light: #F9E1DF;
+  --pp-danger-border: #B83232;
+  --pp-info: #1F4E8C;
+  --pp-info-light: #E4ECF7;
+  --pp-neutral: #45443F;
+  --pp-neutral-light: #ECEBE6;
+  --pp-draft: #5C4A33;               // text on chip-bg
+
+  // ── Sidebar (dark) ──────────────────────────────────────────
+  --pp-sidebar-bg: #1B4332;
+  --pp-sidebar-text: #D3E6DA;
+  --pp-sidebar-label: #A9C4B4;
+  --pp-sidebar-soon: #9DB8A8;
+  --pp-sidebar-active: rgba(255, 255, 255, .14);
+  --pp-sidebar-faint: rgba(255, 255, 255, .08);
+
+  // ── Type ────────────────────────────────────────────────────
+  --ff-sans: 'DM Sans', system-ui, sans-serif;
+  --ff-serif: 'Playfair Display', Georgia, serif;
+  --fs-xs: 0.75rem;     // 12px
+  --fs-sm: 0.875rem;    // 14px
+  --fs-base: 0.9375rem; // 15px
+  --fs-md: 1rem;        // 16px
+  --fs-lg: 1.125rem;    // 18px
+  --fs-xl: 1.375rem;    // 22px
+  --fs-2xl: 1.625rem;   // 26px
+  --fs-3xl: 2rem;       // 32px  page titles
+  --fs-4xl: 2.75rem;    // 44px  login headline
+
+  // ── Spacing ─────────────────────────────────────────────────
+  --space-px2: 0.125rem; //  2px (hairline gaps, badge padding)
+  --space-1: 0.25rem;   //  4px
+  --space-2: 0.5rem;    //  8px
+  --space-3: 0.75rem;   // 12px
+  --space-4: 1rem;      // 16px
+  --space-5: 1.25rem;   // 20px
+  --space-6: 1.5rem;    // 24px
+  --space-7: 1.75rem;   // 28px
+  --space-8: 2rem;      // 32px
+  --space-10: 2.5rem;   // 40px
+  --space-12: 3rem;     // 48px
+  --space-14: 3.5rem;   // 56px
+
+  // ── Shape & motion ──────────────────────────────────────────
+  --radius-sm: 10px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, .06);
+  --shadow-lg: 0 16px 56px rgba(0, 0, 0, .16);
+  --transition: .18s ease;
+
+  // ── Layout ──────────────────────────────────────────────────
+  --tap-target-min: 44px;
+  --sidebar-width: 248px;
+  --content-max: 1280px;
+  --mobile-header-height: 64px;
+  --bottom-nav-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --bottom-nav-total-height: calc(var(--bottom-nav-height) + var(--safe-bottom));
+
+  // ── Layering ────────────────────────────────────────────────
+  --z-mobile-header: 1000;
+  --z-bottom-nav: 1050;
+  --z-dialog-backdrop: 1200;
+  --z-dialog: 1210;
+  --z-toast: 1300;
+  --z-loader: 1310;
+}

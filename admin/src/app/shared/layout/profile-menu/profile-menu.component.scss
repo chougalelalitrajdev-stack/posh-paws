@@ -1,0 +1,78 @@
+.pp-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target-min);
+  padding: 0 var(--space-2) 0 var(--space-1);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+
+  &::after { display: none; } // Bootstrap's caret; we draw our own
+
+  &:hover { background: var(--pp-sidebar-faint); }
+
+  @media (min-width: 992px) {
+    &:hover { background: var(--pp-surface); }
+  }
+}
+
+.pp-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--pp-primary-light);
+  color: var(--pp-primary-dark);
+}
+
+.pp-profile-name,
+.pp-profile-caret {
+  @media (max-width: 767.98px) { display: none; }
+}
+
+.pp-profile-menu {
+  min-width: 240px;
+  padding: var(--space-2);
+  box-shadow: var(--shadow-lg);
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-target-min);
+    border-radius: var(--radius-sm);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+  }
+}
+
+.pp-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-px2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--fs-sm);
+
+  span { color: var(--pp-muted); }
+}
+
+.pp-role {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  padding: var(--space-px2) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--pp-primary-light);
+  .pp-profile-info & { color: var(--pp-primary-dark); }
+}
