@@ -1,0 +1,150 @@
+// Home-only styles. Anything shared lives in src/styles or src/app/shared/components.
+
+// ── Hero ──────────────────────────────────────────────────────
+
+.hero-bg-c1 { width: 600px; height: 600px; right: -120px; top: -100px; opacity: 0.50; }
+.hero-bg-c2 { width: 400px; height: 400px; right:   40px; top:   30px; opacity: 0.35; }
+.hero-bg-c3 { width: 200px; height: 200px; right:  180px; top:  160px; opacity: 0.25; }
+
+// Decorative leaves
+.hero-leaf {
+  position: absolute;
+  font-size: 180px;
+  opacity: 0.04;
+  pointer-events: none;
+  user-select: none;
+
+  &.hero-leaf-1 { top: -20px;    left:  -40px; transform: rotate(-20deg); }
+  &.hero-leaf-2 { bottom: -30px; right:  20px; transform: rotate(30deg);  font-size: 140px; }
+}
+
+// Hero right-side visual
+.hero-visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 767.98px) { display: none; }
+}
+
+.hero-img-wrap {
+  width: 420px;
+  height: 480px;
+  background: var(--pp-surface);
+  border-radius: 60% 40% 55% 45% / 50% 55% 45% 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--pp-sand);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+// Tablet (iPad portrait): smaller picture beside the text, floating cards hidden
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .hero-img-wrap { width: 100%; max-width: 280px; height: 320px; }
+  .hero-img-inner { font-size: 84px; }
+  .hero-float-card { display: none; }
+}
+
+.hero-img-inner   { font-size: 120px; line-height: 1; }
+.hero-img-caption {
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: var(--space-2);
+}
+
+// Floating info cards
+.hero-float-card {
+  position: absolute;
+  background: var(--pp-card-bg);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--pp-border);
+}
+
+.fc-1 { bottom: 80px; left:  -20px; min-width: 160px; }
+.fc-2 { top:    80px; right: -20px; min-width: 140px; }
+
+.float-card-label { font-size: var(--fs-xs); color: var(--pp-muted); letter-spacing: 0.5px; margin-bottom: 2px; }
+.float-card-val   { font-size: var(--fs-sm); font-weight: 600; color: var(--pp-text); }
+.float-card-sub   { font-size: var(--fs-xs); color: var(--pp-primary); }
+
+// ── About ─────────────────────────────────────────────────────
+
+.about-img-card {
+  background: var(--pp-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--pp-border);
+  height: 460px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 100px;
+}
+
+.pp-hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+
+.about-body {
+  font-size: var(--fs-base);
+  color: var(--pp-muted);
+  line-height: 1.9;
+}
+
+// ── Gallery strip ─────────────────────────────────────────────
+
+.gallery-strip { background: var(--pp-primary); }
+
+.gallery-tile {
+  background: var(--pp-surface);
+  border-radius: var(--radius);
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  border: 1px solid var(--pp-border);
+  overflow: hidden;
+  transition: transform var(--transition);
+  cursor: pointer;
+
+  &:hover { transform: scale(1.03); }
+}
+
+// ── Mobile ────────────────────────────────────────────────────
+
+@media (max-width: 767.98px) {
+  .hero-section { min-height: auto; padding: var(--space-6) 0 var(--space-10); }
+  .hero-badge   { margin-bottom: var(--space-4); }
+  .hero-headline { margin-bottom: var(--space-3); }
+  .hero-sub     { font-size: var(--fs-base); line-height: var(--lh-body); margin-bottom: var(--space-6); }
+
+  .pp-hero-cta {
+    flex-direction: column;
+
+    > * { width: 100%; justify-content: center; }
+  }
+
+  .hero-stats {
+    gap: var(--space-3);
+    justify-content: space-between;
+    margin-top: var(--space-8);
+    padding-top: var(--space-5);
+  }
+  .hero-stat-num { font-size: var(--fs-2xl); }
+
+  .about-img-card { height: 180px; font-size: 4.5rem; }
+  .about-body     { line-height: 1.75; }
+
+  .gallery-tile { height: 140px; font-size: 2.75rem; }
+}
+
+@media (hover: none) {
+  .gallery-tile:hover { transform: none; }
+}

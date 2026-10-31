@@ -17,8 +17,8 @@ page.on('pageerror', (err) => consoleErrors.push(String(err)));
 await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
 // Example interaction — adapt the selector/text to what you're verifying.
-await page.getByRole('button', { name: 'Reserve a slot' }).click();
-await page.getByText('How would you like to book?').waitFor({ state: 'visible', timeout: 5000 });
+await page.getByRole('button', { name: 'Book now' }).click();
+await page.getByText('What would you like to book?').waitFor({ state: 'visible', timeout: 5000 });
 
 await page.screenshot({ path: SCREENSHOT_PATH });
 

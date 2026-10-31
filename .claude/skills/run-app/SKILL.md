@@ -15,6 +15,7 @@ against it.
 
 ```bash
 lsof -ti:4200 -sTCP:LISTEN | xargs -r kill   # free the port if a stale server is running
+cd customer   # the Angular app lives in customer/ of the monorepo
 npm start > /tmp/ng-serve.log 2>&1 &
 disown
 ```
@@ -56,13 +57,12 @@ reach for it automatically.
 directory (copy/adapt it — it's a template, not meant to be run in place
 against your actual verification target). It:
 1. Launches headless Chromium at a mobile viewport (390×844 — this app
-   is mobile-first, see the project's `CLAUDE.md`).
+   is mobile-first, see `customer/CLAUDE.md`).
 2. Navigates to `http://localhost:4200`.
-3. Clicks the navbar's "Reserve a slot" button and waits for the
-   `pp-booking-dialog` bottom sheet ("How would you like to book?") to
-   appear — this dialog is mounted globally in `app.html`, so it's a
-   good single smoke check that the app shell, routing, and a signal-
-   driven component all work together.
+3. Clicks the navbar's "Book now" button and waits for the `/book`
+   slot-booking page ("What would you like to book?") — a good single
+   smoke check that the app shell, lazy routing, and a signal-driven
+   page all work together. The mock login code is `123456`.
 4. Screenshots the result and prints any console errors.
 
 Adapt step 3 to whatever you're actually verifying — the point of the
@@ -77,5 +77,5 @@ loop, not this specific click path.
   empty, or any errors are ones you understand and expect.
 - Re-check at a couple of widths if the change is responsive-sensitive:
   this app targets small/standard/large mobile, tablet, and desktop
-  (see `CLAUDE.md` and any mobile-first requirements in the active
+  (see `customer/CLAUDE.md` and any mobile-first requirements in the active
   plan).

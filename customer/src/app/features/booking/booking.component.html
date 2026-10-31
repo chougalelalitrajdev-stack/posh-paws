@@ -1,0 +1,343 @@
+<section class="section-pad bg-pp-surface bk">
+  <div class="container">
+
+    @if (step() === 'done') {
+      <!-- ══════════ Booked ══════════ -->
+      @if (confirmed(); as b) {
+        <div class="bk-done">
+          <div class="pp-dialog-success-emoji" aria-hidden="true">🎉</div>
+          <div class="eyebrow d-inline-flex">Booking confirmed</div>
+          <h1 class="section-title">You're <em>booked!</em></h1>
+          <p class="bk-done-lead">
+            {{ b.petName }}'s {{ b.serviceName }} is confirmed. We've sent the details to you on WhatsApp.
+          </p>
+
+          <div class="bk-card bk-done-card">
+            <dl class="bk-rows">
+              <div class="bk-row"><dt>Service</dt><dd>{{ b.serviceIcon }} {{ b.serviceName }}</dd></div>
+              <div class="bk-row"><dt>Pet</dt><dd>{{ petEmoji[b.petType] }} {{ b.petName }}</dd></div>
+              <div class="bk-row"><dt>Date</dt><dd>{{ dateLongLabel(b.date) }}</dd></div>
+              <div class="bk-row"><dt>Time</dt><dd>{{ timeRangeLabel(b.time, b.durationMinutes) }}</dd></div>
+              <div class="bk-row"><dt>Paid now</dt><dd>{{ b.depositPaise | inr }}</dd></div>
+              <div class="bk-row"><dt>Payment ref.</dt><dd>{{ paymentRef() }}</dd></div>
+              <div class="bk-row bk-row-strong"><dt>Pay at the salon</dt><dd>{{ (b.pricePaise - b.depositPaise) | inr }}</dd></div>
+            </dl>
+            <p class="pp-dialog-note">📍 Posh Paws, Koregaon Park, Pune. Please arrive 5 minutes before your slot.</p>
+          </div>
+
+          <div class="pp-cta-wrap bk-done-actions">
+            <a class="btn-pp-primary" routerLink="/account">Go to My bookings →</a>
+            <button class="btn-pp-outline" type="button" (click)="bookAnother()">Book another visit</button>
+          </div>
+        </div>
+      }
+    } @else {
+
+      <header class="bk-head">
+        <div class="eyebrow d-inline-flex">Book a visit</div>
+        <h1 class="section-title">Reserve a <em>slot</em></h1>
+      </header>
+
+      <!-- Progress -->
+      <ol class="bk-steps" aria-label="Booking steps">
+        @for (s of steps; track s.id; let i = $index) {
+          <li class="bk-step" [class.active]="i === stepIndex()" [class.done]="i < stepIndex()">
+            <button
+              class="bk-step-btn"
+              type="button"
+              [disabled]="i >= stepIndex()"
+              [attr.aria-current]="i === stepIndex() ? 'step' : null"
+              (click)="goTo(s.id)"
+            >
+              <span class="bk-step-num">@if (i < stepIndex()) { ✓ } @else { {{ i + 1 }} }</span>
+              <span class="bk-step-label">{{ s.label }}</span>
+            </button>
+          </li>
+        }
+      </ol>
+
+      <div class="row g-4 align-items-start">
+        <div class="col-lg-8">
+          <div class="bk-card bk-panel">
+
+            <!-- ══════════ 1. Service ══════════ -->
+            @if (step() === 'service') {
+              <h2 class="bk-panel-title">What would you like to book?</h2>
+              <p class="bk-panel-sub">Choose your pet type, then a service.</p>
+
+              <div class="pet-tab-wrap bk-pet-tabs">
+                <button class="pet-tab" type="button" [class.active]="petType() === 'dog'" (click)="switchPetType('dog')">🐶 Dog</button>
+                <button class="pet-tab" type="button" [class.active]="petType() === 'cat'" (click)="switchPetType('cat')">🐱 Cat</button>
+              </div>
+
+              <div class="bk-options" role="group" aria-label="Services">
+                @for (svc of services(); track svc.id) {
+                  <button
+                    class="bk-option"
+                    type="button"
+                    [class.active]="serviceId() === svc.id"
+                    [attr.aria-pressed]="serviceId() === svc.id"
+                    (click)="serviceId.set(svc.id)"
+                  >
+                    <span class="bk-option-icon" aria-hidden="true">{{ svc.icon }}</span>
+                    <span class="bk-option-body">
+                      <span class="bk-option-name">{{ svc.name }}</span>
+                      <span class="bk-option-desc">{{ svc.description }}</span>
+                      <span class="bk-option-meta">{{ svc.durationMinutes | duration }}</span>
+                    </span>
+                    <span class="bk-option-price">{{ svc.pricePaise | inr }}</span>
+                  </button>
+                } @empty {
+                  <p class="bk-muted">Loading services…</p>
+                }
+              </div>
+            }
+
+            <!-- ══════════ 2. Date & time ══════════ -->
+            @if (step() === 'slot') {
+              <h2 class="bk-panel-title">Pick a date &amp; time</h2>
+              @if (selectedService(); as svc) {
+                <p class="bk-panel-sub">
+                  {{ svc.icon }} {{ svc.name }} · {{ svc.durationMinutes | duration }}
+                  <button class="bk-link" type="button" (click)="goTo('service')">Change</button>
+                </p>
+              }
+
+              @if (error()) { <p class="bk-error" role="alert">{{ error() }}</p> }
+
+              <div class="bk-field-label">Date</div>
+              <pp-date-strip [dates]="dates" [(value)]="date" />
+
+              <div class="bk-field-label">
+                Start time
+                @if (date()) { <span class="bk-field-hint">· {{ dateLabel(date()!) }}</span> }
+              </div>
+
+              <div class="bk-slots" [attr.aria-busy]="slotsLoading()">
+                @if (slotsLoading() || !selectedService()) {
+                  <p class="bk-muted">Checking availability…</p>
+                } @else if (freeSlots() === 0) {
+                  <div class="bk-empty">
+                    <div class="bk-empty-icon" aria-hidden="true">📅</div>
+                    <p class="bk-empty-title">No free slots on {{ date() ? dateLabel(date()!) : 'this day' }}</p>
+                    @if (nextDate(); as next) {
+                      <button class="btn-pp-outline" type="button" (click)="date.set(next)">Try {{ dateLabel(next) }} →</button>
+                    }
+                  </div>
+                } @else {
+                  <pp-slot-grid [slots]="slots()" [(value)]="time" />
+                }
+              </div>
+            }
+
+            <!-- ══════════ 3. Pet ══════════ -->
+            @if (step() === 'pet') {
+              <h2 class="bk-panel-title">Who's coming in?</h2>
+              <p class="bk-panel-sub">Pick the {{ petType() }} you're booking for.</p>
+
+              <div class="bk-options" role="group" aria-label="Your pets">
+                @for (p of matchingPets(); track p.id) {
+                  <button
+                    class="bk-option"
+                    type="button"
+                    [class.active]="selectedPet()?.id === p.id"
+                    [attr.aria-pressed]="selectedPet()?.id === p.id"
+                    (click)="chosenPetId.set(p.id)"
+                  >
+                    <span class="bk-option-icon" aria-hidden="true">{{ petEmoji[p.type] }}</span>
+                    <span class="bk-option-body">
+                      <span class="bk-option-name">{{ p.name }}</span>
+                      <span class="bk-option-meta">
+                        {{ p.breed ?? (p.type === 'dog' ? 'Dog' : 'Cat') }}@if (petAgeLabel(p.birthDate)) { · {{ petAgeLabel(p.birthDate) }} }
+                      </span>
+                    </span>
+                  </button>
+                } @empty {
+                  @if (petService.loading()) {
+                    <p class="bk-muted">Loading your pets…</p>
+                  } @else {
+                    <div class="bk-empty">
+                      <div class="bk-empty-icon" aria-hidden="true">{{ petType() === 'dog' ? '🐶' : '🐱' }}</div>
+                      <p class="bk-empty-title">Add your {{ petType() }} to continue</p>
+                      <p class="bk-muted">It takes a few seconds and helps our groomers prepare.</p>
+                    </div>
+                  }
+                }
+              </div>
+
+              <button class="btn-pp-outline w-100 justify-content-center" type="button" (click)="addPet()">+ Add a {{ petType() }}</button>
+
+              @if (otherPets().length && !matchingPets().length) {
+                <p class="bk-muted bk-switch">
+                  Booking for {{ otherPets()[0].name }}?
+                  <button class="bk-link" type="button" (click)="switchPetType(otherPets()[0].type)">
+                    See {{ otherPets()[0].type }} services
+                  </button>
+                </p>
+              }
+
+              <label class="bk-field-label" for="bk-notes">Notes for the groomer <span class="bk-field-hint">· optional</span></label>
+              <textarea
+                id="bk-notes"
+                class="pp-input"
+                rows="3"
+                placeholder="Anything we should know for this visit?"
+                [value]="notes()"
+                (input)="onNotesChange($event)"
+              ></textarea>
+            }
+
+            <!-- ══════════ 4. Review order ══════════ -->
+            @if (step() === 'review') {
+              <h2 class="bk-panel-title">Review your booking</h2>
+              <p class="bk-panel-sub">Check the details, then continue to payment.</p>
+
+              @if (selectedService(); as svc) {
+                <dl class="bk-rows">
+                  <div class="bk-row">
+                    <dt>Service</dt>
+                    <dd>{{ svc.icon }} {{ svc.name }} <button class="bk-link" type="button" (click)="goTo('service')">Change</button></dd>
+                  </div>
+                  <div class="bk-row">
+                    <dt>Date</dt>
+                    <dd>{{ dateLongLabel(date()!) }} <button class="bk-link" type="button" (click)="goTo('slot')">Change</button></dd>
+                  </div>
+                  <div class="bk-row"><dt>Time</dt><dd>{{ timeRangeLabel(time()!, svc.durationMinutes) }}</dd></div>
+                  <div class="bk-row">
+                    <dt>Pet</dt>
+                    <dd>{{ petEmoji[petType()] }} {{ selectedPet()?.name }} <button class="bk-link" type="button" (click)="goTo('pet')">Change</button></dd>
+                  </div>
+                  @if (notes().trim()) {
+                    <div class="bk-row"><dt>Notes</dt><dd class="bk-notes">{{ notes().trim() }}</dd></div>
+                  }
+                </dl>
+
+                <dl class="bk-rows bk-price">
+                  <div class="bk-row"><dt>Service total</dt><dd>{{ svc.pricePaise | inr }}</dd></div>
+                  <div class="bk-row"><dt>Pay at the salon</dt><dd>{{ balancePaise() | inr }}</dd></div>
+                  <div class="bk-row bk-row-strong"><dt>To pay now (slot hold)</dt><dd>{{ depositPaise | inr }}</dd></div>
+                </dl>
+
+                <p class="pp-dialog-note">
+                  💡 The {{ depositPaise | inr }} slot hold comes off your bill. Cancel at least
+                  {{ freeCancellationHours }} hours before your slot for a full refund.
+                </p>
+              }
+
+            }
+
+            <!-- ══════════ 5. Payment (dummy until a gateway is added) ══════════ -->
+            @if (step() === 'payment') {
+              <h2 class="bk-panel-title">Payment</h2>
+              <p class="bk-panel-sub">Pay {{ depositPaise | inr }} to hold your slot. The rest is paid at the salon.</p>
+
+              @if (submitting()) {
+                <div class="bk-paying" role="status">
+                  <div class="bk-spinner" aria-hidden="true"></div>
+                  <p class="bk-empty-title">Processing your payment…</p>
+                  <p class="bk-muted">Please don't close or refresh this page.</p>
+                </div>
+              } @else {
+                <div class="bk-pay-amount">
+                  <span class="bk-muted">Amount</span>
+                  <span class="bk-pay-total">{{ depositPaise | inr }}</span>
+                </div>
+
+                <div class="bk-field-label">Pay with</div>
+                <div class="bk-options bk-pay-methods" role="radiogroup" aria-label="Payment method">
+                  @for (m of paymentMethods; track m.id) {
+                    <button
+                      class="bk-option"
+                      type="button"
+                      role="radio"
+                      [class.active]="paymentMethod() === m.id"
+                      [attr.aria-checked]="paymentMethod() === m.id"
+                      (click)="paymentMethod.set(m.id)"
+                    >
+                      <span class="bk-option-icon" aria-hidden="true">{{ m.icon }}</span>
+                      <span class="bk-option-body">
+                        <span class="bk-option-name">{{ m.name }}</span>
+                        <span class="bk-option-meta">{{ m.hint }}</span>
+                      </span>
+                    </button>
+                  }
+                </div>
+
+                <p class="pp-dialog-note">🔒 Demo payment: the payment gateway is on its way. No money will be charged.</p>
+              }
+
+              @if (error()) { <p class="bk-error" role="alert">{{ error() }}</p> }
+            }
+
+          </div>
+        </div>
+
+        <!-- Desktop summary -->
+        <aside class="col-lg-4 d-none d-lg-block">
+          <div class="bk-card bk-summary">
+            <div class="bk-summary-title">Your booking</div>
+            <dl class="bk-rows">
+              <div class="bk-row"><dt>Service</dt><dd>{{ selectedService()?.name ?? '—' }}</dd></div>
+              <div class="bk-row">
+                <dt>When</dt>
+                <dd>
+                  @if (date() && time() && selectedService()) {
+                    {{ dateLabel(date()!) }}<br>{{ timeRangeLabel(time()!, selectedService()!.durationMinutes) }}
+                  } @else { — }
+                </dd>
+              </div>
+              <div class="bk-row"><dt>Pet</dt><dd>{{ stepIndex() >= 2 ? (selectedPet()?.name ?? '—') : '—' }}</dd></div>
+              @if (selectedService(); as svc) {
+                <div class="bk-row bk-row-strong"><dt>Total</dt><dd>{{ svc.pricePaise | inr }}</dd></div>
+              }
+            </dl>
+            <ng-container [ngTemplateOutlet]="actions" />
+          </div>
+        </aside>
+      </div>
+
+      <!-- Phone / tablet action bar -->
+      <div class="pp-sticky-cta bk-bar d-lg-none">
+        <div class="bk-bar-summary">
+          @if (selectedService(); as svc) {
+            <span class="bk-bar-name">{{ svc.name }} · {{ svc.pricePaise | inr }}</span>
+            <span class="bk-bar-meta">
+              @if (date() && time()) { {{ dateLabel(date()!) }} · {{ timeRangeLabel(time()!, svc.durationMinutes) }} }
+              @else { {{ svc.durationMinutes | duration }} }
+            </span>
+          } @else {
+            <span class="bk-bar-meta">Choose a service to continue</span>
+          }
+        </div>
+        <ng-container [ngTemplateOutlet]="actions" />
+      </div>
+
+      <ng-template #actions>
+        <div class="bk-actions">
+          @if (stepIndex() > 0) {
+            <button class="btn-pp-ghost bk-back" type="button" aria-label="Back" [disabled]="submitting()" (click)="back()">←<span class="d-none d-lg-inline"> Back</span></button>
+          }
+          <button
+            class="bk-next justify-content-center"
+            type="button"
+            [class.btn-pp-primary]="step() !== 'payment'"
+            [class.btn-pp-accent]="step() === 'payment'"
+            [disabled]="!canContinue()"
+            (click)="next()"
+          >
+            @switch (step()) {
+              @case ('service') { Pick a time → }
+              @case ('slot') { Continue → }
+              @case ('pet') { Review → }
+              @case ('review') { Continue to payment → }
+              @case ('payment') {
+                @if (submitting()) { Processing… } @else { Pay {{ depositPaise | inr }} }
+              }
+            }
+          </button>
+        </div>
+      </ng-template>
+    }
+
+  </div>
+</section>
