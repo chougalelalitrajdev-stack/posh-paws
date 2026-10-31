@@ -1,0 +1,20 @@
+@if (auth.user(); as user) {
+  <div ngbDropdown placement="bottom-end">
+    <button ngbDropdownToggle class="pp-profile-btn" type="button" [attr.aria-label]="'Account menu for ' + user.name">
+      <span class="pp-avatar" aria-hidden="true">{{ initials() }}</span>
+      <span class="pp-profile-name">{{ user.name }}</span>
+      <pp-icon class="pp-profile-caret" name="chevronDown" [size]="16" />
+    </button>
+    <div ngbDropdownMenu class="pp-profile-menu">
+      <div class="pp-profile-info">
+        <strong>{{ user.name }}</strong>
+        <span>{{ user.email }}</span>
+        <span class="pp-role">{{ roleLabels[user.role] }}</span>
+      </div>
+      <div class="dropdown-divider"></div>
+      <button ngbDropdownItem type="button" (click)="signOut()">
+        <pp-icon name="logout" [size]="16" /> Sign out
+      </button>
+    </div>
+  </div>
+}

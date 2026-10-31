@@ -1,0 +1,72 @@
+// Form fields: .pp-field wraps a .pp-label and a .pp-input (or select / textarea).
+.pp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pp-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--pp-text);
+}
+
+.pp-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--pp-border-strong);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-base);
+  transition: border-color var(--transition), box-shadow var(--transition);
+
+  &::placeholder { color: var(--pp-subtle); }
+
+  &:focus {
+    outline: none;
+    border-color: var(--pp-primary);
+    box-shadow: 0 0 0 3px var(--pp-focus-ring);
+  }
+
+  &.is-invalid { border-color: var(--pp-danger-border); }
+}
+
+textarea.pp-input {
+  min-height: 96px;
+  padding: var(--space-3) var(--space-4);
+  line-height: 1.5;
+}
+
+.pp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target-min);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+
+  input { width: 18px; height: 18px; accent-color: var(--pp-primary); }
+}
+
+.pp-field-error {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--pp-danger);
+}
+
+// Inline message box above a form.
+.pp-alert {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+.pp-alert-error { background: var(--pp-danger-light); color: var(--pp-danger); }
+.pp-alert-info { background: var(--pp-info-light); color: var(--pp-info); }
+.pp-alert-success { background: var(--pp-primary-light); color: var(--pp-primary-dark); }

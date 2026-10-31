@@ -1,0 +1,37 @@
+.pp-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.pp-page-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.pp-page-title {
+  margin: 0;
+  font-family: var(--ff-serif);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.pp-page-subtitle {
+  margin: 0;
+  font-size: var(--fs-base);
+  color: var(--pp-muted);
+}
+
+.pp-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  &:empty { display: none; }
+}

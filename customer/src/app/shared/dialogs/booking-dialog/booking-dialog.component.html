@@ -1,0 +1,101 @@
+@if (dialog.isOpen()) {
+  <div class="pp-sheet-backdrop" (click)="close()">
+    <div
+      class="pp-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Booking options"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="pp-sheet-handle"></div>
+
+      <!-- ── Step: choose how to book ─────────────────────── -->
+      @if (dialog.step() === 'choice') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">How would you like to book?</div>
+          <p class="pp-sheet-sub">
+            @if (dialog.context()?.serviceName) {
+              {{ dialog.context()!.serviceName }} ·
+            }
+            We'll get {{ dialog.context()?.petType === 'cat' ? 'your cat' : 'your pet' }} booked in, fast.
+          </p>
+        </div>
+
+        <div class="pp-sheet-body">
+          <a class="booking-choice-btn" [href]="businessPhoneTel">
+            <span class="booking-choice-icon">📞</span>
+            <span class="booking-choice-text">
+              <span class="booking-choice-title">Call Posh Paws</span>
+              <span class="booking-choice-sub">{{ businessPhoneDisplay }}</span>
+            </span>
+          </a>
+
+          <button class="booking-choice-btn" type="button" (click)="requestCallback()">
+            <span class="booking-choice-icon">📲</span>
+            <span class="booking-choice-text">
+              <span class="booking-choice-title">Request a Callback</span>
+              <span class="booking-choice-sub">We'll call you back shortly</span>
+            </span>
+          </button>
+
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" (click)="close()">Cancel</button>
+        </div>
+      }
+
+      <!-- ── Step: callback form ──────────────────────────── -->
+      @if (dialog.step() === 'callback-form') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">Request a callback</div>
+          <p class="pp-sheet-sub">Share your number — we'll call you back shortly.</p>
+        </div>
+
+        <form class="pp-sheet-body" (submit)="$event.preventDefault(); submitCallbackForm()">
+          <div class="callback-field">
+            <label class="pp-label">Your name <span class="required-dot">*</span></label>
+            <input
+              class="pp-input"
+              type="text"
+              autocomplete="name"
+              placeholder="e.g. Priya Sharma"
+              [value]="name()"
+              (input)="onNameChange($event)"
+            />
+          </div>
+
+          <div class="callback-field">
+            <label class="pp-label">Phone number <span class="required-dot">*</span></label>
+            <input
+              class="pp-input"
+              type="tel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="e.g. 98765 43210"
+              [value]="phone()"
+              (input)="onPhoneChange($event)"
+            />
+          </div>
+
+          <button
+            class="btn-pp-primary w-100 justify-content-center"
+            type="submit"
+            [disabled]="!formValid() || submitting()"
+          >
+            @if (submitting()) { Sending… } @else { Request callback → }
+          </button>
+
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" (click)="backToChoice()">← Back</button>
+        </form>
+      }
+
+      <!-- ── Step: callback success ───────────────────────── -->
+      @if (dialog.step() === 'callback-success') {
+        <div class="pp-sheet-body pp-dialog-success">
+          <div class="pp-dialog-success-emoji">🎉</div>
+          <div class="pp-sheet-title">Got it{{ name() ? ', ' + name() : '' }}!</div>
+          <p class="pp-sheet-sub">We'll call you back on {{ phone() }} shortly.</p>
+          <button class="btn-pp-primary w-100 justify-content-center" type="button" (click)="close()">Done</button>
+        </div>
+      }
+    </div>
+  </div>
+}

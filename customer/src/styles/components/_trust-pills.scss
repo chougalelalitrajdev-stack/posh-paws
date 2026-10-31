@@ -1,0 +1,15 @@
+// Trust pills
+
+// ── Trust pills (about section) ───────────────────────────────
+.trust-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) 18px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  margin: var(--space-1);
+}

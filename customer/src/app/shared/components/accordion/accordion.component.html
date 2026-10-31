@@ -1,0 +1,19 @@
+<div class="acc">
+  @for (item of items(); track item.question; let i = $index) {
+    <div class="acc-item" [class.is-open]="openIndex() === i">
+      <button
+        class="acc-question"
+        type="button"
+        [attr.aria-expanded]="openIndex() === i"
+        (click)="toggle(i)"
+      >
+        <span>{{ item.question }}</span>
+        <span class="acc-icon" [class.is-rotated]="openIndex() === i"><pp-icon name="chevron-down" [size]="18" /></span>
+      </button>
+
+      @if (openIndex() === i) {
+        <div class="acc-answer">{{ item.answer }}</div>
+      }
+    </div>
+  }
+</div>

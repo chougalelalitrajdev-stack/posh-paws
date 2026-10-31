@@ -1,0 +1,62 @@
+.pp-date-strip {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-1);
+
+  &::-webkit-scrollbar { display: none; }
+
+  // Desktop: two calm rows of seven instead of a sideways scroller.
+  @media (min-width: 992px) and (pointer: fine) {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    overflow: visible;
+  }
+}
+
+.pp-date-tile {
+  flex: 0 0 auto;
+  min-width: 64px;
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  scroll-snap-align: start;
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius);
+  background: var(--pp-bg);
+  color: var(--pp-text);
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+
+  &:hover { border-color: var(--pp-primary); }
+
+  &.active {
+    border-color: var(--pp-primary);
+    background: var(--pp-primary);
+    color: var(--pp-on-primary);
+
+    .pp-date-weekday, .pp-date-month { color: var(--pp-on-primary); }
+  }
+}
+
+.pp-date-weekday,
+.pp-date-month {
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+  line-height: 1;
+}
+
+.pp-date-weekday { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+
+.pp-date-day {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  line-height: 1;
+}

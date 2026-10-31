@@ -1,0 +1,31 @@
+<article class="plan" [class.is-featured]="plan().featured">
+  @if (plan().badge) {
+    <div class="plan-badge">{{ plan().badge }}</div>
+  }
+
+  <h3 class="plan-name">{{ plan().name }}</h3>
+  <p class="plan-tagline">{{ plan().tagline }}</p>
+
+  <div class="plan-price">
+    <span class="plan-price-amount">{{ plan().pricePaise | inr }}</span>
+    <span class="plan-price-period">/ {{ plan().billing }}</span>
+  </div>
+
+  <ul class="plan-features">
+    @for (feature of plan().features; track feature.text) {
+      <li class="plan-feature" [class.is-excluded]="!feature.included">
+        <span class="plan-feature-mark">
+          <pp-icon [name]="feature.included ? 'check' : 'x'" [size]="12" />
+        </span>
+        {{ feature.text }}
+      </li>
+    }
+  </ul>
+
+  <button
+    class="plan-cta justify-content-center w-100"
+    [class]="plan().featured ? 'btn-pp-primary' : 'btn-pp-outline'"
+    type="button"
+    (click)="subscribe.emit(plan())"
+  >Subscribe{{ plan().featured ? ' →' : '' }}</button>
+</article>

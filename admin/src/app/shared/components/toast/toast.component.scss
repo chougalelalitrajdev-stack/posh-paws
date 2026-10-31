@@ -1,0 +1,66 @@
+.pp-toasts {
+  position: fixed;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: calc(var(--bottom-nav-total-height) + var(--space-3));
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  pointer-events: none;
+
+  @media (min-width: 992px) { bottom: var(--space-6); }
+}
+
+.pp-toast {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--pp-primary);
+  background: var(--pp-text);
+  color: var(--pp-bg);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--fs-sm);
+  animation: ppFadeUp .2s ease both;
+}
+
+.pp-toast-error { border-left-color: var(--pp-danger-border); }
+.pp-toast-info  { border-left-color: var(--pp-subtle); }
+
+.pp-toast-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--pp-primary);
+  color: var(--pp-on-primary);
+
+  .pp-toast-error & { background: var(--pp-danger-border); }
+  .pp-toast-info & { background: var(--pp-subtle); }
+}
+
+.pp-toast-text { flex: 1; line-height: 1.4; }
+
+.pp-toast-close {
+  flex-shrink: 0;
+  width: var(--tap-target-min);
+  height: var(--tap-target-min);
+  border: 0;
+  background: none;
+  color: inherit;
+  opacity: .7;
+  cursor: pointer;
+
+  &:hover { opacity: 1; }
+}

@@ -1,0 +1,9 @@
+<div class="pp-toasts" aria-live="polite">
+  @for (alert of alertService.alerts(); track alert.id) {
+    <div class="pp-toast" [class]="'pp-toast-' + alert.type" [attr.role]="alert.type === 'error' ? 'alert' : 'status'">
+      <span class="pp-toast-icon" aria-hidden="true">{{ icons[alert.type] }}</span>
+      <span class="pp-toast-text">{{ alert.message }}</span>
+      <button class="pp-toast-close" type="button" aria-label="Dismiss" (click)="alertService.dismiss(alert.id)">✕</button>
+    </div>
+  }
+</div>

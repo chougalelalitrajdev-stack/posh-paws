@@ -1,0 +1,170 @@
+@if (dialog.isOpen()) {
+  <div class="pp-sheet-backdrop" (click)="close()">
+    <div
+      class="pp-sheet pet-sheet"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="isEditing() ? 'Edit pet' : 'Add a pet'"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="pp-sheet-handle"></div>
+
+      <div class="pet-steps" aria-hidden="true">
+        @for (s of steps; track s) {
+          <span class="pet-step-dot" [class.active]="dialog.step() === s"></span>
+        }
+      </div>
+
+      <!-- ── Step 1: basics ───────────────────────────────── -->
+      @if (dialog.step() === 'basics') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">{{ isEditing() ? 'Edit pet' : 'Add a pet' }}</div>
+          <p class="pp-sheet-sub">Start with the basics — you can add more later.</p>
+        </div>
+
+        <form class="pp-sheet-body" (submit)="$event.preventDefault(); save()">
+          <div class="pet-field">
+            <div class="pp-label">Is it a dog or a cat? <span class="required-dot">*</span></div>
+            <div class="pet-type-tiles">
+              @for (opt of typeOptions; track opt.value) {
+                <button
+                  class="pet-type-tile"
+                  type="button"
+                  [class.active]="type() === opt.value"
+                  [attr.aria-pressed]="type() === opt.value"
+                  (click)="type.set(opt.value)"
+                >
+                  <span class="pet-type-emoji">{{ opt.value === 'dog' ? '🐶' : '🐱' }}</span>
+                  {{ opt.label }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="pet-field">
+            <label class="pp-label" for="pet-name">Name <span class="required-dot">*</span></label>
+            <input
+              id="pet-name"
+              class="pp-input"
+              type="text"
+              autocomplete="off"
+              placeholder="e.g. Bruno"
+              [value]="name()"
+              (input)="onNameChange($event)"
+            />
+          </div>
+
+          @if (error()) { <p class="pet-error" role="alert">{{ error() }}</p> }
+
+          <button class="btn-pp-primary w-100 justify-content-center" type="submit" [disabled]="!canSave() || submitting()">
+            @if (submitting()) { Saving… } @else { {{ isEditing() ? 'Save changes' : 'Save pet' }} }
+          </button>
+          <button class="btn-pp-outline w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="dialog.goTo('about')">
+            Add more details →
+          </button>
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="close()">Cancel</button>
+        </form>
+      }
+
+      <!-- ── Step 2: about ────────────────────────────────── -->
+      @if (dialog.step() === 'about') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">About {{ name().trim() || 'your pet' }}</div>
+          <p class="pp-sheet-sub">All optional — helps our groomers prepare.</p>
+        </div>
+
+        <div class="pp-sheet-body">
+          <div class="pet-field">
+            <label class="pp-label" for="pet-breed">Breed</label>
+            <input
+              id="pet-breed"
+              class="pp-input"
+              type="text"
+              list="pet-breed-list"
+              autocomplete="off"
+              placeholder="Start typing or pick one"
+              [value]="breed()"
+              (input)="onBreedChange($event)"
+            />
+            <datalist id="pet-breed-list">
+              @for (b of breedSuggestions(); track b) { <option [value]="b"></option> }
+            </datalist>
+          </div>
+
+          <div class="pet-field">
+            <div class="pp-label">Age <span class="pet-age-text">· {{ ageText() }}</span></div>
+            <div class="pet-steppers">
+              <div class="pet-stepper">
+                <button type="button" class="pet-stepper-btn" aria-label="Fewer years" (click)="stepYears(-1)">−</button>
+                <span class="pet-stepper-val">{{ years() }} <small>yrs</small></span>
+                <button type="button" class="pet-stepper-btn" aria-label="More years" (click)="stepYears(1)">+</button>
+              </div>
+              <div class="pet-stepper">
+                <button type="button" class="pet-stepper-btn" aria-label="Fewer months" (click)="stepMonths(-1)">−</button>
+                <span class="pet-stepper-val">{{ months() }} <small>mos</small></span>
+                <button type="button" class="pet-stepper-btn" aria-label="More months" (click)="stepMonths(1)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pet-field">
+            <div class="pp-label">Gender</div>
+            <pp-chip-group [options]="genderOptions" [(value)]="gender" />
+          </div>
+
+          <button class="btn-pp-primary w-100 justify-content-center" type="button" (click)="dialog.goTo('care')">Next →</button>
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" (click)="dialog.goTo('basics')">← Back</button>
+        </div>
+      }
+
+      <!-- ── Step 3: care ─────────────────────────────────── -->
+      @if (dialog.step() === 'care') {
+        <div class="pp-sheet-header">
+          <div class="pp-sheet-title">Grooming &amp; health</div>
+          <p class="pp-sheet-sub">So we can take the best care of {{ name().trim() || 'your pet' }}.</p>
+        </div>
+
+        <div class="pp-sheet-body">
+          <div class="pet-field">
+            <div class="pp-label">Size</div>
+            <pp-chip-group [options]="sizeOptions" [(value)]="size" />
+          </div>
+
+          <div class="pet-field">
+            <div class="pp-label">Coat</div>
+            <pp-chip-group [options]="coatOptions" [(value)]="coat" />
+          </div>
+
+          <div class="pet-field">
+            <div class="pp-label">Temperament <span class="pet-age-text">· pick any</span></div>
+            <pp-chip-group [options]="temperamentOptions" [multiple]="true" [(values)]="temperament" />
+          </div>
+
+          <div class="pet-field">
+            <div class="pp-label">Vaccination status</div>
+            <pp-chip-group [options]="vaccinationOptions" [(value)]="vaccination" />
+          </div>
+
+          <div class="pet-field">
+            <label class="pp-label" for="pet-notes">Notes</label>
+            <textarea
+              id="pet-notes"
+              class="pp-input"
+              rows="3"
+              placeholder="Allergies, sensitive spots, anything we should know"
+              [value]="notes()"
+              (input)="onNotesChange($event)"
+            ></textarea>
+          </div>
+
+          @if (error()) { <p class="pet-error" role="alert">{{ error() }}</p> }
+
+          <button class="btn-pp-primary w-100 justify-content-center" type="button" [disabled]="!canSave() || submitting()" (click)="save()">
+            @if (submitting()) { Saving… } @else { {{ isEditing() ? 'Save changes' : 'Save pet' }} }
+          </button>
+          <button class="btn-pp-ghost w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="dialog.goTo('about')">← Back</button>
+        </div>
+      }
+    </div>
+  </div>
+}

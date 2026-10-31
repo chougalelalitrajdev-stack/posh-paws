@@ -1,0 +1,7 @@
+// White panel used for every content block.
+.pp-card {
+  background: var(--pp-card-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}

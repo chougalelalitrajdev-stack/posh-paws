@@ -1,0 +1,23 @@
+@for (group of groups(); track group.name) {
+  <div class="pp-slot-group" role="group" [attr.aria-label]="group.name + ' slots'">
+    <div class="pp-slot-group-head">
+      <span class="pp-slot-group-name">{{ group.icon }} {{ group.name }}</span>
+      <span class="pp-slot-group-free" [class.is-full]="group.free === 0">
+        {{ group.free === 0 ? 'Full' : group.free + ' free' }}
+      </span>
+    </div>
+    <div class="pp-slot-list">
+      @for (slot of group.slots; track slot.time) {
+        <button
+          class="pp-slot"
+          type="button"
+          [class.active]="value() === slot.time"
+          [disabled]="!slot.available"
+          [attr.aria-pressed]="value() === slot.time"
+          [attr.aria-label]="slot.label + (slot.available ? '' : ', taken')"
+          (click)="pick(slot)"
+        >{{ slot.label }}</button>
+      }
+    </div>
+  </div>
+}

@@ -1,60 +1,46 @@
-# PoshPaws
+# Posh Paws
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.6.
+Pet grooming platform. One repo, three independent apps, each with its own dependencies.
 
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
+```
+customer/   Angular: the customer website and booking flow   → http://localhost:4200
+admin/      Angular: staff dashboard                         → http://localhost:4300
+backend/    Python FastAPI: REST API for both front-ends     → http://localhost:8000/api
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```
+  customer (Angular)      admin (Angular)
+          │                      │
+          └──── HTTPS · JSON ────┘
+                     ▼
+            backend (FastAPI)  ──►  database
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Run locally
+
+Open a terminal per app.
 
 ```bash
-ng generate --help
+# Customer app
+cd customer
+npm install
+npm start
+
+# Admin app (demo login: meera@poshpaws.in / pawsword)
+cd admin
+npm install
+npm start
+
+# Backend API
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload     # API docs at http://localhost:8000/docs
 ```
 
-## Building
+Each app's own README has the details.
 
-To build the project run:
+## Deploy
 
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-# posh-paws
+`netlify.toml` builds and deploys the customer app from `customer/`.

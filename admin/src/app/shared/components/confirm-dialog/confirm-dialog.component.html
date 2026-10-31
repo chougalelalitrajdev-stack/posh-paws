@@ -1,0 +1,20 @@
+@if (confirm.request(); as req) {
+  <div class="pp-dialog-backdrop" (click)="cancel()"></div>
+  <div class="pp-dialog" role="alertdialog" aria-modal="true" aria-labelledby="pp-confirm-title">
+    <h2 id="pp-confirm-title" class="pp-dialog-title">{{ req.title }}</h2>
+    @if (req.message) {
+      <p class="pp-dialog-text">{{ req.message }}</p>
+    }
+    <div class="pp-dialog-actions">
+      <button class="pp-btn" type="button" (click)="cancel()">{{ req.cancelLabel ?? 'Cancel' }}</button>
+      <button
+        class="pp-btn"
+        type="button"
+        #confirmBtn
+        [class.pp-btn-danger]="req.tone === 'danger'"
+        [class.pp-btn-primary]="req.tone !== 'danger'"
+        (click)="confirm.settle(true)"
+      >{{ req.confirmLabel ?? 'Confirm' }}</button>
+    </div>
+  </div>
+}

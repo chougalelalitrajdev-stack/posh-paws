@@ -1,0 +1,27 @@
+<nav class="pp-nav" aria-label="Admin pages">
+  @for (group of groups(); track group.label) {
+    <div class="pp-nav-group">
+      @if (group.label) { <div class="pp-nav-label">{{ group.label }}</div> }
+      @for (item of group.items; track item.label) {
+        <ng-container [ngTemplateOutlet]="link" [ngTemplateOutletContext]="{ $implicit: item }" />
+      }
+    </div>
+  }
+</nav>
+
+@if (footer(); as item) {
+  <div class="pp-nav-footer"><ng-container [ngTemplateOutlet]="link" [ngTemplateOutletContext]="{ $implicit: item }" /></div>
+}
+
+<ng-template #link let-item>
+  @if (item.soon) {
+    <span class="pp-nav-item is-soon" aria-disabled="true">
+      <pp-icon [name]="item.icon" [size]="18" /><span class="pp-nav-text">{{ item.label }}</span>
+      <span class="pp-nav-badge">Soon</span>
+    </span>
+  } @else {
+    <a class="pp-nav-item" [routerLink]="item.path" routerLinkActive="active">
+      <pp-icon [name]="item.icon" [size]="18" /><span class="pp-nav-text">{{ item.label }}</span>
+    </a>
+  }
+</ng-template>

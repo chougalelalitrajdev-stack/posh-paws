@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+// Reserve room under the footer so the fixed bottom tab bar never covers content.
+// Padding sits on the footer (not the app host) so it keeps the footer's colour
+// and doesn't show through sections that have no background of their own.
+@media (max-width: 991.98px) {
+  pp-footer {
+    display: block;
+    padding-bottom: var(--bottom-nav-total-height);
+    background: var(--pp-footer-bg);
+  }
+}

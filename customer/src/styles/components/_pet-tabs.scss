@@ -1,0 +1,36 @@
+// Dog / cat tabs
+
+// ── Pet type tabs ─────────────────────────────────────────────
+.pet-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-5);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pp-border);
+  background: var(--pp-card-bg);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--pp-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+
+  &.active, &:hover {
+    background: var(--pp-primary);
+    color: var(--pp-on-primary);
+    border-color: var(--pp-primary);
+  }
+}
+
+// Group of dog/cat tabs. Becomes a full-width two-button switch on phones.
+.pet-tab-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  @media (max-width: 767.98px) {
+    flex-wrap: nowrap;
+
+    .pet-tab { flex: 1; justify-content: center; min-height: var(--tap-target-min); }
+  }
+}

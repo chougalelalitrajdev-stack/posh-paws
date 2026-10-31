@@ -1,0 +1,51 @@
+// Top navigation link styles
+
+// ── Navbar ────────────────────────────────────────────────────
+.pp-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--pp-navbar-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--pp-border);
+  transition: box-shadow var(--transition);
+
+  &.scrolled { box-shadow: var(--shadow-md); }
+}
+
+.navbar-brand-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  text-decoration: none;
+}
+.brand-name {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  color: var(--pp-primary);
+  letter-spacing: 0.5px;
+}
+.brand-tagline {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pp-muted);
+  margin-top: 2px;
+}
+
+.pp-nav-link {
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+  font-weight: 400;
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  transition: color var(--transition), background var(--transition);
+
+  &:hover, &.active {
+    color: var(--pp-primary);
+    background: var(--pp-primary-light);
+  }
+}

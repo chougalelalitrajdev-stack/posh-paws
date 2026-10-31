@@ -1,0 +1,25 @@
+// Bootstrap needs real values at compile time (its colour functions can't read CSS variables).
+// Keep these in step with _tokens.scss.
+
+$primary: #2D6A4F;
+$secondary: #F4A261;
+$danger: #9B2C2C;
+$body-bg: #F7F3EC;
+$body-color: #1E1A16;
+$border-color: #E6DCCB;
+
+$border-radius: 12px;
+$border-radius-lg: 16px;
+$border-radius-pill: 999px;
+
+$font-family-sans-serif: 'DM Sans', system-ui, sans-serif;
+$font-size-base: 0.9375rem;
+$line-height-base: 1.55;
+$headings-font-weight: 500;
+$link-color: #2D6A4F;
+$link-hover-color: #1B4332;
+
+$dropdown-border-color: #E6DCCB;
+$dropdown-border-radius: 12px;
+$dropdown-link-active-bg: #D8F3DC;
+$dropdown-link-active-color: #1B4332;

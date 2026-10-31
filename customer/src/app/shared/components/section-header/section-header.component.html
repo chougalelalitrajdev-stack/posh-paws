@@ -1,0 +1,16 @@
+<header class="pp-section-header" [class.is-center]="align() === 'center'" [class.on-dark]="tone() === 'dark'">
+  <div class="pp-section-header-row">
+    <div class="pp-section-header-text">
+      <div class="eyebrow" [class.center]="align() === 'center'">{{ eyebrow() }}</div>
+      <h2 class="section-title"><ng-content select="[ppTitle]" /></h2>
+    </div>
+
+    @if (linkTo(); as to) {
+      <a class="pp-see-all" [routerLink]="to">{{ linkLabel() }}</a>
+    }
+
+    <div class="pp-section-header-aside" [class.is-lg-only]="asideFrom() === 'lg'"><ng-content select="[ppAside]" /></div>
+  </div>
+
+  <p class="section-sub pp-section-header-intro"><ng-content /></p>
+</header>

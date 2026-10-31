@@ -1,0 +1,57 @@
+// lint:allow-important (utility classes and Bootstrap gutter utilities are !important)
+// Page sections: vertical rhythm, backgrounds, CTA wrapper, container width on big screens.
+
+// ── Section spacing utilities ─────────────────────────────────
+//    Apply to <section> tags instead of writing padding in every
+//    component SCSS file. Combine with bg-* for full section setup.
+//
+//    Usage:  <section class="section-pad bg-pp-surface">
+//
+.section-pad    { padding-top: var(--section-y);    padding-bottom: var(--section-y); }
+.section-pad-sm { padding-top: var(--section-y-sm); padding-bottom: var(--section-y-sm); }
+.section-pad-xs { padding-top: var(--section-y-xs); padding-bottom: var(--section-y-xs); }
+.section-pad-lg { padding-top: var(--section-y-lg); padding-bottom: var(--section-y-lg); }
+
+// Asymmetric variants (top-only / bottom-only)
+.section-pt     { padding-top: var(--section-y); }
+.section-pb     { padding-bottom: var(--section-y); }
+.section-pt-sm  { padding-top: var(--section-y-sm); }
+.section-pb-sm  { padding-bottom: var(--section-y-sm); }
+
+// ── Backgrounds ───────────────────────────────────────────────
+.bg-pp-surface  { background: var(--pp-surface)   !important; }
+.bg-pp-surface2 { background: var(--pp-surface-2) !important; }
+.bg-pp-primary  { background: var(--pp-primary)   !important; }
+.bg-pp-accent   { background: var(--pp-accent)    !important; }
+
+// ── Mobile baseline ───────────────────────────────────────────
+//    Bootstrap's g-5 gutter (3rem) makes rows wider than the 12px
+//    container padding on phones, causing sideways scroll.
+@media (max-width: 767.98px) {
+  .g-5, .gx-5 { --bs-gutter-x: 1.5rem !important; } // Bootstrap utilities are !important
+}
+
+// Call-to-action wrapper: full-width button on phones, centered from 768px up.
+.pp-cta-wrap {
+  display: grid;
+  margin-top: var(--space-8);
+
+  .btn-pp-primary, .btn-pp-accent, .btn-pp-outline { justify-content: center; }
+
+  @media (min-width: 768px) {
+    display: block;
+    text-align: center;
+    margin-top: var(--space-12);
+  }
+}
+
+// ── Large monitors ────────────────────────────────────────────
+//    Let content grow instead of sitting in a narrow column on 1600px+ screens.
+@media (min-width: 1600px) {
+  .container { max-width: 1480px; }
+}
+
+@media (min-width: 2200px) {
+  html { font-size: 112.5%; } // 18px root: rem-based type and spacing scale up
+  .container { max-width: 1680px; }
+}

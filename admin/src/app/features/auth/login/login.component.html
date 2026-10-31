@@ -1,0 +1,74 @@
+<div class="pp-login">
+  <section class="pp-login-brand">
+    <div class="pp-login-logo">
+      <img src="icon/logo.png" alt="" width="56" height="56">
+      <span class="pp-login-logo-text"><span class="pp-login-logo-name">Posh Paws</span><span>Admin</span></span>
+    </div>
+
+    <div class="pp-login-pitch">
+      <h1 class="pp-login-headline">Run the whole day from <em>one desk.</em></h1>
+      <p class="pp-login-lead">Callback requests, bookings, payments, customers, and everything customers see in the app.</p>
+      <ul class="pp-login-points">
+        <li><pp-icon name="check" /><span>Turn a callback into a confirmed booking on one screen</span></li>
+        <li><pp-icon name="check" /><span>Send payment links on WhatsApp and see when they're paid</span></li>
+        <li><pp-icon name="check" /><span>Update services, plans, offers and banners without a developer</span></li>
+      </ul>
+    </div>
+
+    <p class="pp-login-foot">Staff access only · Posh Paws Pet Grooming, Pune</p>
+  </section>
+
+  <main class="pp-login-main">
+    <form class="pp-login-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="pp-login-heading">
+        <h2 class="pp-serif pp-login-title">Sign in</h2>
+        <p class="pp-muted">Use the staff account your manager created for you.</p>
+      </div>
+
+      @if (error()) {
+        <div class="pp-alert pp-alert-error" role="alert"><pp-icon name="alert" [size]="18" /><span>{{ error() }}</span></div>
+      }
+
+      <div class="pp-field">
+        <label class="pp-label" for="email">Work email</label>
+        <input id="email" class="pp-input" type="email" autocomplete="username" formControlName="email"
+          [class.is-invalid]="invalid('email')" [attr.aria-invalid]="invalid('email')" aria-describedby="email-error">
+        @if (invalid('email')) { <p id="email-error" class="pp-field-error">Enter your work email.</p> }
+      </div>
+
+      <div class="pp-field">
+        <label class="pp-label" for="password">Password</label>
+        <div class="pp-input pp-password" [class.is-invalid]="invalid('password')">
+          <input id="password" [type]="showPassword() ? 'text' : 'password'" autocomplete="current-password"
+            formControlName="password" [attr.aria-invalid]="invalid('password')" aria-describedby="password-error">
+          <button type="button" class="pp-password-toggle" [attr.aria-pressed]="showPassword()" (click)="showPassword.set(!showPassword())">
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (invalid('password')) { <p id="password-error" class="pp-field-error">Enter your password.</p> }
+      </div>
+
+      <div class="pp-login-row">
+        <label class="pp-check"><input type="checkbox" formControlName="remember"><span>Keep me signed in on this device</span></label>
+        <a routerLink="/forgot-password">Forgot password?</a>
+      </div>
+
+      <button class="pp-btn pp-btn-primary pp-btn-block pp-login-submit" type="submit" [disabled]="submitting()">
+        @if (submitting()) { Signing in… } @else { Sign in }
+      </button>
+
+      <p class="pp-login-note">New to the team? Ask a Super Admin to invite you.</p>
+
+      @if (demoAccounts.length) {
+        <div class="pp-login-demo">
+          <strong>Demo accounts</strong> (password <code>{{ demoPassword }}</code>)
+          <div class="pp-login-demo-list">
+            @for (acc of demoAccounts; track acc.email) {
+              <button type="button" class="pp-btn" (click)="useDemo(acc.email)">{{ acc.role }}</button>
+            }
+          </div>
+        </div>
+      }
+    </form>
+  </main>
+</div>

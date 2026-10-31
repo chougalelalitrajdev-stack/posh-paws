@@ -1,0 +1,8 @@
+// ─────────────────────────────────────────────────────────────
+//  Index of shared style partials (order = cascade order).
+//  Rules: colours from var(--pp-*), sizes from var(--fs-*) and var(--space-*).
+//  Anything used by one component lives in that component's .scss.
+// ─────────────────────────────────────────────────────────────
+@use 'components/buttons';
+@use 'components/forms';
+@use 'components/cards';

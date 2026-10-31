@@ -1,0 +1,72 @@
+<pp-page-hero eyebrow="Membership">
+  <span ppTitle>
+    <span>Save more, stress</span>
+    <span><em>less</em> — every month.</span>
+  </span>
+  <span ppLead>
+    Priority slots, real savings, and a groomer who already knows your pet.
+    Pick the plan that fits your rhythm.
+  </span>
+</pp-page-hero>
+
+<!-- Plans -->
+<section class="plans-section section-pad" id="plans">
+  <div class="container">
+
+    <pp-section-header eyebrow="Choose a plan" align="center">
+      <span ppTitle>Find the right <em>plan</em> for you</span>
+      Save more, enjoy priority slots, and give your pet the best every month.
+    </pp-section-header>
+
+    <div class="row g-4 justify-content-center align-items-stretch">
+      @for (plan of plans(); track plan.id) {
+        <div class="col-lg-4 col-md-6 fade-in-up">
+          <pp-plan-card [plan]="plan" (subscribe)="subscribeToPlan($event)" />
+        </div>
+      }
+    </div>
+
+  </div>
+</section>
+
+<!-- Member perks -->
+<section class="perks-section section-pad" id="perks">
+  <div class="container">
+
+    <pp-section-header eyebrow="Why join" align="center">
+      <span ppTitle>What every member <em>gets</em></span>
+    </pp-section-header>
+
+    <div class="row g-4 pp-swipe">
+      @for (perk of perks; track perk.title) {
+        <div class="col-md-6 col-lg-3 fade-in-up">
+          <pp-feature-card [item]="perk" />
+        </div>
+      }
+    </div>
+
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section section-pad" id="faq">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+
+        <pp-section-header eyebrow="FAQ" align="center">
+          <span ppTitle>Common <em>questions</em></span>
+        </pp-section-header>
+
+        <pp-accordion [items]="faq" />
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<pp-cta-banner eyebrow="Start today" surface="tinted">
+  <span ppTitle>Your pet's best grooming routine <em>awaits</em></span>
+  <span ppText>Join 500+ happy pet parents · Cancel anytime · No lock-in</span>
+  <a ppAction class="btn-pp-accent" routerLink="/membership" fragment="plans">Choose a plan →</a>
+</pp-cta-banner>

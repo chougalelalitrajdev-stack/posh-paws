@@ -1,0 +1,84 @@
+@if (dialog.isOpen()) {
+  <div class="pp-sheet-backdrop" (click)="close()">
+    <div
+      class="pp-sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Subscribe to a membership plan"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="pp-sheet-handle"></div>
+
+      @if (dialog.plan(); as plan) {
+
+        <!-- ── Step: plan details & confirm ─────────────────── -->
+        @if (dialog.step() === 'confirm') {
+          <div class="pp-sheet-header">
+            <div class="pp-sheet-title">{{ plan.name }} Plan</div>
+            <p class="pp-sheet-sub">{{ plan.tagline }}</p>
+          </div>
+
+          <div class="pp-sheet-body">
+            <div class="sub-price">
+              <div class="sub-price-amount">{{ plan.pricePaise | inr }}</div>
+              <div class="sub-price-period">/ {{ plan.billing }}</div>
+            </div>
+
+            @for (feat of plan.features; track feat.text) {
+              <div class="sub-feature" [class.is-excluded]="!feat.included">
+                <div class="sub-feature-mark">{{ feat.included ? '✓' : '✗' }}</div>
+                {{ feat.text }}
+              </div>
+            }
+
+            <button class="btn-pp-primary w-100 justify-content-center mt-2" type="button" (click)="goToPayment()">
+              Continue to payment →
+            </button>
+            <button class="btn-pp-ghost w-100 justify-content-center" type="button" (click)="close()">Cancel</button>
+          </div>
+        }
+
+        <!-- ── Step: payment (mocked — no gateway yet) ──────── -->
+        @if (dialog.step() === 'payment') {
+          <div class="pp-sheet-header">
+            <div class="pp-sheet-title">Payment</div>
+            <p class="pp-sheet-sub">{{ plan.name }} Plan · {{ plan.pricePaise | inr }} / {{ plan.billing }}</p>
+          </div>
+
+          <div class="pp-sheet-body">
+            <p class="pp-dialog-note">
+              💡 Payment gateway integration coming soon — this is a placeholder step.
+            </p>
+
+            <button
+              class="btn-pp-accent w-100 justify-content-center"
+              type="button"
+              [disabled]="submitting()"
+              (click)="confirmPayment()"
+            >
+              @if (submitting()) { Processing… } @else { Confirm {{ plan.pricePaise | inr }} payment }
+            </button>
+            <button
+              class="btn-pp-ghost w-100 justify-content-center"
+              type="button"
+              [disabled]="submitting()"
+              (click)="backToConfirm()"
+            >← Back</button>
+          </div>
+        }
+
+        <!-- ── Step: success ─────────────────────────────────── -->
+        @if (dialog.step() === 'success') {
+          <div class="pp-sheet-body pp-dialog-success">
+            <div class="pp-dialog-success-emoji">🎉</div>
+            <div class="pp-sheet-title">You're on the {{ plan.name }} Plan!</div>
+            <p class="pp-sheet-sub">Manage your membership anytime from your profile.</p>
+
+            <a class="btn-pp-primary w-100 justify-content-center" routerLink="/account" (click)="close()">View my membership</a>
+            <button class="btn-pp-ghost w-100 justify-content-center" type="button" (click)="close()">Done</button>
+          </div>
+        }
+      }
+    </div>
+  </div>
+}

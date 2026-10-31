@@ -1,0 +1,380 @@
+// ── Page header ───────────────────────────────────────────────
+
+.acct-header .section-title { margin: 0; }
+
+.acct-actions { display: flex; gap: var(--space-2); }
+
+// Sidebar cards stack with the parent's gap, not their own margins
+.acct-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.acct-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+
+// ── Quick stats strip ─────────────────────────────────────────
+
+.stats-strip {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--pp-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: 14px var(--space-5);
+  flex: 1;
+  min-width: 140px;
+}
+
+.stat-chip-icon  { font-size: var(--fs-2xl); line-height: 1; }
+.stat-chip-val   { font-family: var(--ff-serif); font-size: var(--fs-2xl); color: var(--pp-primary); font-weight: 500; line-height: 1.1; }
+.stat-chip-label { font-size: var(--fs-xs); color: var(--pp-muted); margin-top: 2px; }
+
+// ── Booking tabs ──────────────────────────────────────────────
+
+.booking-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+}
+
+.booking-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pp-border);
+  background: transparent;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--pp-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-family: var(--ff-sans);
+
+  &.active {
+    background: var(--pp-primary);
+    border-color: var(--pp-primary);
+    color: var(--pp-on-primary);
+
+    .tab-count { background: var(--pp-on-dark-subtle); color: var(--pp-on-primary); }
+  }
+
+  &:not(.active):hover {
+    border-color: var(--pp-primary);
+    color: var(--pp-primary);
+  }
+}
+
+.tab-count {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  background: var(--pp-surface);
+  color: var(--pp-muted);
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+}
+
+// ── Booking items ─────────────────────────────────────────────
+
+.booking-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--pp-text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.booking-meta {
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+}
+
+.booking-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cancel-btn {
+  background: none;
+  border: none;
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  padding: 0;
+  text-decoration: underline;
+
+  &:hover { color: var(--pp-warning); }
+}
+
+// ── Empty state ───────────────────────────────────────────────
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-6) 0 var(--space-2);
+}
+
+.empty-icon  { font-size: 48px; margin-bottom: 12px; }
+.empty-title { font-family: var(--ff-serif); font-size: var(--fs-xl); color: var(--pp-text); margin-bottom: 6px; }
+.empty-sub   { font-size: var(--fs-sm); color: var(--pp-muted); margin-bottom: 20px; }
+
+// ── Membership banner extras ──────────────────────────────────
+
+.membership-label {
+  font-size: var(--fs-xs);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--pp-on-dark-subtle);
+  margin-bottom: 6px;
+}
+
+.membership-tier {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  color: var(--pp-on-primary);
+  margin-bottom: var(--space-1);
+}
+
+.membership-sub {
+  font-size: var(--fs-sm);
+  color: var(--pp-on-dark-muted);
+  margin-bottom: var(--space-5);
+}
+
+.session-progress-wrap {
+  background: var(--pp-on-dark-faint);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: var(--space-4);
+}
+
+.session-progress-label {
+  font-size: var(--fs-xs);
+  color: var(--pp-on-dark-muted);
+  margin-bottom: var(--space-2);
+}
+
+.session-progress-bar {
+  height: 6px;
+  background: var(--pp-on-dark-faint);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.session-progress-fill {
+  height: 100%;
+  background: var(--pp-accent);
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.session-progress-meta {
+  font-size: var(--fs-xs);
+  color: var(--pp-on-dark-subtle);
+}
+
+.membership-upgrade-link {
+  display: inline-block;
+  font-size: var(--fs-xs);
+  color: var(--pp-on-dark-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--transition);
+
+  &:hover { color: var(--pp-on-primary); }
+}
+
+// ── Pet profiles ──────────────────────────────────────────────
+
+.pet-profile-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--pp-surface);
+  border: 1px solid var(--pp-border);
+  margin-bottom: 10px;
+}
+
+.pet-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--pp-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-2xl);
+  flex-shrink: 0;
+}
+
+.pet-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap-target-min);
+  color: inherit;
+  text-decoration: none;
+}
+
+.pet-info   { flex: 1; min-width: 0; }
+.pet-name   { font-size: var(--fs-sm); font-weight: 600; color: var(--pp-text); }
+.pet-breed  { font-size: var(--fs-xs); color: var(--pp-muted); }
+
+.pet-book-btn {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--pp-primary);
+  background: transparent;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--pp-primary);
+  cursor: pointer;
+  font-family: var(--ff-sans);
+  transition: all var(--transition);
+
+  &:hover { background: var(--pp-primary); color: var(--pp-on-primary); }
+}
+
+.pet-edit-btn {
+  width: var(--tap-target-min);
+  height: var(--tap-target-min);
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  font-size: var(--fs-base);
+  cursor: pointer;
+
+  &:hover { background: var(--pp-primary-light); }
+}
+
+.pet-empty { font-size: var(--fs-sm); color: var(--pp-muted); margin: 0 0 var(--space-3); }
+
+.add-pet-btn { margin-top: 4px; padding: 10px; font-size: var(--fs-sm); }
+
+// ── Quick links ───────────────────────────────────────────────
+
+.quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px var(--space-2);
+  border-radius: var(--radius);
+  font-size: var(--fs-sm);
+  color: var(--pp-text);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+
+  &:hover {
+    background: var(--pp-surface);
+    color: var(--pp-primary);
+  }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+
+@media (max-width: 767.98px) {
+  .acct-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+
+    .acct-actions {
+      .btn-pp-accent { flex: 1; justify-content: center; }
+      .btn-pp-ghost  { flex-shrink: 0; }
+    }
+  }
+
+  // Three compact tiles in one row instead of 2 + 1
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+  }
+
+  .stat-chip {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-1);
+    min-width: 0;
+    padding: var(--space-3) 6px;
+    text-align: center;
+  }
+
+  // Booking row: icon + full-width text, status and cancel on their own line
+  .booking-label { white-space: normal; }
+  .booking-item  { flex-wrap: wrap; row-gap: 8px; }
+  .booking-actions {
+    flex: 1 0 calc(100% - 52px);
+    margin-left: 52px;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  // Sidebar order on phones: pets first, then membership, then links
+  .acct-side {
+    .membership-banner { order: 2; }
+    .dash-card:last-child { order: 3; }
+  }
+
+  .quick-link { min-height: var(--tap-target-min); font-size: var(--fs-sm); }
+}
+
+// Touch layouts (phones and tablets): links need a 44px target.
+@media (max-width: 991.98px) {
+  .cancel-btn {
+    min-height: var(--tap-target-min);
+    padding: 0 var(--space-3);
+    font-size: var(--fs-sm);
+  }
+
+  .membership-upgrade-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-target-min);
+    font-size: var(--fs-sm);
+  }
+}

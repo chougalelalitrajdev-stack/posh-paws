@@ -1,0 +1,121 @@
+:host { display: block; height: 100%; }
+
+.svc {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  background: var(--pp-card-bg);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-6);
+  transition: transform .25s, box-shadow .25s, border-color .25s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--pp-primary);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .3s;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--pp-primary);
+
+      &::before { transform: scaleX(1); }
+    }
+  }
+
+  @media (max-width: 767.98px) { padding: var(--space-6) var(--space-5); }
+}
+
+.svc-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-5);
+  background: var(--pp-primary-light);
+  border-radius: 16px;
+  font-size: var(--fs-3xl);
+
+  @media (max-width: 767.98px) { margin-bottom: var(--space-3); }
+}
+
+.svc-name {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  color: var(--pp-text);
+  margin: 0 0 var(--space-2);
+
+  @media (max-width: 767.98px) { font-size: var(--fs-xl); }
+}
+
+.svc-desc {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  color: var(--pp-muted);
+  margin: 0 0 var(--space-5);
+  text-wrap: pretty;
+}
+
+.svc-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--pp-border);
+}
+
+.svc-price {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  color: var(--pp-primary);
+}
+
+.svc-duration {
+  padding: var(--space-1) 10px;
+  background: var(--pp-surface);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+}
+
+.svc-book {
+  width: 100%;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
+
+// Compact row on phones: icon | name + price/duration | Book, description underneath
+@media (max-width: 767.98px) {
+  .svc-list {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    grid-template-areas:
+      "icon name book"
+      "icon meta book"
+      "desc desc desc";
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    padding: var(--space-4);
+
+    &::before { display: none; }
+
+    .svc-icon { grid-area: icon; width: 48px; height: 48px; margin: 0; font-size: var(--fs-2xl); }
+    .svc-name { grid-area: name; font-size: var(--fs-lg); margin: 0; }
+    .svc-desc { grid-area: desc; margin: var(--space-3) 0 0; }
+    .svc-meta { grid-area: meta; justify-content: flex-start; gap: var(--space-3); padding: 0; border: 0; }
+    .svc-price { font-size: var(--fs-lg); }
+    .svc-book { grid-area: book; width: auto; margin: 0; padding-inline: var(--space-5); }
+  }
+}

@@ -1,0 +1,60 @@
+pp-section-header { display: block; margin-bottom: var(--space-6); }
+
+@media (min-width: 768px) {
+  pp-section-header { margin-bottom: var(--space-12); }
+}
+
+.pp-section-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.pp-section-header-text { min-width: 0; }
+
+.pp-see-all {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target-min);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--pp-primary);
+  text-decoration: none;
+
+  .on-dark & { color: var(--pp-accent); }
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// Aside (e.g. dog/cat tabs): full width under the title, then to the right on desktop
+.pp-section-header-aside {
+  flex: 1 1 100%;
+
+  &:empty { display: none; }
+
+  &.is-lg-only { display: none; }
+
+  @media (min-width: 992px) {
+    flex: 0 0 auto;
+    &.is-lg-only { display: block; }
+  }
+}
+
+.pp-section-header-intro {
+  margin: var(--space-2) 0 0;
+  max-width: 560px;
+
+  &:empty { display: none; }
+}
+
+@media (min-width: 768px) {
+  .pp-section-header.is-center {
+    text-align: center;
+
+    .pp-section-header-row { justify-content: center; }
+    .pp-section-header-intro { margin-inline: auto; }
+  }
+}

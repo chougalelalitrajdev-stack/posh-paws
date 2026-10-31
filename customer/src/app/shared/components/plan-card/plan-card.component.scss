@@ -1,0 +1,96 @@
+:host { display: block; height: 100%; }
+
+.plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--pp-card-bg);
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-8);
+  transition: transform .25s, box-shadow .25s;
+
+  &.is-featured {
+    border-color: var(--pp-primary);
+    box-shadow: 0 0 0 4px var(--pp-focus-ring), var(--shadow-lg);
+
+    @media (min-width: 992px) { transform: scale(1.03); }
+  }
+
+  @media (hover: hover) {
+    &:hover:not(.is-featured) { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+  }
+
+  @media (max-width: 767.98px) { padding: var(--space-6) var(--space-5); }
+}
+
+.plan-badge {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-1) var(--space-4);
+  background: var(--pp-accent);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--pp-on-primary);
+  white-space: nowrap;
+}
+
+.plan-name {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-3xl);
+  font-weight: 500;
+  color: var(--pp-text);
+  margin: 0 0 6px;
+}
+
+.plan-tagline { font-size: var(--fs-sm); color: var(--pp-muted); margin: 0 0 var(--space-6); }
+
+.plan-price {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1);
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--pp-border);
+}
+
+.plan-price-amount {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-6xl);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--pp-primary);
+}
+
+.plan-price-period { padding-bottom: 6px; font-size: var(--fs-sm); color: var(--pp-muted); }
+
+.plan-features { list-style: none; margin: 0 0 var(--space-6); padding: 0; flex: 1; }
+
+.plan-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--pp-text);
+
+  &.is-excluded { opacity: .35; }
+}
+
+.plan-feature-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pp-primary-light);
+  color: var(--pp-primary);
+
+  .is-excluded & { background: var(--pp-surface); color: var(--pp-muted); }
+}

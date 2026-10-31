@@ -1,0 +1,16 @@
+<div class="pp-date-strip" role="group" aria-label="Choose a date">
+  @for (tile of tiles(); track tile.iso) {
+    <button
+      class="pp-date-tile"
+      type="button"
+      [class.active]="value() === tile.iso"
+      [attr.aria-pressed]="value() === tile.iso"
+      [attr.aria-label]="tile.label"
+      (click)="value.set(tile.iso)"
+    >
+      <span class="pp-date-weekday">{{ tile.isToday ? 'Today' : tile.weekday }}</span>
+      <span class="pp-date-day">{{ tile.day }}</span>
+      <span class="pp-date-month">{{ tile.month }}</span>
+    </button>
+  }
+</div>

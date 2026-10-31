@@ -1,0 +1,69 @@
+// Buttons: pill-shaped, at least 44px tall.
+//   .pp-btn                      base (outline look)
+//   .pp-btn-primary              filled green
+//   .pp-btn-danger               filled red, for destructive actions
+//   .pp-btn-ghost                no border
+//   .pp-btn-block                full width
+.pp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target-min);
+  padding: 0 var(--space-5);
+  border: 1px solid var(--pp-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+
+  &:hover { border-color: var(--pp-primary); color: var(--pp-primary-dark); }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+}
+
+.pp-btn-primary {
+  border-color: var(--pp-primary);
+  background: var(--pp-primary);
+  color: var(--pp-on-primary);
+
+  &:hover { background: var(--pp-primary-dark); border-color: var(--pp-primary-dark); color: var(--pp-on-primary); }
+}
+
+.pp-btn-danger {
+  border-color: var(--pp-danger);
+  background: var(--pp-danger);
+  color: var(--pp-on-primary);
+
+  &:hover { background: var(--pp-danger-border); border-color: var(--pp-danger-border); color: var(--pp-on-primary); }
+}
+
+.pp-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+
+  &:hover { border-color: transparent; background: var(--pp-surface); }
+}
+
+.pp-btn-block { width: 100%; }
+
+// Square icon-only button (needs aria-label).
+.pp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-target-min);
+  height: var(--tap-target-min);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  cursor: pointer;
+
+  &:hover { border-color: var(--pp-primary); }
+}

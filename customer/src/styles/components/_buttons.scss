@@ -1,0 +1,95 @@
+// Buttons (.btn-pp-*)
+
+// ── Buttons ───────────────────────────────────────────────────
+.btn-pp-primary {
+  background: var(--pp-primary);
+  color: var(--pp-on-primary);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 13px var(--space-8);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  font-family: var(--ff-sans);
+  transition: background var(--transition), transform .15s, box-shadow var(--transition);
+  box-shadow: 0 4px 16px var(--pp-shadow-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--pp-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px var(--pp-shadow-primary);
+    color: var(--pp-on-primary);
+  }
+  &:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+}
+
+.btn-pp-accent {
+  background: var(--pp-accent);
+  color: var(--pp-on-primary);
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 13px var(--space-8);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-family: var(--ff-sans);
+  transition: background var(--transition), transform .15s;
+  box-shadow: 0 4px 16px var(--pp-shadow-accent);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--pp-accent-dark);
+    transform: translateY(-2px);
+    color: var(--pp-on-primary);
+  }
+}
+
+.btn-pp-outline {
+  background: transparent;
+  color: var(--pp-primary);
+  border: 1.5px solid var(--pp-primary);
+  border-radius: var(--radius-pill);
+  padding: var(--space-3) 28px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  font-family: var(--ff-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+
+  &:hover { background: var(--pp-primary); color: var(--pp-on-primary); }
+}
+
+.btn-pp-ghost {
+  background: transparent;
+  color: var(--pp-muted);
+  border: none;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  font-family: var(--ff-sans);
+  cursor: pointer;
+  transition: color var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-2) 0;
+  text-decoration: none;
+
+  &:hover { color: var(--pp-primary); }
+}
+
+// All button variants meet the 44px touch minimum on touch layouts.
+@media (max-width: 991.98px) {
+  .btn-pp-primary, .btn-pp-accent, .btn-pp-outline, .btn-pp-ghost { min-height: var(--tap-target-min); }
+}
