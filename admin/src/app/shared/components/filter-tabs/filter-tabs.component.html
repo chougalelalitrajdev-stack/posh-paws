@@ -1,0 +1,8 @@
+<div class="pp-tabs" role="group" [attr.aria-label]="label()">
+  @for (tab of tabs(); track tab.key) {
+    <button class="pp-tab-btn" type="button" [class.active]="value() === tab.key" [attr.aria-pressed]="value() === tab.key" (click)="value.set(tab.key)">
+      {{ tab.label }}
+      @if (tab.count !== undefined && tab.count !== null) { <span class="pp-tab-count">{{ tab.count }}</span> }
+    </button>
+  }
+</div>

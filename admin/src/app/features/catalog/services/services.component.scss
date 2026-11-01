@@ -1,0 +1,71 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-svc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+
+.pp-svc-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+
+  &.is-selected { border-color: var(--pp-primary); background: var(--pp-primary-tint); }
+}
+
+.pp-svc-handle {
+  width: 32px;
+  height: var(--tap-target-min);
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pp-subtle);
+  font-size: var(--fs-lg);
+  cursor: grab;
+
+  &:hover, &:focus-visible { background: var(--pp-surface); color: var(--pp-text); }
+}
+
+.pp-svc-thumb {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary-dark);
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+
+.pp-svc-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--tap-target-min);
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pp-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  span { font-size: var(--fs-xs); color: var(--pp-muted); }
+  &:hover strong { color: var(--pp-primary); }
+}
+
+.pp-svc-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+// Where the dragged row will land.
+.pp-svc-placeholder { min-height: 60px; border: 1.5px dashed var(--pp-border-strong); border-radius: var(--radius); background: var(--pp-surface); }
+.pp-svc-empty { text-align: center; color: var(--pp-muted); }
+

@@ -47,9 +47,15 @@
   --pp-sidebar-active: rgba(255, 255, 255, .14);
   --pp-sidebar-faint: rgba(255, 255, 255, .08);
 
+  // Dark fade under text laid over a photo (banner previews).
+  --pp-scrim: rgba(20, 30, 24, .72);
+  --pp-on-photo: #FFFFFF;
+
   // ── Type ────────────────────────────────────────────────────
   --ff-sans: 'DM Sans', system-ui, sans-serif;
   --ff-serif: 'Playfair Display', Georgia, serif;
+  --ff-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
   --fs-xs: 0.75rem;     // 12px
   --fs-sm: 0.875rem;    // 14px
   --fs-base: 0.9375rem; // 15px

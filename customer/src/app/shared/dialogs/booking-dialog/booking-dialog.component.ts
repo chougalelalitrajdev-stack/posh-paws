@@ -1,4 +1,5 @@
 import { Component, HostListener, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { timer } from 'rxjs';
 import { BookingDialogService } from '../../../core/services/booking-dialog.service';
 import { BUSINESS_PHONE_DISPLAY, BUSINESS_PHONE_TEL } from '../../../core/constants/app.constants';
 
@@ -47,10 +48,10 @@ export class BookingDialogComponent {
     this.submitting.set(true);
 
     // No backend exists yet — simulate the request being sent.
-    setTimeout(() => {
+    timer(700).subscribe(() => {
       this.submitting.set(false);
       this.dialog.markCallbackRequested();
-    }, 700);
+    });
   }
 
   onNameChange(e: Event): void {

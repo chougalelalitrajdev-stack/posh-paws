@@ -53,4 +53,13 @@
   color: var(--pp-sidebar-label);
 }
 
+.pp-nav-count {
+  padding: var(--space-px2) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  background: var(--pp-accent);
+  color: var(--pp-text);
+}
+
 .pp-nav-footer { margin-top: auto; }

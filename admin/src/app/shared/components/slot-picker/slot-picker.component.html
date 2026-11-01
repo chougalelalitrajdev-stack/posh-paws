@@ -1,0 +1,24 @@
+<div class="pp-days" role="group" aria-label="Date">
+  @for (d of tiles(); track d.date) {
+    <button class="pp-day" type="button" [class.active]="date() === d.date" [attr.aria-pressed]="date() === d.date" (click)="pickDate(d.date)">
+      <span class="pp-day-dow">{{ d.dow }}</span>
+      <span class="pp-day-num">{{ d.num }}</span>
+      <span class="pp-day-free">{{ d.free }} free</span>
+    </button>
+  }
+</div>
+
+@if (loading()) {
+  <p class="pp-slot-note">Checking availability…</p>
+} @else if (!selected()) {
+  <p class="pp-slot-note">Pick a day to see free times.</p>
+} @else if (freeOnSelected() === 0) {
+  <p class="pp-slot-note">No free slots that day. Try another day.</p>
+} @else {
+  <div class="pp-times" role="group" aria-label="Start time">
+    @for (s of selected()!.slots; track s.time) {
+      <button class="pp-time" type="button" [disabled]="!s.available" [class.active]="time() === s.time"
+        [attr.aria-pressed]="time() === s.time" [attr.aria-label]="s.time + (s.available ? '' : ', taken')" (click)="time.set(s.time)">{{ s.time }}</button>
+    }
+  </div>
+}

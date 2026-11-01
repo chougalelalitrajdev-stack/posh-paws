@@ -16,4 +16,6 @@ export class NavListComponent {
   readonly groups = input.required<NavGroup[]>();
   /** Pinned below the groups (Settings). */
   readonly footer = input<NavItem | null>(null);
+  /** Live counts for items with a `badge` key. */
+  readonly badges = input<Record<string, number>>({});
 }

@@ -1,0 +1,100 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-capital { text-transform: capitalize; }
+
+.pp-search {
+  flex: 1 1 260px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap-target-min);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--pp-border-strong);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+  color: var(--pp-muted);
+
+  &:focus-within { border-color: var(--pp-primary); box-shadow: 0 0 0 3px var(--pp-focus-ring); }
+
+  input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: var(--fs-sm); color: var(--pp-text); &:focus { outline: none; } }
+}
+
+.pp-pets-layout { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-start; }
+.pp-pets-list { flex: 999 1 460px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.pp-pets-table { min-width: 600px; }
+
+tr.is-selected td { background: var(--pp-primary-tint); }
+
+.pp-pet-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: var(--tap-target-min);
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pp-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  span { font-size: var(--fs-xs); color: var(--pp-muted); }
+  &:hover strong { color: var(--pp-primary); }
+}
+
+// ── Record panel ──────────────────────────────────────────────
+.pp-record {
+  flex: 1 1 340px;
+  max-width: 440px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  scroll-margin-top: calc(var(--mobile-header-height) + var(--space-3));
+
+  @media (min-width: 992px) { position: sticky; top: var(--space-4); }
+}
+
+.pp-record-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.pp-record-title { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--fs-sm); }
+.pp-record-name { margin: 0; font-family: var(--ff-serif); font-size: var(--fs-2xl); font-weight: 500; }
+
+.pp-record-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-4);
+  margin: 0;
+  font-size: var(--fs-sm);
+
+  dt { font-weight: 400; color: var(--pp-muted); }
+  dd { margin: var(--space-px2) 0 0; font-weight: 600; }
+}
+
+.pp-record-block { display: flex; flex-direction: column; gap: var(--space-2); }
+.pp-record-label { font-size: var(--fs-xs); font-weight: 700; color: var(--pp-muted); }
+
+.pp-record-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--pp-surface);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+
+  &.is-grooming { background: var(--pp-accent-light); color: var(--pp-accent-text); }
+}
+
+.pp-visit {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--pp-divider);
+  color: var(--pp-text);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+
+  &:hover span:first-child { color: var(--pp-primary); }
+}

@@ -1,0 +1,100 @@
+<pp-page-header title="Settings" />
+
+<div class="pp-side-layout">
+  <nav class="pp-card pp-side-nav" aria-label="Settings sections">
+    @for (s of sections(); track s.key) {
+      <button class="pp-side-nav-item" type="button" [class.active]="section() === s.key" [attr.aria-current]="section() === s.key ? 'true' : null" (click)="show(s.key)">
+        <span>{{ s.label }}<small>{{ s.hint }}</small></span>
+      </button>
+    }
+  </nav>
+
+  <div class="pp-side-main">
+    @if (!settings()) {
+      <p class="pp-muted">Loading settings…</p>
+    } @else {
+      @switch (section()) {
+        @case ('booking') { <pp-booking-settings /> }
+        @case ('team') { <pp-team-settings /> }
+        @default {
+          <section class="pp-card pp-settings-card" aria-labelledby="settings-title">
+            <h2 id="settings-title" class="pp-card-title">{{ sectionLabel() }}</h2>
+            @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+            @switch (section()) {
+              @case ('business') {
+                <p class="pp-hint pp-settings-lead">Shown in the customer app's footer and on its Call and WhatsApp buttons.</p>
+                <form class="pp-form-grid" id="settings-form" [formGroup]="forms.business" (ngSubmit)="save()" novalidate>
+                  <div class="pp-field"><label class="pp-label" for="set-name">Business name</label>
+                    <input id="set-name" class="pp-input" formControlName="name" [class.is-invalid]="forms.business.controls.name.invalid && forms.business.controls.name.touched"></div>
+                  <div class="pp-field"><label class="pp-label" for="set-email">Email</label>
+                    <input id="set-email" class="pp-input" type="email" formControlName="email" [class.is-invalid]="forms.business.controls.email.invalid && forms.business.controls.email.touched"></div>
+                  <div class="pp-field"><label class="pp-label" for="set-phone">Phone (Call button)</label><input id="set-phone" class="pp-input" type="tel" formControlName="phone"></div>
+                  <div class="pp-field"><label class="pp-label" for="set-wa">WhatsApp number</label><input id="set-wa" class="pp-input" type="tel" formControlName="whatsapp"></div>
+                  <div class="pp-field"><label class="pp-label" for="set-ig">Instagram</label><input id="set-ig" class="pp-input" formControlName="instagram"></div>
+                  <div class="pp-field"><label class="pp-label" for="set-maps">Google Maps link</label><input id="set-maps" class="pp-input" type="url" formControlName="mapsLink"></div>
+                  <div class="pp-field pp-span"><label class="pp-label" for="set-address">Address</label><textarea id="set-address" class="pp-input" rows="2" formControlName="address"></textarea></div>
+                </form>
+              }
+              @case ('payments') {
+                <form class="pp-form-grid" id="settings-form" [formGroup]="forms.payments" (ngSubmit)="save()" novalidate>
+                  <div class="pp-field"><label class="pp-label" for="set-expiry">Payment link expiry</label>
+                    <select id="set-expiry" class="pp-input" formControlName="linkExpiryHours" aria-describedby="set-expiry-hint">
+                      @for (h of linkHours; track h) { <option [ngValue]="h">{{ h }} hours</option> }
+                    </select>
+                    <span id="set-expiry-hint" class="pp-hint">Slots held by an unpaid link are released after this. Applies to new links.</span></div>
+                  <div class="pp-field"><label class="pp-label" for="set-hold">Slot hold amount (₹)</label>
+                    <input id="set-hold" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="slotHoldRupees" aria-describedby="set-hold-hint"
+                      [class.is-invalid]="forms.payments.controls.slotHoldRupees.invalid && forms.payments.controls.slotHoldRupees.touched">
+                    <span id="set-hold-hint" class="pp-hint">Offered instead of the full amount when sending a booking link.</span></div>
+                  <div class="pp-field"><span class="pp-label">Currency</span><span class="pp-small">INR (₹)</span></div>
+                  <div class="pp-field"><span class="pp-label">Payment provider</span><span class="pp-small">{{ settings()!.payments.provider ?? 'Not connected yet. Set up with the backend.' }}</span></div>
+                </form>
+              }
+              @case ('notifications') {
+                <p class="pp-hint pp-settings-lead">Messages go out automatically once WhatsApp sending is connected. The texts are in Message templates.</p>
+                <form class="pp-form-grid" id="settings-form" [formGroup]="forms.notifications" (ngSubmit)="save()" novalidate>
+                  <div class="pp-field"><label class="pp-label" for="set-reminder">Booking reminder, the day before at</label>
+                    <input id="set-reminder" class="pp-input" type="time" formControlName="reminderTime"></div>
+                  <div class="pp-field"><label class="pp-label" for="set-nudge">Follow up unpaid links after</label>
+                    <select id="set-nudge" class="pp-input" formControlName="unpaidNudgeHours" aria-describedby="set-nudge-hint">
+                      @for (h of nudgeHours; track h) { <option [ngValue]="h">{{ h }} hours</option> }
+                    </select>
+                    <span id="set-nudge-hint" class="pp-hint">Also when Today lists them under Needs your attention.</span></div>
+                  <div class="pp-field pp-span"><label class="pp-label" for="set-alerts">New callback requests alert</label>
+                    <select id="set-alerts" class="pp-input" formControlName="staffAlerts">
+                      <option value="admins">Admins, on WhatsApp</option><option value="everyone">Everyone on the team, on WhatsApp</option>
+                    </select></div>
+                </form>
+              }
+              @case ('app') {
+                <p class="pp-hint pp-settings-lead">The customer app uses these once it's connected to the backend.</p>
+                <form class="pp-form-grid" id="settings-form" [formGroup]="forms.app" (ngSubmit)="save()" novalidate>
+                  <div class="pp-field"><label class="pp-label" for="set-book">Book button text</label>
+                    <input id="set-book" class="pp-input" maxlength="20" formControlName="bookButtonText"
+                      [class.is-invalid]="forms.app.controls.bookButtonText.invalid && forms.app.controls.bookButtonText.touched"></div>
+                  <div class="pp-field"><span class="pp-label">Prices on the Services page</span>
+                    <span class="pp-settings-switch">
+                      <pp-switch label="Show prices on the Services page" [checked]="forms.app.controls.showPrices.value"
+                        (checkedChange)="forms.app.controls.showPrices.setValue($event); forms.app.markAsDirty()" />
+                      {{ forms.app.controls.showPrices.value ? 'Shown' : 'Hidden ("Ask for a price")' }}
+                    </span></div>
+                </form>
+              }
+            }
+
+            @if (simple(); as key) {
+              <div class="pp-editor-foot" [class.is-dirty]="forms[key].dirty">
+                <span class="pp-editor-dirty">@if (forms[key].dirty) { Unsaved changes }</span>
+                <button class="pp-btn pp-btn-sm" type="button" [disabled]="!forms[key].dirty" (click)="discard()">Discard</button>
+                <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" form="settings-form" [disabled]="saving() || !forms[key].dirty">
+                  @if (saving()) { Saving… } @else { Save changes }
+                </button>
+              </div>
+            }
+          </section>
+        }
+      }
+    }
+  </div>
+</div>

@@ -1,0 +1,53 @@
+<pp-page-header title="Payments" subtitle="Every payment link and what happened to it: bookings, plan renewals and, later, shop orders.">
+  <ng-container ppActions>
+    <label class="pp-sr-only" for="pay-period">Period</label>
+    <select id="pay-period" class="pp-select" [value]="periodKey()" (change)="setPeriod($event)">
+      @for (p of periods; track p.key) { <option [value]="p.key">{{ p.label }}</option> }
+    </select>
+    <button class="pp-btn" type="button" (click)="exportCsv()">Export CSV</button>
+  </ng-container>
+</pp-page-header>
+
+<div class="pp-stats">
+  @for (s of stats(); track s.label) { <pp-stat [label]="s.label" [value]="s.value" [sub]="s.sub" /> }
+</div>
+
+<pp-filter-tabs label="Payment status" [tabs]="tabs" [value]="tab()" (valueChange)="setTab($event)" />
+
+<div class="pp-table-wrap" [attr.aria-busy]="loading()">
+  <table class="pp-table pp-pay-table">
+    <thead>
+      <tr>
+        <th scope="col">Payment</th><th scope="col">For</th><th scope="col">Customer</th><th scope="col" class="pp-num">Amount</th>
+        <th scope="col">Status</th><th scope="col">Updated</th><th scope="col"><span class="pp-sr-only">Action</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (p of result()?.items ?? []; track p.id) {
+        <tr>
+          <td class="pp-strong pp-nowrap">{{ p.id }}</td>
+          <td class="pp-nowrap">
+            @if (p.kind === 'booking') { <a class="pp-strong" [routerLink]="['/bookings', p.reference]">{{ p.reference }}</a> }
+            @else { <span class="pp-strong">{{ p.reference }}</span> }
+            <span class="pp-table-sub">{{ p.item }}</span>
+          </td>
+          <td class="pp-nowrap"><a [routerLink]="['/customers', p.customer.id]">{{ p.customer.name }}</a></td>
+          <td class="pp-num pp-strong">{{ p.amountPaise | inr }}</td>
+          <td><pp-status-pill [label]="states[p.status].label" [tone]="states[p.status].tone" /></td>
+          <td class="pp-muted pp-nowrap">{{ whenLabel(p.at) }}</td>
+          <td class="pp-cta">
+            @if (canRefund() && p.refundable) {
+              <button class="pp-btn pp-btn-sm pp-btn-ghost pp-danger-text" type="button" [disabled]="busyId() === p.id" (click)="refund(p)">Refund</button>
+            }
+            <a class="pp-btn pp-btn-sm" [class.pp-btn-primary]="p.status === 'failed' || p.status === 'expired'" [routerLink]="target(p)">{{ actionLabel(p) }}</a>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (!loading() && !result()?.items?.length) { <p class="pp-table-empty">No payments in {{ period().label }} with this status.</p> }
+</div>
+
+@if (result(); as r) {
+  <pp-pagination [page]="r.page" [pageSize]="r.pageSize" [total]="r.total" (pageChange)="page.set($event)" />
+}

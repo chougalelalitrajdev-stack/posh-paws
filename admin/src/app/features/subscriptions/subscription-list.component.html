@@ -1,0 +1,51 @@
+<pp-page-header title="Subscriptions">
+  <button ppActions class="pp-btn" type="button" (click)="exportCsv()">Export CSV</button>
+</pp-page-header>
+<p class="pp-intro">Customers on a plan. Plan prices and benefits are set in <a routerLink="/plans">Membership plans</a>.</p>
+
+<div class="pp-stats">
+  @for (s of stats(); track s.label) { <pp-stat [label]="s.label" [value]="s.value" [sub]="s.sub" /> }
+</div>
+
+<pp-filter-tabs label="Subscription status" [tabs]="tabs()" [value]="tab()" (valueChange)="setTab($event)" />
+
+<div class="pp-table-wrap" [attr.aria-busy]="loading()">
+  <table class="pp-table pp-subs-table">
+    <thead>
+      <tr>
+        <th scope="col">Customer</th><th scope="col">Plan</th><th scope="col">Started</th><th scope="col">Renews / ended</th>
+        <th scope="col">Sessions this period</th><th scope="col">Status</th><th scope="col"><span class="pp-sr-only">Action</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (s of result()?.items ?? []; track s.id) {
+        <tr>
+          <td class="pp-nowrap"><a class="pp-strong" [routerLink]="['/customers', s.customer.id]">{{ s.customer.name }}</a><span class="pp-table-sub">{{ formatPhone(s.customer.phone) }}</span></td>
+          <td class="pp-nowrap">{{ s.planName }} · {{ s.pricePaise | inr }}</td>
+          <td class="pp-nowrap">{{ shortDate(s.startedOn) }}</td>
+          <td class="pp-nowrap" [class.pp-muted]="s.status === 'expired' || s.status === 'cancelled'">{{ period(s) }}</td>
+          <td>
+            <div class="pp-sessions-cell">
+              <div class="pp-meter pp-sessions"><div class="pp-meter-fill" [style.width]="usage(s).width"></div></div>
+              <span>{{ usage(s).text }}</span>
+            </div>
+          </td>
+          <td><pp-status-pill [label]="status(s).label" [tone]="status(s).tone" /></td>
+          <td class="pp-cta">
+            @let a = action(s);
+            <button class="pp-btn pp-btn-sm" type="button" [class.pp-btn-primary]="a.primary" [disabled]="busyId() === s.id" (click)="run(s)">{{ a.label }}</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (!loading() && !result()?.items?.length) { <p class="pp-table-empty">No subscriptions in this group.</p> }
+</div>
+
+@if (result(); as r) {
+  <pp-pagination [page]="r.page" [pageSize]="r.pageSize" [total]="r.total" (pageChange)="page.set($event)" />
+}
+
+@if (share(); as sh) {
+  <pp-share-dialog [title]="sh.title" [intro]="sh.intro" [phone]="sh.phone" [message]="sh.message" (closed)="share.set(null)" />
+}

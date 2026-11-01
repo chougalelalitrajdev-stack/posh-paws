@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { PROCESS_STEPS, SERVICE_HIGHLIGHTS, TESTIMONIALS, TRUST_PILLS } from '../constants/content.constants';
 import { PlanItem, ServiceItem } from '../models/catalog.model';
@@ -14,35 +15,20 @@ import { PetType } from '../models/pet.model';
 export class CatalogService {
   private http = inject(HttpClient);
 
-  private readonly _services = signal<ServiceItem[]>([]);
-  private readonly _plans = signal<PlanItem[]>([]);
-
-  readonly services = this._services.asReadonly();
-  readonly plans = this._plans.asReadonly();
+  /** Loaded once when the app starts; empty until then (or if the request fails, which shows a toast). */
+  readonly services = toSignal(this.http.get<ServiceItem[]>(API.services).pipe(catchError(() => of([]))), { initialValue: [] });
+  readonly plans = toSignal(this.http.get<PlanItem[]>(API.plans).pipe(catchError(() => of([]))), { initialValue: [] });
 
   readonly testimonials = TESTIMONIALS;
   readonly processSteps = PROCESS_STEPS;
   readonly serviceHighlights = SERVICE_HIGHLIGHTS;
   readonly trustPills = TRUST_PILLS;
 
-  constructor() {
-    void this.load();
-  }
-
   servicesFor(petType: PetType): ServiceItem[] {
-    return this._services().filter(s => s.petType === petType);
+    return this.services().filter(s => s.petType === petType);
   }
 
   serviceById(id: string | null): ServiceItem | undefined {
-    return this._services().find(s => s.id === id);
-  }
-
-  private async load(): Promise<void> {
-    const [services, plans] = await Promise.all([
-      firstValueFrom(this.http.get<ServiceItem[]>(API.services)),
-      firstValueFrom(this.http.get<PlanItem[]>(API.plans)),
-    ]);
-    this._services.set(services);
-    this._plans.set(plans);
+    return this.services().find(s => s.id === id);
   }
 }

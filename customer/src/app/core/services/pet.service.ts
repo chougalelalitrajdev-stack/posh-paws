@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, effect, inject, signal, untracked } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Observable, catchError, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
 import { Pet, PetDraft } from '../models/pet.model';
@@ -22,38 +23,35 @@ export class PetService {
   readonly loaded = this._loaded.asReadonly();
 
   constructor() {
-    effect(() => {
-      const userId = this.auth.user()?.id;
-      untracked(() => void this.load(userId));
-    });
+    // A new user cancels the previous user's request (switchMap), so pets never mix.
+    toObservable(this.auth.user).pipe(
+      map(user => user?.id ?? null),
+      distinctUntilChanged(),
+      tap(() => this._loaded.set(false)),
+      switchMap(userId => (userId ? this.fetch() : of([]))),
+      takeUntilDestroyed(),
+    ).subscribe(pets => this._pets.set(pets));
   }
 
   /** The pet dialog shows save errors itself, so no global toast. */
-  async add(draft: PetDraft): Promise<void> {
-    const pet = await firstValueFrom(this.http.post<Pet>(API.pets, draft, { context: withoutErrorAlert() }));
-    this._pets.update(list => [...list, pet]);
+  add(draft: PetDraft): Observable<Pet> {
+    return this.http.post<Pet>(API.pets, draft, { context: withoutErrorAlert() }).pipe(
+      tap(pet => this._pets.update(list => [...list, pet])),
+    );
   }
 
-  async update(pet: Pet): Promise<void> {
-    const saved = await firstValueFrom(this.http.put<Pet>(`${API.pets}/${pet.id}`, pet, { context: withoutErrorAlert() }));
-    this._pets.update(list => list.map(p => (p.id === saved.id ? saved : p)));
+  update(pet: Pet): Observable<Pet> {
+    return this.http.put<Pet>(`${API.pets}/${pet.id}`, pet, { context: withoutErrorAlert() }).pipe(
+      tap(saved => this._pets.update(list => list.map(p => (p.id === saved.id ? saved : p)))),
+    );
   }
 
-  private async load(userId: string | undefined): Promise<void> {
-    this._loaded.set(false);
-    if (!userId) {
-      this._pets.set([]);
-      return;
-    }
+  private fetch(): Observable<Pet[]> {
     this._loading.set(true);
-    try {
-      const pets = await firstValueFrom(this.http.get<Pet[]>(API.pets));
-      if (this.auth.user()?.id === userId) {
-        this._pets.set(pets);
-        this._loaded.set(true);
-      }
-    } finally {
-      this._loading.set(false);
-    }
+    return this.http.get<Pet[]>(API.pets).pipe(
+      tap(() => this._loaded.set(true)),
+      catchError(() => of([])), // the error interceptor has shown a toast
+      finalize(() => this._loading.set(false)),
+    );
   }
 }

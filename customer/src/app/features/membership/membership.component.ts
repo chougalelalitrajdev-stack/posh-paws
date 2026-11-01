@@ -1,5 +1,6 @@
 import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { filter } from 'rxjs';
 import { LoginDialogService } from '../../core/services/login-dialog.service';
 import { SubscribeDialogService } from '../../core/services/subscribe-dialog.service';
 import { CatalogService } from '../../core/services/catalog.service';
@@ -71,8 +72,7 @@ export class MembershipComponent {
   protected readonly perks = PERKS;
   protected readonly faq = FAQ;
 
-  async subscribeToPlan(plan: PlanItem): Promise<void> {
-    if (!(await this.login.ensureLoggedIn())) return;
-    this.subscribeDialog.open(plan);
+  subscribeToPlan(plan: PlanItem): void {
+    this.login.ensureLoggedIn().pipe(filter(Boolean)).subscribe(() => this.subscribeDialog.open(plan));
   }
 }

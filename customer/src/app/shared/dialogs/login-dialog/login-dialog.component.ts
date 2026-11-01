@@ -1,4 +1,5 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked, ChangeDetectionStrategy } from '@angular/core';
+import { Observable, finalize } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginDialogService } from '../../../core/services/login-dialog.service';
 import { OTP_LENGTH, PHONE_MIN_DIGITS } from '../../../core/constants/app.constants';
@@ -48,38 +49,30 @@ export class LoginDialogComponent {
     this.dialog.close();
   }
 
-  async submitPhone(): Promise<void> {
+  submitPhone(): void {
     if (!this.phoneValid()) return;
-    await this.run(async () => {
-      await this.auth.sendOtp(this.phoneInput());
+    this.run(this.auth.sendOtp(this.phoneInput()), () => {
       this.code.set('');
       this.dialog.goToOtp(this.phoneInput());
     });
   }
 
-  async submitCode(): Promise<void> {
+  submitCode(): void {
     if (!this.codeValid()) return;
-    await this.run(async () => {
-      const status = await this.auth.verifyOtp(this.dialog.phone(), this.code());
+    this.run(this.auth.verifyOtp(this.dialog.phone(), this.code()), status => {
       if (status === 'authenticated') this.dialog.complete();
       else this.dialog.goToProfile();
     });
   }
 
-  async submitProfile(): Promise<void> {
+  submitProfile(): void {
     if (!this.profileValid()) return;
-    await this.run(async () => {
-      const email = this.email().trim();
-      await this.auth.register(this.dialog.phone(), {
-        name: this.name().trim(),
-        ...(email && { email }),
-      });
-      this.dialog.complete();
-    });
+    const email = this.email().trim();
+    this.run(this.auth.register(this.dialog.phone(), { name: this.name().trim(), ...(email && { email }) }), () => this.dialog.complete());
   }
 
-  async resendCode(): Promise<void> {
-    await this.run(() => this.auth.sendOtp(this.dialog.phone()));
+  resendCode(): void {
+    this.run(this.auth.sendOtp(this.dialog.phone()), () => undefined);
   }
 
   changeNumber(): void {
@@ -103,17 +96,15 @@ export class LoginDialogComponent {
     this.email.set((e.target as HTMLInputElement).value);
   }
 
-  private async run(action: () => Promise<void>): Promise<void> {
+  /** Runs one request at a time; errors show inline in the dialog. */
+  private run<T>(request: Observable<T>, done: (value: T) => void): void {
     if (this.submitting()) return;
     this.submitting.set(true);
     this.error.set(null);
-    try {
-      await action();
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.submitting.set(false);
-    }
+    request.pipe(finalize(() => this.submitting.set(false))).subscribe({
+      next: done,
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   private resetForm(): void {

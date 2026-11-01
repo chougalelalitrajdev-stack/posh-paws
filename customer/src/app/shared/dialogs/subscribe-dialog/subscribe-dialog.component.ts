@@ -1,5 +1,6 @@
 import { Component, HostListener, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { timer } from 'rxjs';
 import { SubscribeDialogService } from '../../../core/services/subscribe-dialog.service';
 import { InrPipe } from '../../pipes/inr.pipe';
 
@@ -38,9 +39,9 @@ export class SubscribeDialogComponent {
     this.submitting.set(true);
 
     // No payment gateway exists yet — simulate the charge completing.
-    setTimeout(() => {
+    timer(700).subscribe(() => {
       this.submitting.set(false);
       this.dialog.markSubscribed();
-    }, 700);
+    });
   }
 }

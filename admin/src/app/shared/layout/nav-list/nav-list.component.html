@@ -22,6 +22,9 @@
   } @else {
     <a class="pp-nav-item" [routerLink]="item.path" routerLinkActive="active">
       <pp-icon [name]="item.icon" [size]="18" /><span class="pp-nav-text">{{ item.label }}</span>
+      @if (item.badge && badges()[item.badge]) {
+        <span class="pp-nav-count" [attr.aria-label]="badges()[item.badge] + ' new'">{{ badges()[item.badge] }}</span>
+      }
     </a>
   }
 </ng-template>
