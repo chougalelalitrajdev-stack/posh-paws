@@ -1,0 +1,41 @@
+<pp-page-header title="Requests" subtitle="Callback requests from the app and by phone, oldest first.">
+  <a ppActions class="pp-btn pp-btn-primary" routerLink="/bookings/new"><pp-icon name="plus" [size]="16" />New booking</a>
+</pp-page-header>
+
+<pp-filter-tabs label="Request status" [tabs]="tabs()" [(value)]="tab" />
+
+@if (loading()) {
+  <p class="pp-muted">Loading requests…</p>
+} @else {
+  <div class="pp-requests">
+    @for (r of shown(); track r.id) {
+      <article class="pp-card pp-request">
+        <div class="pp-request-head">
+          <span class="pp-request-who">
+            <strong>{{ r.customer.name }}</strong>
+            <span>{{ r.pet ? r.pet.name + (r.pet.breed ? ' · ' + r.pet.breed : '') : (r.request?.petNote ?? 'Pet not on file') }}</span>
+          </span>
+          @if (tab() === 'new') {
+            <pp-status-pill [label]="ageLabel(r.createdAt)" [tone]="urgent(r) ? 'danger' : 'info'" />
+          } @else {
+            <pp-status-pill [label]="outcomeLabel(r)" tone="neutral" />
+          }
+        </div>
+
+        <span class="pp-request-want">{{ r.request?.interestedIn ?? 'Not sure yet' }}</span>
+        @if (r.request?.bestTime) { <span class="pp-request-meta">Best time: {{ r.request?.bestTime }}</span> }
+        @if (r.request?.message) { <p class="pp-request-quote">“{{ r.request?.message }}”</p> }
+        <span class="pp-request-meta">{{ sources[r.source] }} · {{ whenLabel(r.createdAt) }} · {{ formatPhone(r.customer.phone) }}</span>
+
+        <div class="pp-request-actions">
+          <a class="pp-btn pp-btn-primary" [href]="telLink(r.customer.phone)"><pp-icon name="phone" [size]="16" />Call</a>
+          <a class="pp-btn" [routerLink]="'/bookings/new'" [queryParams]="{ from: r.id }">Start booking</a>
+        </div>
+      </article>
+    } @empty {
+      <div class="pp-card pp-empty">
+        {{ tab() === 'new' ? 'No new requests. Everyone has been called.' : 'No called requests waiting for a booking.' }}
+      </div>
+    }
+  </div>
+}

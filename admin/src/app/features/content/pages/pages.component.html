@@ -1,0 +1,85 @@
+<pp-page-header title="Pages & FAQs" subtitle="The words on the app's pages. Edit as a draft, then publish when it reads right." />
+@if (!canEdit()) { <p class="pp-intro pp-small">View only. Ask an Admin to change pages.</p> }
+
+<div class="pp-side-layout">
+  <nav class="pp-card pp-side-nav" aria-label="Pages">
+    <span class="pp-side-nav-label">Pages</span>
+    @for (p of pages(); track p.key) {
+      <button class="pp-side-nav-item" type="button" [class.active]="view() === p.key" [attr.aria-current]="view() === p.key ? 'page' : null" (click)="show(p.key)">
+        <span>{{ p.title }}</span>
+        @if (p.draft) { <pp-status-pill label="Draft" tone="draft" /> }
+      </button>
+    }
+    <span class="pp-side-nav-label">Help</span>
+    <button class="pp-side-nav-item" type="button" [class.active]="view() === 'faqs'" [attr.aria-current]="view() === 'faqs' ? 'page' : null" (click)="show('faqs')">
+      <span>FAQs</span><span class="pp-muted pp-small">{{ faqs().faqs.length }}</span>
+    </button>
+  </nav>
+
+  @if (view() === 'faqs') {
+    <pp-faq-list class="pp-side-main" [(data)]="faqs" [canEdit]="canEdit()" />
+  } @else if (page(); as p) {
+    <section class="pp-side-main" aria-labelledby="page-title">
+      <div class="pp-card pp-pages-status" [class.is-draft]="p.draft || form.dirty">
+        <span class="pp-pages-status-text">
+          @if (form.dirty) { <strong>Unsaved changes</strong> · }
+          @else if (p.draft) { <strong>Draft</strong> {{ draftLine() }} · }
+          <span class="pp-muted">{{ liveLine() }}</span>
+        </span>
+        <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" (click)="previewOpen.set(true)">Preview</button>
+        @if (canEdit()) {
+          @if (p.draft || form.dirty) { <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" [disabled]="busy()" (click)="discard()">Discard</button> }
+          <button class="pp-btn pp-btn-sm" type="button" [disabled]="busy() || !form.dirty" (click)="onSaveDraft()">Save draft</button>
+          <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busy() || (!p.draft && !form.dirty)" (click)="publish()">Publish</button>
+        }
+      </div>
+
+      <div class="pp-card pp-pages-editor">
+        <h2 id="page-title" class="pp-card-title">{{ p.title }}</h2>
+        @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+        <div class="pp-sections" [formGroup]="form" cdkDropList [cdkDropListDisabled]="!canEdit()" (cdkDropListDropped)="drop($event)">
+          <ng-container formArrayName="sections">
+            @for (s of sections.controls; track s; let i = $index) {
+              <div class="pp-section" cdkDrag [formGroupName]="i" [class.is-hidden]="!s.controls.visible.value">
+                <div class="pp-section-top">
+                  @if (canEdit()) {
+                    <button class="pp-section-handle" cdkDragHandle type="button" [id]="'section-handle-' + i"
+                      aria-label="Reorder section. Drag, or use the arrow keys." (keydown)="moveWithKeys($event, i)">⠿</button>
+                  }
+                  <span class="pp-section-kind">{{ s.controls.kind.value }}@if (!s.controls.visible.value) { · hidden }</span>
+                  @if (canEdit()) {
+                    <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" (click)="toggleVisible(s)">{{ s.controls.visible.value ? 'Hide section' : 'Show section' }}</button>
+                    @if (!s.controls.fixed.value) { <button class="pp-btn pp-btn-sm pp-btn-ghost pp-danger-text" type="button" (click)="removeSection(i)">Remove</button> }
+                  }
+                </div>
+                <div class="pp-field">
+                  <label class="pp-label" [for]="'section-heading-' + i">Heading</label>
+                  <input class="pp-input" type="text" [id]="'section-heading-' + i" formControlName="heading">
+                </div>
+                <div class="pp-field">
+                  <label class="pp-label" [for]="'section-body-' + i">Text</label>
+                  <textarea class="pp-input" rows="4" [id]="'section-body-' + i" formControlName="body" [attr.aria-describedby]="i === 0 ? 'body-hint' : null"></textarea>
+                </div>
+              </div>
+            }
+          </ng-container>
+        </div>
+        <p id="body-hint" class="pp-hint">Plain text. Leave a blank line between paragraphs.</p>
+        @if (canEdit()) { <button class="pp-btn pp-btn-sm pp-pages-add" type="button" (click)="addSection()">+ Add section</button> }
+      </div>
+    </section>
+  }
+</div>
+
+@if (previewOpen() && page(); as p) {
+  <pp-modal [title]="'Preview · ' + p.title" (closed)="previewOpen.set(false)">
+    <article class="pp-page-preview">
+      @for (s of visibleSections(); track $index) {
+        @if (s.heading) { <h3 class="pp-serif">{{ s.heading }}</h3> }
+        @for (para of paragraphs(s.body); track $index) { <p>{{ para }}</p> }
+      }
+    </article>
+    <button ppModalActions class="pp-btn" type="button" (click)="previewOpen.set(false)">Close</button>
+  </pp-modal>
+}

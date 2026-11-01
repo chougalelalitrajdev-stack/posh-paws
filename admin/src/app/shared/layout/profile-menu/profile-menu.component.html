@@ -1,7 +1,7 @@
 @if (auth.user(); as user) {
   <div ngbDropdown placement="bottom-end">
     <button ngbDropdownToggle class="pp-profile-btn" type="button" [attr.aria-label]="'Account menu for ' + user.name">
-      <span class="pp-avatar" aria-hidden="true">{{ initials() }}</span>
+      <pp-avatar [name]="user.name" size="sm" />
       <span class="pp-profile-name">{{ user.name }}</span>
       <pp-icon class="pp-profile-caret" name="chevronDown" [size]="16" />
     </button>

@@ -1,0 +1,69 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-offer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  @media (hover: hover) { &:hover { border-color: var(--pp-primary); } }
+  &.is-selected { border-color: var(--pp-primary); background: var(--pp-primary-tint); }
+  &.is-over .pp-offer-value { background: var(--pp-chip-bg); color: var(--pp-muted); }
+}
+
+// Big "20% off" tile at the start of each offer.
+.pp-offer-value {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  background: var(--pp-accent-light);
+  color: var(--pp-accent-text);
+  line-height: 1.1;
+
+  strong { font-family: var(--ff-serif); font-size: var(--fs-lg); }
+  span { font-size: var(--fs-xs); }
+}
+
+.pp-offer-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-px2);
+
+  > span { font-size: var(--fs-xs); color: var(--pp-muted); }
+}
+
+.pp-offer-main > .pp-offer-title { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); font-size: var(--fs-base); color: var(--pp-text); }
+
+.pp-offer-code { font-family: var(--ff-mono); font-weight: 600; color: var(--pp-text); }
+.pp-offer-empty { text-align: center; color: var(--pp-muted); }
+
+.pp-offer-code-row { display: flex; gap: var(--space-2); }
+.pp-offer-code-input { flex: 1; min-width: 0; font-family: var(--ff-mono); text-transform: uppercase; }
+
+.pp-offer-scope {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend { width: 100%; float: left; }
+}
+
+.pp-offer-later { color: var(--pp-subtle); cursor: default; }

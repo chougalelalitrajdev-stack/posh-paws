@@ -1,0 +1,34 @@
+.pp-activity { margin: 0; padding: 0; list-style: none; }
+
+.pp-activity-item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--pp-divider);
+
+  &:first-child { border-top: 0; }
+}
+
+.pp-activity-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: var(--space-1);
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pp-border-strong);
+
+  .is-request & { background: var(--pp-info); }
+  .is-call &, .is-details & { background: var(--pp-primary); }
+  .is-payment & { background: var(--pp-accent-dark); }
+  .is-status & { background: var(--pp-neutral); }
+}
+
+.pp-activity-text {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-sm);
+
+  span { color: var(--pp-muted); font-size: var(--fs-xs); }
+}
+
+.pp-activity-empty { font-size: var(--fs-sm); color: var(--pp-muted); }

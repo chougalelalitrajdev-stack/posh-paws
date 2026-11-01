@@ -1,0 +1,56 @@
+.pp-progress {
+  display: flex;
+  margin: 0;
+  padding: var(--space-4);
+  list-style: none;
+  overflow-x: auto;
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  background: var(--pp-card-bg);
+}
+
+.pp-progress-step {
+  flex: 1 0 120px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pp-progress-mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--pp-border-strong);
+  border-radius: 50%;
+  background: var(--pp-card-bg);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--pp-muted);
+
+  .is-done & { border-color: var(--pp-primary); background: var(--pp-primary); color: var(--pp-on-primary); }
+  .is-now & { border-color: var(--pp-accent-dark); background: var(--pp-accent-light); color: var(--pp-accent-text); }
+}
+
+.pp-progress-text {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+
+  strong { font-size: var(--fs-sm); }
+  span { color: var(--pp-muted); }
+  .is-later & strong { color: var(--pp-muted); }
+}
+
+.pp-progress-line {
+  flex: 1;
+  min-width: var(--space-4);
+  height: 2px;
+  margin: 0 var(--space-2);
+  background: var(--pp-border);
+
+  .is-done & { background: var(--pp-primary); }
+}

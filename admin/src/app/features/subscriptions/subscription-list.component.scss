@@ -1,0 +1,13 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-subs-table { min-width: 960px; }
+
+.pp-sessions-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+}
+
+.pp-sessions { width: 72px; height: 6px; }

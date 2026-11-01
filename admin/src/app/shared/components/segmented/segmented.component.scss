@@ -1,0 +1,26 @@
+.pp-segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  padding: var(--space-1);
+  border-radius: var(--radius);
+  background: var(--pp-surface-2);
+
+  button {
+    min-height: 36px;
+    padding: 0 var(--space-4);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--pp-muted);
+    font: inherit;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+
+    @media (pointer: coarse) { min-height: var(--tap-target-min); }
+
+    &.active { background: var(--pp-card-bg); color: var(--pp-text); box-shadow: var(--shadow-sm); }
+  }
+}

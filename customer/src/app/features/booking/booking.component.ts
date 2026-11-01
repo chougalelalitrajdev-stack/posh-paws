@@ -1,4 +1,6 @@
 import { Component, ChangeDetectionStrategy, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, filter, finalize, of, switchMap, tap, timer } from 'rxjs';
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -114,7 +116,9 @@ export class BookingComponent {
     }
   });
 
-  private slotRequest = 0;
+  /** Bump to fetch the slots again (after a 409, when the slot was just taken). */
+  private slotsVersion = signal(0);
+  private slotQuery = computed(() => ({ date: this.date(), serviceId: this.selectedService()?.id, version: this.slotsVersion() }));
 
   constructor() {
     effect(() => {
@@ -124,14 +128,20 @@ export class BookingComponent {
       untracked(() => this.reset(pet, service, petId));
     });
 
-    effect(() => {
-      const date = this.date();
-      const serviceId = this.selectedService()?.id;
-      untracked(() => void this.loadSlots(date, serviceId));
+    // A newer date or service cancels the older request (switchMap), so slots never show for the wrong day.
+    toObservable(this.slotQuery).pipe(
+      tap(() => this.slotsLoading.set(true)),
+      switchMap(({ date, serviceId }) =>
+        date && serviceId ? this.bookingService.getSlots(date, serviceId).pipe(catchError(() => of([]))) : of([])),
+      takeUntilDestroyed(),
+    ).subscribe(slots => {
+      this.slots.set(slots);
+      this.slotsLoading.set(false);
+      if (!slots.some(s => s.time === this.time() && s.available)) this.time.set(null);
     });
   }
 
-  async next(): Promise<void> {
+  next(): void {
     if (!this.canContinue()) return;
     this.error.set(null);
     switch (this.step()) {
@@ -139,7 +149,7 @@ export class BookingComponent {
         this.goTo('slot');
         break;
       case 'slot':
-        if (await this.loginDialog.ensureLoggedIn()) this.goTo('pet');
+        this.loginDialog.ensureLoggedIn().pipe(filter(Boolean)).subscribe(() => this.goTo('pet'));
         break;
       case 'pet':
         this.goTo('review');
@@ -148,7 +158,7 @@ export class BookingComponent {
         this.goTo('payment');
         break;
       case 'payment':
-        await this.payAndConfirm();
+        this.payAndConfirm();
         break;
     }
   }
@@ -182,58 +192,37 @@ export class BookingComponent {
     this.notes.set((e.target as HTMLTextAreaElement).value);
   }
 
-  private async payAndConfirm(): Promise<void> {
+  private payAndConfirm(): void {
     const service = this.selectedService();
     const pet = this.selectedPet();
     const date = this.date();
     const time = this.time();
     if (!service || !pet || !date || !time || this.submitting()) return;
 
+    const notes = this.notes().trim();
     this.submitting.set(true);
-    try {
-      // Dummy payment: no gateway yet, so wait briefly and treat the slot hold as paid.
-      await new Promise(resolve => setTimeout(resolve, DUMMY_PAYMENT_MS));
-      const notes = this.notes().trim();
-      const booking = await this.bookingService.book({
-        serviceId: service.id, petId: pet.id, date, time,
-        ...(notes && { notes }),
-      });
-      this.confirmed.set(booking);
-      this.paymentRef.set(`DEMO-${booking.id.slice(0, 8).toUpperCase()}`);
-      this.goTo('done');
-    } catch (e) {
-      if (e instanceof HttpErrorResponse && e.status === 409) {
-        // Someone else took the slot first: show fresh times.
-        this.error.set(errorMessage(e));
-        this.time.set(null);
-        void this.loadSlots(date, service.id);
-        this.goTo('slot');
-      } else {
-        this.error.set(errorMessage(e, 'Could not complete your booking. Please try again.'));
-      }
-    } finally {
-      this.submitting.set(false);
-    }
-  }
-
-  private async loadSlots(date: string | null, serviceId: string | undefined): Promise<void> {
-    const request = ++this.slotRequest;
-    if (!date || !serviceId) {
-      this.slots.set([]);
-      this.slotsLoading.set(false);
-      return;
-    }
-    this.slotsLoading.set(true);
-    try {
-      const slots = await this.bookingService.getSlots(date, serviceId);
-      if (request !== this.slotRequest) return;
-      this.slots.set(slots);
-      if (!slots.some(s => s.time === this.time() && s.available)) this.time.set(null);
-    } catch {
-      if (request === this.slotRequest) this.slots.set([]);
-    } finally {
-      if (request === this.slotRequest) this.slotsLoading.set(false);
-    }
+    // Dummy payment: no gateway yet, so wait briefly and treat the slot hold as paid.
+    timer(DUMMY_PAYMENT_MS).pipe(
+      switchMap(() => this.bookingService.book({ serviceId: service.id, petId: pet.id, date, time, ...(notes && { notes }) })),
+      finalize(() => this.submitting.set(false)),
+    ).subscribe({
+      next: booking => {
+        this.confirmed.set(booking);
+        this.paymentRef.set(`DEMO-${booking.id.slice(0, 8).toUpperCase()}`);
+        this.goTo('done');
+      },
+      error: e => {
+        if (e instanceof HttpErrorResponse && e.status === 409) {
+          // Someone else took the slot first: show fresh times.
+          this.error.set(errorMessage(e));
+          this.time.set(null);
+          this.slotsVersion.update(v => v + 1);
+          this.goTo('slot');
+        } else {
+          this.error.set(errorMessage(e, 'Could not complete your booking. Please try again.'));
+        }
+      },
+    });
   }
 
   /** Start over, prefilled from the link that opened the flow. */

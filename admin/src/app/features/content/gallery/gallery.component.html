@@ -1,0 +1,101 @@
+<pp-page-header title="Gallery" subtitle="Photos on the app's Gallery page. Drag to reorder; hidden photos stay here but don't show in the app.">
+  <button *ppHasRole="editors" ppActions class="pp-btn" type="button" (click)="openCategories()">Manage categories</button>
+</pp-page-header>
+
+@if (canEdit()) {
+  <label class="pp-gallery-drop" [class.is-dragging]="dragging()" (dragover)="onDragOver($event)" (dragleave)="dragging.set(false)" (drop)="onDrop($event)">
+    <pp-icon name="upload" [size]="24" />
+    @if (progress(); as p) {
+      <span>{{ p }}</span>
+    } @else {
+      <span>Drop photos here or <span class="pp-gallery-browse">choose files</span>. JPG, PNG or WebP up to 10 MB. New photos start hidden.</span>
+    }
+    <input class="pp-sr-only" type="file" multiple [accept]="accept" [disabled]="!!progress()" (change)="onPick($event)">
+  </label>
+  @if (uploadErrors().length) {
+    <div class="pp-alert pp-alert-error" role="alert">
+      @for (e of uploadErrors(); track $index) { <div>{{ e }}</div> }
+    </div>
+  }
+} @else {
+  <p class="pp-intro pp-small">View only. Ask an Admin to change the gallery.</p>
+}
+
+<pp-filter-tabs label="Category" [tabs]="tabs()" [value]="category()" (valueChange)="setCategory($event)" />
+
+@if (selectedIds().length) {
+  <div class="pp-gallery-toolbar" role="toolbar" aria-label="Selected photos">
+    <strong>{{ selectedIds().length }} selected</strong>
+    <button class="pp-btn pp-btn-sm" type="button" (click)="bulk('show')">Show in app</button>
+    <button class="pp-btn pp-btn-sm" type="button" (click)="bulk('hide')">Hide</button>
+    <label class="pp-sr-only" for="move-to">Move selected photos to</label>
+    <select id="move-to" class="pp-select pp-gallery-move" (change)="moveTo($event)">
+      <option value="">Move to…</option>
+      @for (c of data().categories; track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+    </select>
+    <button class="pp-btn pp-btn-sm pp-btn-danger" type="button" (click)="bulk('delete')">Delete</button>
+    <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" (click)="selectedIds.set([])">Clear</button>
+  </div>
+}
+
+@if (photos().length) {
+  <div class="pp-gallery-grid" cdkDropList cdkDropListOrientation="mixed" [cdkDropListData]="photos()" [cdkDropListDisabled]="!canEdit()" (cdkDropListDropped)="drop($event)">
+    @for (p of photos(); track p.id; let i = $index) {
+      <figure class="pp-photo" cdkDrag [class.is-selected]="isSelected(p.id)">
+        <div class="pp-photo-image">
+          <img [src]="p.imageUrl" [alt]="p.caption" loading="lazy">
+          @if (canEdit()) {
+            <label class="pp-photo-check">
+              <span class="pp-sr-only">Select {{ p.caption || 'photo' }}</span>
+              <input type="checkbox" [checked]="isSelected(p.id)" (change)="toggle(p.id)">
+            </label>
+          }
+          @if (!p.visible) { <span class="pp-photo-hidden">Hidden</span> }
+        </div>
+        <figcaption class="pp-photo-caption">
+          <span class="pp-photo-text">
+            <strong [class.pp-muted]="!p.caption">{{ p.caption || 'No caption yet' }}</strong>
+            <span>{{ categoryName().get(p.categoryId) }}@if (p.pet) { · {{ p.pet }} }</span>
+          </span>
+          @if (canEdit()) {
+            <button class="pp-icon-btn" cdkDragHandle type="button" [id]="'handle-' + p.id"
+              [attr.aria-label]="'Reorder ' + (p.caption || 'photo') + '. Drag, or use the arrow keys.'" (keydown)="moveWithKeys($event, i)">⠿</button>
+            <button class="pp-btn pp-btn-sm" type="button" (click)="editing.set(p)">Edit</button>
+          }
+        </figcaption>
+      </figure>
+    }
+  </div>
+} @else if (loaded()) {
+  <div class="pp-card pp-gallery-empty">
+    <strong>No photos in this category yet</strong>
+    <span class="pp-muted pp-small">@if (canEdit()) { Upload photos above, or move some here. }</span>
+  </div>
+}
+
+@if (editing(); as p) {
+  <pp-photo-dialog [photo]="p" [categories]="data().categories" (closed)="editing.set(null)" (saved)="onPhotoSaved($event)" (deleted)="onPhotoDeleted($event)" />
+}
+
+@if (categoriesOpen()) {
+  <pp-modal title="Manage categories" (closed)="categoriesOpen.set(false)">
+    <div class="pp-category-list">
+      @if (categoryError()) { <div class="pp-alert pp-alert-error" role="alert">{{ categoryError() }}</div> }
+      @for (c of categoryRows(); track $index; let i = $index) {
+        <div class="pp-category-row">
+          <label class="pp-sr-only" [for]="'category-' + i">Category {{ i + 1 }}</label>
+          <input class="pp-input" type="text" [id]="'category-' + i" [value]="c.name" (input)="renameCategory(i, $any($event.target).value)">
+          <span class="pp-muted pp-small pp-nowrap">{{ c.photoCount }} photo{{ c.photoCount === 1 ? '' : 's' }}</span>
+          <button class="pp-icon-btn" type="button" [disabled]="c.photoCount > 0" (click)="removeCategory(i)"
+            [attr.aria-label]="c.photoCount ? 'Move its photos before removing ' + c.name : 'Remove ' + (c.name || 'category')"
+            [title]="c.photoCount ? 'Move its photos first' : 'Remove'"><pp-icon name="close" /></button>
+        </div>
+      }
+      <button class="pp-link pp-small pp-category-add" type="button" (click)="addCategory()">+ Add category</button>
+    </div>
+    <button ppModalActions class="pp-btn" type="button" (click)="categoriesOpen.set(false)">Cancel</button>
+    <button ppModalActions class="pp-btn pp-btn-primary" type="button" [disabled]="savingCategories()" (click)="saveCategories()">
+      @if (savingCategories()) { Saving… } @else { Save categories }
+    </button>
+  </pp-modal>
+}

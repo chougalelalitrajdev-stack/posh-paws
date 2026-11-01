@@ -1,0 +1,40 @@
+<pp-modal title="Block time" (closed)="closed.emit()">
+  <form class="pp-block-form" id="block-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+    <div class="pp-block-grid">
+      <div class="pp-field">
+        <label class="pp-label" for="blk-station">Station</label>
+        <select id="blk-station" class="pp-input" formControlName="stationId">
+          @for (s of catalog.stations(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+        </select>
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="blk-date">Date</label>
+        <input id="blk-date" class="pp-input" type="date" [min]="minDate" formControlName="date">
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="blk-time">From</label>
+        <select id="blk-time" class="pp-input" formControlName="time">
+          @for (t of times; track t) { <option [value]="t">{{ t }}</option> }
+        </select>
+      </div>
+      <div class="pp-field">
+        <label class="pp-label" for="blk-duration">For</label>
+        <select id="blk-duration" class="pp-input" formControlName="durationMinutes">
+          @for (d of durations; track d.value) { <option [ngValue]="d.value">{{ d.label }}</option> }
+        </select>
+      </div>
+    </div>
+
+    <div class="pp-field">
+      <label class="pp-label" for="blk-reason">Reason <span class="pp-muted">(optional)</span></label>
+      <input id="blk-reason" class="pp-input" type="text" placeholder="e.g. Team meeting, deep clean" formControlName="reason">
+    </div>
+  </form>
+
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="block-form" [disabled]="saving()">
+    @if (saving()) { Saving… } @else { Block time }
+  </button>
+</pp-modal>

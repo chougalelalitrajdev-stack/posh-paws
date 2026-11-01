@@ -1,0 +1,33 @@
+<div class="pp-gs" [class.is-expanded]="expanded()" (focusout)="onFocusOut($event)">
+  <button class="pp-gs-toggle" type="button" aria-label="Search" (click)="expand()"><pp-icon name="search" [size]="20" /></button>
+
+  <div class="pp-gs-box">
+    <pp-icon name="search" [size]="18" />
+    <label class="pp-sr-only" for="gs-input">Search customers, phones, pets or booking IDs</label>
+    <input #input id="gs-input" type="search" autocomplete="off" placeholder="Search customer, phone, pet or booking ID"
+      role="combobox" aria-autocomplete="list" aria-controls="gs-list" [attr.aria-expanded]="showPanel()"
+      [attr.aria-activedescendant]="active() >= 0 ? 'gs-opt-' + active() : null"
+      (input)="onInput($event)" (keydown)="onKey($event)" (focus)="open.set(true)">
+    <kbd class="pp-gs-kbd" aria-hidden="true">/</kbd>
+    <button class="pp-gs-close" type="button" aria-label="Close search" (click)="close()"><pp-icon name="close" [size]="18" /></button>
+  </div>
+
+  @if (showPanel()) {
+    <div class="pp-gs-panel" id="gs-list" role="listbox" aria-label="Search results">
+      @if (searching()) {
+        <p class="pp-gs-note">Searching…</p>
+      } @else if (!options().length) {
+        <p class="pp-gs-note">No customers, pets or bookings match “{{ query().trim() }}”.</p>
+      } @else {
+        @for (o of options(); track $index) {
+          @if ($index === 0 || options()[$index - 1].group !== o.group) { <div class="pp-gs-group" role="presentation">{{ o.group }}</div> }
+          <a class="pp-gs-option" role="option" [id]="'gs-opt-' + $index" [class.active]="active() === $index" [attr.aria-selected]="active() === $index"
+            [routerLink]="o.link" [queryParams]="o.query ?? null" (click)="close()">
+            <strong>{{ o.title }}</strong><span>{{ o.sub }}</span>
+          </a>
+        }
+      }
+      <a class="pp-gs-all" routerLink="/customers" [queryParams]="{ q: query().trim() }" (click)="close()">See all customers matching “{{ query().trim() }}” →</a>
+    </div>
+  }
+</div>

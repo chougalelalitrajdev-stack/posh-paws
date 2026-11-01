@@ -60,19 +60,19 @@ Rules:
 - **Built-in control flow** (`@if`, `@for` with `track`, `@switch`); never `*ngIf`/`*ngFor`; don't import `CommonModule`.
 - **Functional guards/resolvers**; route params arrive as `input()` (router uses `withComponentInputBinding`).
 - **`host: {}`** for host bindings/listeners in new code.
-- **Async**: `async/await` with signals for one-shot work; RxJS only for real streams.
+- **Async (RxJS + signals)**: services return `Observable`s from `HttpClient`; state lives in signals (no `BehaviorSubject` unless a signal can't do it). Loads that depend on changing inputs use `toObservable(signal).pipe(switchMap(...))` so a newer request cancels the older one; to load again, bump a `version` signal that's part of the query. Button actions `subscribe` with `finalize` (busy flag) and `error` (inline message). Long-lived subscriptions use `takeUntilDestroyed()`. Non-HTTP waits are Observables too: `loginDialog.ensureLoggedIn()` emits true/false, pretend delays use `timer()`.
 - **Pages are thin**: shared content (services, plans, testimonials, process steps) comes from `CatalogService`; page-specific copy (e.g. About values, Membership FAQ) may stay in the page, but the moment a second page needs it, move it to the catalog. Repeated markup becomes a `shared/components` component.
 - **Money is paise** (integer). Format with the `inr` pipe; durations with the `duration` pipe. Never store "₹1,200" strings.
 
 ## Data, API & errors
 
-- **Services call the API directly** with `HttpClient` + `firstValueFrom`, using URLs from `core/constants/api-endpoints.ts`, and hold results in signals (expose with `.asReadonly()`). Components never call `HttpClient`.
+- **Services call the API directly** with `HttpClient`, return `Observable`s (cache updates in `tap`), use URLs from `core/constants/api-endpoints.ts`, and hold results in signals (expose with `.asReadonly()`, or `toSignal` for load-once data). Components never call `HttpClient`. An Observable does nothing until subscribed: every call site subscribes.
 - **API contract** (camelCase JSON, money in paise, `{ "detail": "..." }` errors) is in the root `../CLAUDE.md`. Models in `core/models` mirror it.
 - **Mocks:** while `environment.useMocks` is true, `core/mocks/mock.interceptor.ts` answers every API call from localStorage (demo OTP `123456`). Add a mock route whenever you add an endpoint. When the FastAPI endpoint exists, nothing in services or pages changes.
 - **Errors:** the error interceptor turns every failed request into a toast (`AlertService`) and logs the user out on 401. If a screen shows the error itself, the service passes `{ context: withoutErrorAlert() }` and the component shows `errorMessage(e)` inline. `GlobalErrorHandler` toasts anything uncaught (it ignores HTTP errors, already reported).
 - **State:** global state in root services (user, alerts, loading, catalog), feature state in the domain service (my pets, my bookings), screen state in component signals. No NgRx.
 - **Loading:** the loading interceptor drives the top progress bar (`pp-loader`); components use their own `loading` signals for inline spinners.
-- **Login:** features needing login call `await loginDialog.ensureLoggedIn()` (or use `authGuard`). They never touch login UI state.
+- **Login:** features needing login call `loginDialog.ensureLoggedIn().pipe(filter(Boolean)).subscribe(...)` (or use `authGuard`). They never touch login UI state.
 - **Global dialogs:** state lives in a small service in `core/services` (`providedIn: 'root'`); the component (mounted once in `app.html`) owns any async work. The call/callback `BookingDialogService` dialog is parked: its calls are commented out where "Book" buttons now `router.navigate(['/book'], { queryParams })`.
 
 ## Shared components (`src/app/shared/components`)

@@ -1,0 +1,47 @@
+// A page with its own list of sections on the left (Pages & FAQs, Message templates, Settings).
+// The list stacks above the content below 768px.
+.pp-side-layout { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-start; }
+.pp-side-main { flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-side-nav {
+  flex: 1 1 220px;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+
+  @media (max-width: 767.98px) { max-width: none; }
+}
+
+.pp-side-nav-label {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--pp-muted);
+}
+
+.pp-side-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--tap-target-min);
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+
+  // Second line under the name (Settings).
+  small { display: block; font-size: var(--fs-xs); font-weight: 400; color: var(--pp-muted); }
+  &.active { background: var(--pp-primary-tint); font-weight: 700; }
+  @media (hover: hover) { &:hover:not(.active) { background: var(--pp-surface); } }
+}

@@ -1,0 +1,16 @@
+:host { display: block; }
+
+.pp-stat {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  background: var(--pp-card-bg);
+}
+
+.pp-stat-label { font-size: var(--fs-sm); font-weight: 600; color: var(--pp-muted); }
+.pp-stat-value { font-family: var(--ff-serif); font-size: var(--fs-2xl); font-weight: 500; line-height: 1.15; }
+.pp-stat-sub { font-size: var(--fs-xs); color: var(--pp-muted); }

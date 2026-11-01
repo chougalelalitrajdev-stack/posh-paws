@@ -1,0 +1,9 @@
+<ol class="pp-progress" aria-label="Booking progress">
+  @for (p of steps(); track p.label; let last = $last) {
+    <li class="pp-progress-step" [class]="'is-' + p.state" [attr.aria-current]="p.state === 'now' ? 'step' : null">
+      <span class="pp-progress-mark" aria-hidden="true">@if (p.state === 'done') { ✓ } @else { {{ $index + 1 }} }</span>
+      <span class="pp-progress-text"><strong>{{ p.label }}</strong><span>{{ p.time }}</span></span>
+      @if (!last) { <span class="pp-progress-line" aria-hidden="true"></span> }
+    </li>
+  }
+</ol>

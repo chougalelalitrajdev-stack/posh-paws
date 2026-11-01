@@ -8,7 +8,8 @@
 //   !important       fight with the cascade                        -> fix the order/specificity
 //   raw font size    px/rem font-size up to 40px                   -> use var(--fs-*)
 //   raw spacing      padding/margin/gap with a px value            -> use var(--space-*)
-//   duplicate class  same top-level class in 2+ component files    -> move to shared/ui or src/styles
+//   duplicate class  same top-level class in 2+ files (components, or a component and src/styles)
+//                                                                  -> reuse the shared one or rename
 import { readdirSync, readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
@@ -40,7 +41,7 @@ for (const file of files) {
     if (fs && parseFloat(fs[1]) * (fs[2] === 'rem' ? 16 : 1) <= 40) found['raw font size'].push(at);
     if (/(padding|margin|gap)[a-z-]*:[^;]*\b\d+px/.test(line) && !/calc\(/.test(line)) found['raw spacing'].push(at);
     const top = line.match(/^\.([a-z][\w-]*)\b[^{]*\{/);
-    if (top && rel.startsWith('src/app/') ) {
+    if (top && (rel.startsWith('src/app/') || rel.startsWith('src/styles/'))) {
       const owners = classOwners.get(top[1]) ?? new Set();
       owners.add(rel);
       classOwners.set(top[1], owners);

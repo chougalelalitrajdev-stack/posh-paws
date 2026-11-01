@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { STORAGE_KEYS } from '../constants/storage-keys';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
@@ -33,22 +33,22 @@ export class AuthService {
     return !!role && roles.includes(role);
   }
 
-  async login(email: string, password: string, remember: boolean): Promise<void> {
-    const res = await firstValueFrom(
-      this.http.post<AuthResponse>(API.auth.login, { email: email.trim().toLowerCase(), password }, { context: withoutErrorAlert() }),
+  login(email: string, password: string, remember: boolean): Observable<void> {
+    return this.http.post<AuthResponse>(API.auth.login, { email: email.trim().toLowerCase(), password }, { context: withoutErrorAlert() }).pipe(
+      tap(res => {
+        this.clearStorage();
+        this.storage = remember ? localStorage : sessionStorage;
+        this._token = res.token;
+        this._user.set(res.user);
+        writeJson(STORAGE_KEYS.authToken, res.token, this.storage);
+        writeJson(STORAGE_KEYS.authUser, res.user, this.storage);
+      }),
+      map(() => undefined),
     );
-    this.clearStorage();
-    this.storage = remember ? localStorage : sessionStorage;
-    this._token = res.token;
-    this._user.set(res.user);
-    writeJson(STORAGE_KEYS.authToken, res.token, this.storage);
-    writeJson(STORAGE_KEYS.authUser, res.user, this.storage);
   }
 
-  async requestPasswordReset(email: string): Promise<void> {
-    await firstValueFrom(
-      this.http.post(API.auth.forgotPassword, { email: email.trim().toLowerCase() }, { context: withoutErrorAlert() }),
-    );
+  requestPasswordReset(email: string): Observable<void> {
+    return this.http.post<void>(API.auth.forgotPassword, { email: email.trim().toLowerCase() }, { context: withoutErrorAlert() });
   }
 
   logout(): void {

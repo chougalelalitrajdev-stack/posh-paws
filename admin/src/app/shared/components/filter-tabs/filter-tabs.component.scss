@@ -1,0 +1,40 @@
+.pp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.pp-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--pp-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+
+  @media (pointer: coarse) { min-height: var(--tap-target-min); }
+
+  &:hover { border-color: var(--pp-primary); }
+
+  &.active {
+    border-color: var(--pp-primary-dark);
+    background: var(--pp-primary-dark);
+    color: var(--pp-on-primary);
+
+    .pp-tab-count { background: var(--pp-sidebar-active); }
+  }
+}
+
+.pp-tab-count {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--pp-chip-bg);
+  font-size: var(--fs-xs);
+}

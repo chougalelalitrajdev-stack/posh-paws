@@ -1,0 +1,135 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-plan-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-3); }
+
+.pp-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+
+  @media (hover: hover) { &:hover { border-color: var(--pp-primary); } }
+  &.active { border-color: var(--pp-primary); box-shadow: 0 0 0 3px var(--pp-focus-ring); }
+}
+
+.pp-plan-card-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); strong { font-size: var(--fs-lg); } }
+
+.pp-plan-layout { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-start; }
+.pp-plan-editor { flex: 2 1 520px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.pp-plan-form { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.pp-benefits { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.pp-benefit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+}
+
+.pp-benefit-handle {
+  width: 28px;
+  height: var(--tap-target-min);
+  border: 0;
+  background: transparent;
+  color: var(--pp-subtle);
+  cursor: grab;
+}
+
+.pp-benefit-text {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--pp-text);
+  font: inherit;
+  font-size: var(--fs-sm);
+
+  &:focus { outline: none; border-color: var(--pp-primary); background: var(--pp-card-bg); }
+  &.is-off { color: var(--pp-muted); }
+}
+
+.pp-benefit-state { font-size: var(--fs-xs); color: var(--pp-muted); white-space: nowrap; @media (max-width: 575.98px) { display: none; } }
+.pp-benefit-remove { width: 36px; height: 36px; border-color: transparent; color: var(--pp-muted); }
+
+.pp-plan-checks { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-6); }
+
+// ── Preview ───────────────────────────────────────────────────
+.pp-plan-preview {
+  flex: 1 1 280px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  @media (min-width: 992px) { position: sticky; top: var(--space-4); }
+}
+
+.pp-preview-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  background: var(--pp-card-bg);
+
+  &.is-featured { border-color: var(--pp-primary); }
+}
+
+.pp-preview-badge {
+  position: absolute;
+  top: calc(-1 * var(--space-3));
+  left: var(--space-5);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--pp-primary);
+  color: var(--pp-on-primary);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.pp-preview-name { font-family: var(--ff-serif); font-size: var(--fs-2xl); font-weight: 500; }
+.pp-preview-price { display: flex; align-items: baseline; gap: var(--space-1); margin: var(--space-2) 0; > span:first-child { font-family: var(--ff-serif); font-size: var(--fs-3xl); } }
+
+.pp-preview-benefit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--fs-sm);
+
+  &.is-off { color: var(--pp-muted); text-decoration: line-through; }
+}
+
+.pp-preview-mark {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: var(--fs-xs);
+  background: var(--pp-primary-light);
+  color: var(--pp-primary-dark);
+
+  .is-off & { background: var(--pp-chip-bg); color: var(--pp-muted); }
+}
+
+.pp-preview-cta { margin-top: var(--space-3); pointer-events: none; }

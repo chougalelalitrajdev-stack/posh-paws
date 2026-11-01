@@ -1,0 +1,13 @@
+<section class="pp-step" [attr.aria-label]="'Step ' + number() + ': ' + title()">
+  <div class="pp-step-head">
+    <span class="pp-step-num" aria-hidden="true">@if (state() === 'done') { ✓ } @else { {{ number() }} }</span>
+    <h2 class="pp-step-title">{{ title() }}</h2>
+    @if (state() === 'done') {
+      <span class="pp-step-summary">{{ summary() }}</span>
+      <button class="pp-link" type="button" (click)="change.emit()">Change</button>
+    }
+  </div>
+  @if (state() === 'open') {
+    <div class="pp-step-body"><ng-content /></div>
+  }
+</section>

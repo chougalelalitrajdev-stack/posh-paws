@@ -1,0 +1,30 @@
+<pp-modal [title]="customer() ? 'Edit customer' : 'Add customer'" (closed)="closed.emit()">
+  <form class="pp-form-grid" id="customer-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+
+    <div class="pp-field pp-span">
+      <label class="pp-label" for="cust-name">Name</label>
+      <input id="cust-name" class="pp-input" type="text" autocomplete="off" formControlName="name" [class.is-invalid]="invalid('name')">
+      @if (invalid('name')) { <p class="pp-field-error">Enter the customer's name.</p> }
+    </div>
+    <div class="pp-field">
+      <label class="pp-label" for="cust-phone">Mobile number</label>
+      <input id="cust-phone" class="pp-input" type="tel" inputmode="tel" formControlName="phone" [class.is-invalid]="invalid('phone')">
+      @if (invalid('phone')) { <p class="pp-field-error">Enter a 10-digit mobile number.</p> }
+    </div>
+    <div class="pp-field">
+      <label class="pp-label" for="cust-email">Email <span class="pp-muted">(optional)</span></label>
+      <input id="cust-email" class="pp-input" type="email" formControlName="email" [class.is-invalid]="invalid('email')">
+      @if (invalid('email')) { <p class="pp-field-error">That email doesn't look right.</p> }
+    </div>
+    <div class="pp-field pp-span">
+      <label class="pp-label" for="cust-area">Area <span class="pp-muted">(optional)</span></label>
+      <input id="cust-area" class="pp-input" type="text" placeholder="e.g. Viman Nagar, Pune" formControlName="area">
+    </div>
+  </form>
+
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="customer-form" [disabled]="saving()">
+    @if (saving()) { Saving… } @else { {{ customer() ? 'Save changes' : 'Add customer' }} }
+  </button>
+</pp-modal>

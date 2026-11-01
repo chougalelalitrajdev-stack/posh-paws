@@ -1,0 +1,9 @@
+<div class="pp-modal-backdrop" (click)="closed.emit()"></div>
+<div #dialog class="pp-modal" role="dialog" aria-modal="true" [attr.aria-label]="title()" tabindex="-1">
+  <div class="pp-modal-head">
+    <h2 class="pp-modal-title">{{ title() }}</h2>
+    <button class="pp-icon-btn" type="button" aria-label="Close" (click)="closed.emit()"><pp-icon name="close" /></button>
+  </div>
+  <div class="pp-modal-body"><ng-content /></div>
+  <div class="pp-modal-actions"><ng-content select="[ppModalActions]" /></div>
+</div>

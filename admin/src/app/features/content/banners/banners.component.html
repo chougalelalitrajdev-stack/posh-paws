@@ -1,0 +1,119 @@
+<pp-page-header title="Banners" subtitle="Pick where a banner appears in the app, then schedule it. The first live banner in each spot is shown.">
+  <button *ppHasRole="editors" ppActions class="pp-btn pp-btn-primary" type="button" (click)="add()">New banner</button>
+</pp-page-header>
+@if (!canEdit()) { <p class="pp-intro pp-small">View only. Ask an Admin to change banners.</p> }
+
+<pp-filter-tabs label="Placement" [tabs]="tabs()" [value]="placement()" (valueChange)="setPlacement($event)" />
+
+<div class="pp-banner-layout">
+  <div class="pp-banner-main">
+    <div class="pp-card pp-banner-list" cdkDropList [cdkDropListData]="rows()" [cdkDropListDisabled]="!canEdit()" (cdkDropListDropped)="drop($event)">
+      @for (b of rows(); track b.id; let i = $index) {
+        <div class="pp-banner-row" cdkDrag [class.is-selected]="selectedId() === b.id && !adding()">
+          @if (canEdit()) {
+            <button class="pp-banner-handle" cdkDragHandle type="button" [id]="'handle-' + b.id"
+              [attr.aria-label]="'Reorder ' + b.title + '. Drag, or use the arrow keys.'" (keydown)="moveWithKeys($event, i)">⠿</button>
+          }
+          <span class="pp-banner-thumb" aria-hidden="true">@if (b.desktopImageUrl || b.imageUrl; as src) { <img [src]="src" alt=""> }</span>
+          <button class="pp-banner-name" type="button" [attr.aria-pressed]="selectedId() === b.id" (click)="select(b)">
+            <strong>{{ b.title }}</strong>
+            <span>{{ datesLabel(b) }} · opens {{ linkLabel(b.link) }}</span>
+          </button>
+          <pp-status-pill [label]="statuses[b.status].label" [tone]="statuses[b.status].tone" />
+        </div>
+      } @empty {
+        <p class="pp-banner-empty">No banners here yet.@if (canEdit()) { Use New banner to add one. }</p>
+      }
+    </div>
+
+    @if (selected() || adding()) {
+      <section #editor class="pp-card pp-banner-editor" aria-labelledby="banner-title">
+        <div class="pp-card-head">
+          <h2 id="banner-title" class="pp-card-title">{{ adding() ? 'New banner' : canEdit() ? 'Edit banner' : selected()!.title }}</h2>
+          @if (selected(); as b) { <pp-status-pill [label]="statuses[b.status].label" [tone]="statuses[b.status].tone" /> }
+        </div>
+
+        <form class="pp-form-grid" id="banner-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+          @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+          <div class="pp-field pp-span">
+            <label class="pp-label" for="banner-title-input">Title</label>
+            <input id="banner-title-input" class="pp-input" type="text" formControlName="title" [maxlength]="titleMax" aria-describedby="banner-title-hint"
+              [class.is-invalid]="form.controls.title.invalid && form.controls.title.touched">
+            <span id="banner-title-hint" class="pp-hint">{{ value().title.length }} / {{ titleMax }}</span>
+          </div>
+          <div class="pp-field pp-span">
+            <label class="pp-label" for="banner-subtitle">Subtitle</label>
+            <input id="banner-subtitle" class="pp-input" type="text" formControlName="subtitle">
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="banner-cta">Button text</label>
+            <input id="banner-cta" class="pp-input" type="text" formControlName="buttonText"
+              [class.is-invalid]="form.controls.buttonText.invalid && form.controls.buttonText.touched">
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="banner-link">Button opens</label>
+            <select id="banner-link" class="pp-input" formControlName="link">
+              @for (l of links; track l.value) { <option [value]="l.value">{{ l.label }}</option> }
+            </select>
+          </div>
+          <pp-image-upload label="Image for phones" hint="Portrait, 1080 × 1350." aspect="4 / 5" [maxSide]="sizes.bannerPhone"
+            [url]="value().imageUrl" (urlChange)="setImage('imageUrl', $event)" [disabled]="!canEdit()" />
+          <pp-image-upload label="Image for desktop" hint="Wide, 1920 × 720." aspect="8 / 3" [maxSide]="sizes.bannerDesktop"
+            [url]="value().desktopImageUrl" (urlChange)="setImage('desktopImageUrl', $event)" [disabled]="!canEdit()" />
+          <div class="pp-field">
+            <label class="pp-label" for="banner-starts">Show from</label>
+            <input id="banner-starts" class="pp-input" type="date" formControlName="startsOn"
+              [class.is-invalid]="form.controls.startsOn.invalid && form.controls.startsOn.touched">
+          </div>
+          <div class="pp-field">
+            <label class="pp-label" for="banner-ends">Until</label>
+            <input id="banner-ends" class="pp-input" type="date" formControlName="endsOn" [min]="value().startsOn" aria-describedby="banner-ends-hint">
+            <span id="banner-ends-hint" class="pp-hint">Empty = keeps showing.</span>
+          </div>
+          <div class="pp-field pp-span">
+            <label class="pp-label" for="banner-placement">Shown on</label>
+            <select id="banner-placement" class="pp-input" formControlName="placement">
+              @for (p of placements; track p.value) { <option [value]="p.value">{{ p.label }}</option> }
+            </select>
+          </div>
+        </form>
+
+        @if (canEdit()) {
+          <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
+            @if (selected(); as b) {
+              <button class="pp-btn pp-btn-sm pp-btn-ghost pp-danger-text" type="button" (click)="remove()">Delete</button>
+              @if (b.status === 'paused') { <button class="pp-btn pp-btn-sm" type="button" (click)="setPaused(false)">Resume</button> }
+              @else if (b.status !== 'ended') { <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" (click)="setPaused(true)">Pause</button> }
+            }
+            <span class="pp-editor-dirty">@if (form.dirty) { Unsaved changes }</span>
+            <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty && !adding()" (click)="discard()">Discard</button>
+            <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" form="banner-form" [disabled]="saving() || (!form.dirty && !adding())">
+              @if (saving()) { Saving… } @else { Save }
+            </button>
+          </div>
+        }
+      </section>
+    }
+  </div>
+
+  <aside class="pp-banner-preview" aria-label="Preview">
+    <span class="pp-label">Preview · {{ placementLabel() }}</span>
+    <div class="pp-phone" aria-hidden="true">
+      <div class="pp-phone-screen">
+        <div class="pp-phone-bar"><span class="pp-serif">Posh Paws</span><span class="pp-phone-book">Book now</span></div>
+        <div class="pp-phone-body">
+          <div class="pp-preview-banner">
+            @if (value().imageUrl; as src) { <img [src]="src" alt=""> }
+            <div class="pp-preview-text">
+              <strong class="pp-serif">{{ value().title || 'Banner title' }}</strong>
+              @if (value().subtitle) { <span>{{ value().subtitle }}</span> }
+              <span class="pp-banner-cta">{{ value().buttonText || 'Button' }}</span>
+            </div>
+          </div>
+          <span class="pp-phone-line"></span>
+          <span class="pp-phone-line is-short"></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
