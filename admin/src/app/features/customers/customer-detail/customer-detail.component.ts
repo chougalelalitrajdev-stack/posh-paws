@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { EMPTY, catchError, finalize, forkJoin, of, switchMap, tap } from 'rxjs';
 import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { ActivityEntry, Booking } from '../../../core/models/booking.model';
 import { Customer, CustomerPet } from '../../../core/models/customer.model';
@@ -96,21 +98,39 @@ export class CustomerDetailComponent {
     return { used, total: plan.sessionsTotal, width: `${(used / plan.sessionsTotal) * 100}%` };
   });
 
+  /** The open customer and tab; Payments and Activity load the first time their tab opens. */
+  private lazyTab = computed(() => ({ id: this.customer()?.id ?? null, tab: this.tab() }), {
+    equal: (a, b) => a.id === b.id && a.tab === b.tab,
+  });
+
   constructor() {
-    effect(() => {
-      const id = this.id();
-      untracked(() => void this.load(id));
+    // Opening another customer cancels the previous one's requests (switchMap).
+    toObservable(this.id).pipe(
+      tap(() => {
+        this.customer.set(null);
+        this.payments.set(null);
+        this.activity.set(null);
+        this.tab.set('overview');
+      }),
+      switchMap(id => forkJoin({
+        customer: this.customerService.get(id),
+        bookings: this.bookingService.list({ customerId: id, pageSize: 200 }),
+      }).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(result => {
+      if (!result) return;
+      this.customer.set(result.customer);
+      this.bookings.set(result.bookings.items);
     });
-    // Payments and activity load the first time their tab opens.
-    effect(() => {
-      const tab = this.tab();
-      const id = this.customer()?.id;
-      if (!id) return;
-      untracked(() => {
-        if (tab === 'payments' && !this.payments()) void this.customerService.payments(id).then(p => this.payments.set(p));
-        if (tab === 'activity' && !this.activity()) void this.customerService.activity(id).then(a => this.activity.set(a));
-      });
-    });
+
+    toObservable(this.lazyTab).pipe(
+      switchMap(({ id, tab }) => {
+        if (id && tab === 'payments' && !this.payments()) return this.customerService.payments(id).pipe(tap(p => this.payments.set(p)), catchError(() => EMPTY));
+        if (id && tab === 'activity' && !this.activity()) return this.customerService.activity(id).pipe(tap(a => this.activity.set(a)), catchError(() => EMPTY));
+        return EMPTY;
+      }),
+      takeUntilDestroyed(),
+    ).subscribe();
   }
 
   protected petLine(p: CustomerPet): string {
@@ -137,39 +157,27 @@ export class CustomerDetailComponent {
     this.alert.success('Customer details saved.');
   }
 
-  async onPetSaved(): Promise<void> {
+  onPetSaved(): void {
     const wasEditing = !!this.petDialog();
     this.petDialog.set(undefined);
-    this.customer.set(await this.customerService.get(this.id()));
-    this.alert.success(wasEditing ? 'Pet saved.' : 'Pet added.');
+    this.customerService.get(this.id()).subscribe(c => {
+      this.customer.set(c);
+      this.alert.success(wasEditing ? 'Pet saved.' : 'Pet added.');
+    });
   }
 
-  async saveNote(): Promise<void> {
+  saveNote(): void {
     const text = this.noteDraft();
     if (text === null) return;
     this.savingNote.set(true);
-    try {
-      this.customer.set(await this.customerService.saveNote(this.id(), text));
+    this.customerService.saveNote(this.id(), text).pipe(finalize(() => this.savingNote.set(false))).subscribe(c => {
+      this.customer.set(c);
       this.noteDraft.set(null);
-    } finally {
-      this.savingNote.set(false);
-    }
+    });
   }
 
   onNoteInput(e: Event): void {
     this.noteDraft.set((e.target as HTMLTextAreaElement).value);
   }
 
-  private async load(id: string): Promise<void> {
-    this.customer.set(null);
-    this.payments.set(null);
-    this.activity.set(null);
-    this.tab.set('overview');
-    const [customer, bookings] = await Promise.all([
-      this.customerService.get(id),
-      this.bookingService.list({ customerId: id, pageSize: 200 }),
-    ]);
-    this.customer.set(customer);
-    this.bookings.set(bookings.items);
-  }
 }

@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { Observable, finalize, of, switchMap, tap } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../../core/constants/app.constants';
 import { FaqData, PageKey, PageSection, SitePage } from '../../../core/models/page.model';
 import { AlertService } from '../../../core/services/alert.service';
@@ -54,8 +55,11 @@ export class PagesComponent {
   });
 
   constructor() {
-    void this.load();
-    void this.pageService.faqs().then(d => this.faqs.set(d));
+    this.pageService.pages().subscribe(pages => {
+      this.pages.set(pages);
+      this.fill();
+    });
+    this.pageService.faqs().subscribe(d => this.faqs.set(d));
   }
 
   get sections(): FormArray<SectionGroup> {
@@ -112,42 +116,38 @@ export class PagesComponent {
     setTimeout(() => document.getElementById(`section-handle-${to}`)?.focus());
   }
 
-  async saveDraft(): Promise<boolean> {
+  onSaveDraft(): void {
     const p = this.page();
-    if (!p || this.busy()) return false;
+    if (!p || this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
-    try {
-      this.replace(await this.pageService.saveDraft(p.key, this.sections.getRawValue()));
-      this.fill();
-      return true;
-    } catch (e) {
-      this.error.set(errorMessage(e));
-      return false;
-    } finally {
-      this.busy.set(false);
-    }
+    this.saveDraft(p).pipe(finalize(() => this.busy.set(false))).subscribe({
+      next: () => this.alert.success('Draft saved. Customers still see the live version.'),
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
-  async onSaveDraft(): Promise<void> {
-    if (await this.saveDraft()) this.alert.success('Draft saved. Customers still see the live version.');
-  }
-
+  /** Saves unsaved edits as the draft first, then publishes the draft. */
   async publish(): Promise<void> {
     const p = this.page();
-    if (!p) return;
+    if (!p || this.busy()) return;
     const ok = await this.confirm.ask({
       title: `Publish ${p.title}?`, message: 'Customers see these words in the app from now on.', confirmLabel: 'Publish',
     });
-    if (!ok || (this.form.dirty && !(await this.saveDraft()))) return;
+    if (!ok) return;
     this.busy.set(true);
-    try {
-      this.replace(await this.pageService.publish(p.key));
-      this.fill();
-      this.alert.success(`${p.title} published.`);
-    } finally {
-      this.busy.set(false);
-    }
+    this.error.set(null);
+    (this.form.dirty ? this.saveDraft(p) : of(p)).pipe(
+      switchMap(() => this.pageService.publish(p.key)),
+      finalize(() => this.busy.set(false)),
+    ).subscribe({
+      next: page => {
+        this.replace(page);
+        this.fill();
+        this.alert.success(`${p.title} published.`);
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   /** Drops unsaved edits, or the saved draft when there are none. */
@@ -163,9 +163,18 @@ export class PagesComponent {
       confirmLabel: 'Discard draft', cancelLabel: 'Keep it', tone: 'danger',
     });
     if (!ok) return;
-    this.replace(await this.pageService.discardDraft(p.key));
-    this.fill();
-    this.alert.success('Draft discarded.');
+    this.pageService.discardDraft(p.key).subscribe(page => {
+      this.replace(page);
+      this.fill();
+      this.alert.success('Draft discarded.');
+    });
+  }
+
+  private saveDraft(p: SitePage): Observable<SitePage> {
+    return this.pageService.saveDraft(p.key, this.sections.getRawValue()).pipe(tap(page => {
+      this.replace(page);
+      this.fill();
+    }));
   }
 
   private moveSection(from: number, to: number): void {
@@ -194,10 +203,6 @@ export class PagesComponent {
     this.pages.update(list => list.map(p => (p.key === page.key ? page : p)));
   }
 
-  private async load(): Promise<void> {
-    this.pages.set(await this.pageService.pages());
-    this.fill();
-  }
 
   private async okToLeave(): Promise<boolean> {
     if (!this.form.dirty) return true;

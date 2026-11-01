@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { STORAGE_KEYS } from '../constants/storage-keys';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
@@ -27,26 +27,25 @@ export class AuthService {
     return this._token;
   }
 
-  async sendOtp(phone: string): Promise<void> {
-    await firstValueFrom(
-      this.http.post(API.auth.sendOtp, { phone: digitsOnly(phone) }, { context: withoutErrorAlert() }),
+  sendOtp(phone: string): Observable<void> {
+    return this.http.post<void>(API.auth.sendOtp, { phone: digitsOnly(phone) }, { context: withoutErrorAlert() });
+  }
+
+  /** Logs a known user in. Emits 'new-user' when the number has no account yet. */
+  verifyOtp(phone: string, code: string): Observable<VerifyOtpResponse['status']> {
+    return this.http.post<VerifyOtpResponse>(API.auth.verifyOtp, { phone: digitsOnly(phone), code }, { context: withoutErrorAlert() }).pipe(
+      tap(res => {
+        if (res.status === 'authenticated') this.startSession(res);
+      }),
+      map(res => res.status),
     );
   }
 
-  /** Logs a known user in. Returns 'new-user' when the number has no account yet. */
-  async verifyOtp(phone: string, code: string): Promise<VerifyOtpResponse['status']> {
-    const res = await firstValueFrom(
-      this.http.post<VerifyOtpResponse>(API.auth.verifyOtp, { phone: digitsOnly(phone), code }, { context: withoutErrorAlert() }),
+  register(phone: string, profile: NewUserProfile): Observable<void> {
+    return this.http.post<AuthResponse>(API.auth.register, { phone: digitsOnly(phone), ...profile }, { context: withoutErrorAlert() }).pipe(
+      tap(res => this.startSession(res)),
+      map(() => undefined),
     );
-    if (res.status === 'authenticated') this.startSession(res);
-    return res.status;
-  }
-
-  async register(phone: string, profile: NewUserProfile): Promise<void> {
-    const res = await firstValueFrom(
-      this.http.post<AuthResponse>(API.auth.register, { phone: digitsOnly(phone), ...profile }, { context: withoutErrorAlert() }),
-    );
-    this.startSession(res);
   }
 
   logout(): void {

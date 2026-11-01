@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, input, linkedSignal, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, filter, of, switchMap, tap } from 'rxjs';
 import { BOOKING_TABS, PAYMENT_STATUSES, STAGES } from '../../../core/constants/status.constants';
 import { Booking, BookingFilters, PaymentStatus } from '../../../core/models/booking.model';
 import { CalendarData } from '../../../core/models/calendar.model';
@@ -126,27 +128,41 @@ export class BookingListComponent {
     });
   });
 
-  constructor() {
-    void this.catalog.load();
-    void this.bookingService.refreshCounts();
+  /** Bump to load the calendar again (after a block is added or removed). */
+  private calVersion = signal(0);
+  private listQuery = computed<BookingFilters | null>(() => this.mode() !== 'list' ? null : {
+    stages: BOOKING_TABS.find(t => t.key === this.tab())?.stages,
+    range: this.range(),
+    serviceId: this.serviceId() || undefined,
+    petType: this.petType() || undefined,
+    paymentStatus: this.paymentStatus() || undefined,
+    page: this.page(),
+    pageSize: PAGE_SIZE,
+  });
+  private calendarQuery = computed(() =>
+    this.mode() !== 'calendar' ? null : { from: this.calDate(), days: this.calView() === 'day' ? 1 : 7, version: this.calVersion() });
 
-    effect(() => {
-      const filters: BookingFilters = {
-        stages: BOOKING_TABS.find(t => t.key === this.tab())?.stages,
-        range: this.range(),
-        serviceId: this.serviceId() || undefined,
-        petType: this.petType() || undefined,
-        paymentStatus: this.paymentStatus() || undefined,
-        page: this.page(),
-        pageSize: PAGE_SIZE,
-      };
-      if (this.mode() === 'list') untracked(() => void this.loadList(filters));
+  constructor() {
+    this.catalog.load().subscribe();
+    this.bookingService.refreshCounts();
+
+    // A newer filter or page cancels the older request (switchMap), so rows never belong to another tab.
+    toObservable(this.listQuery).pipe(
+      filter((q): q is BookingFilters => q !== null),
+      tap(() => this.loading.set(true)),
+      switchMap(q => this.bookingService.list(q).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(result => {
+      if (result) this.result.set(result);
+      this.loading.set(false);
     });
 
-    effect(() => {
-      const from = this.calDate();
-      const days = this.calView() === 'day' ? 1 : 7;
-      if (this.mode() === 'calendar') untracked(() => void this.loadCalendar(from, days));
+    toObservable(this.calendarQuery).pipe(
+      filter(q => q !== null),
+      switchMap(q => this.bookingService.calendar(q.from, q.days).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(cal => {
+      if (cal) this.calendar.set(cal);
     });
   }
 
@@ -197,13 +213,12 @@ export class BookingListComponent {
       tone: 'danger',
     });
     if (!ok) return;
-    await this.bookingService.removeBlock(item.id);
-    await this.loadCalendar(this.calDate(), this.calView() === 'day' ? 1 : 7);
+    this.bookingService.removeBlock(item.id).subscribe(() => this.calVersion.update(v => v + 1));
   }
 
   onBlockSaved(): void {
     this.blockOpen.set(false);
-    void this.loadCalendar(this.calDate(), this.calView() === 'day' ? 1 : 7);
+    this.calVersion.update(v => v + 1);
   }
 
   protected slotText(b: Booking): string {
@@ -225,16 +240,4 @@ export class BookingListComponent {
     return (e.target as HTMLSelectElement).value;
   }
 
-  private async loadList(filters: BookingFilters): Promise<void> {
-    this.loading.set(true);
-    try {
-      this.result.set(await this.bookingService.list(filters));
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private async loadCalendar(from: string, days: number): Promise<void> {
-    this.calendar.set(await this.bookingService.calendar(from, days));
-  }
 }

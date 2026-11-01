@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, OnInit, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { catchError, finalize, of } from 'rxjs';
 import { VACCINATION_OPTIONS } from '../../../core/constants/pet.constants';
 import { Customer, CustomerPet, PetDraft } from '../../../core/models/customer.model';
 import { PetOwner } from '../../../core/models/pet.model';
@@ -67,18 +68,19 @@ export class PetDialogComponent implements OnInit {
     }
   }
 
-  async findOwner(): Promise<void> {
+  findOwner(): void {
     if (this.ownerPhone.invalid) {
       this.ownerPhone.markAsTouched();
       return;
     }
     this.lookup.set('searching');
-    const c: Customer | null = await this.customerService.findByPhone(this.ownerPhone.value).catch(() => null);
-    this.foundOwner.set(c ? { id: c.id, name: c.name, phone: c.phone } : null);
-    this.lookup.set(c ? 'idle' : 'not-found');
+    this.customerService.findByPhone(this.ownerPhone.value).pipe(catchError(() => of(null))).subscribe((c: Customer | null) => {
+      this.foundOwner.set(c ? { id: c.id, name: c.name, phone: c.phone } : null);
+      this.lookup.set(c ? 'idle' : 'not-found');
+    });
   }
 
-  async save(): Promise<void> {
+  save(): void {
     const owner = this.foundOwner();
     if (this.form.invalid || !owner || this.saving()) {
       this.form.markAllAsTouched();
@@ -86,19 +88,15 @@ export class PetDialogComponent implements OnInit {
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const v = this.form.getRawValue();
-      const draft: PetDraft = {
-        ...v,
-        gender: v.gender || undefined,
-        weightKg: v.weightKg ? Number(v.weightKg) : undefined,
-      };
-      const p = this.pet();
-      this.saved.emit(p ? await this.petService.update(p.id, draft) : await this.petService.add(owner.id, draft));
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    const v = this.form.getRawValue();
+    const draft: PetDraft = {
+      ...v,
+      gender: v.gender || undefined,
+      weightKg: v.weightKg ? Number(v.weightKg) : undefined,
+    };
+    const p = this.pet();
+    (p ? this.petService.update(p.id, draft) : this.petService.add(owner.id, draft))
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({ next: saved => this.saved.emit(saved), error: e => this.error.set(errorMessage(e)) });
   }
 }

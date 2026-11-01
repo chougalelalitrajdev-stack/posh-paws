@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject, input, OnInit, output, signal } from '@angular/core';
+import { finalize } from 'rxjs';
 import { Booking } from '../../../core/models/booking.model';
 import { DayAvailability } from '../../../core/models/calendar.model';
 import { BookingService } from '../../../core/services/booking.service';
@@ -32,34 +33,30 @@ export class RescheduleComponent implements OnInit {
 
   ngOnInit(): void {
     this.date.set(this.booking().date);
-    void this.loadSlots();
+    this.loadSlots();
   }
 
-  async save(): Promise<void> {
+  save(): void {
     const date = this.date();
     const time = this.time();
     if (!date || !time || this.saving()) return;
     this.saving.set(true);
     this.error.set(null);
-    try {
-      this.saved.emit(await this.bookingService.reschedule(this.booking().id, date, time));
-    } catch (e) {
-      this.error.set(errorMessage(e));
-      this.time.set(null);
-      void this.loadSlots();
-    } finally {
-      this.saving.set(false);
-    }
+    this.bookingService.reschedule(this.booking().id, date, time).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: b => this.saved.emit(b),
+      error: e => {
+        // Usually 409: the slot was just taken. Show fresh times.
+        this.error.set(errorMessage(e));
+        this.time.set(null);
+        this.loadSlots();
+      },
+    });
   }
 
-  private async loadSlots(): Promise<void> {
+  private loadSlots(): void {
     const b = this.booking();
     if (!b.service) return;
     this.loading.set(true);
-    try {
-      this.days.set(await this.bookingService.slots(b.service.id, today(), 14, b.id));
-    } finally {
-      this.loading.set(false);
-    }
+    this.bookingService.slots(b.service.id, today(), 14, b.id).pipe(finalize(() => this.loading.set(false))).subscribe(days => this.days.set(days));
   }
 }

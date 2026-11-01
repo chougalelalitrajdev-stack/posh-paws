@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { DashboardSummary } from '../models/dashboard.model';
 
@@ -9,7 +9,7 @@ import { DashboardSummary } from '../models/dashboard.model';
 export class DashboardService {
   private http = inject(HttpClient);
 
-  summary(): Promise<DashboardSummary> {
-    return firstValueFrom(this.http.get<DashboardSummary>(API.dashboard));
+  summary(): Observable<DashboardSummary> {
+    return this.http.get<DashboardSummary>(API.dashboard);
   }
 }

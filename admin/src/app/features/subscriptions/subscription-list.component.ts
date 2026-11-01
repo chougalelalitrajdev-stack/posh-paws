@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { Tone } from '../../core/constants/status.constants';
 import { Paged } from '../../core/models/paged.model';
 import { Subscription, SubscriptionSummary, SubscriptionTab } from '../../core/models/subscription.model';
@@ -67,13 +69,21 @@ export class SubscriptionListComponent {
     ];
   });
 
+  /** Bump to load the list again (after a link is sent). */
+  private version = signal(0);
+  private query = computed(() => ({ tab: this.tab(), page: this.page(), version: this.version() }));
+
   constructor() {
-    void this.loadSummary();
-    void this.templates.load();
-    effect(() => {
-      const tab = this.tab();
-      const page = this.page();
-      untracked(() => void this.load(tab, page));
+    this.loadSummary();
+    this.templates.load().subscribe();
+    // A newer tab or page cancels the older request (switchMap).
+    toObservable(this.query).pipe(
+      tap(() => this.loading.set(true)),
+      switchMap(({ tab, page }) => this.subscriptionService.list(tab, page, PAGE_SIZE).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(result => {
+      if (result) this.result.set(result);
+      this.loading.set(false);
     });
   }
 
@@ -112,7 +122,7 @@ export class SubscriptionListComponent {
     return { label: 'View', kind: 'view', primary: false };
   }
 
-  async run(s: Subscription): Promise<void> {
+  run(s: Subscription): void {
     const a = this.action(s);
     if (a.kind === 'view') {
       void this.router.navigate(['/customers', s.customer.id]);
@@ -126,8 +136,7 @@ export class SubscriptionListComponent {
       return;
     }
     this.busyId.set(s.id);
-    try {
-      const updated = await this.subscriptionService.sendPaymentLink(s.id);
+    this.subscriptionService.sendPaymentLink(s.id).pipe(finalize(() => this.busyId.set(null))).subscribe(updated => {
       this.share.set({
         title: updated.status === 'payment_pending' ? 'Payment link' : 'Renewal link',
         intro: `Link created for ${updated.customer.name}. Send it on WhatsApp:`,
@@ -137,31 +146,20 @@ export class SubscriptionListComponent {
           renewal_date: updated.renewsOn ? shortDate(updated.renewsOn) : '', payment_link: updated.paymentLink!.link,
         }),
       });
-      await Promise.all([this.load(this.tab(), this.page()), this.loadSummary()]);
-    } finally {
-      this.busyId.set(null);
-    }
+      this.version.update(v => v + 1);
+      this.loadSummary();
+    });
   }
 
-  async exportCsv(): Promise<void> {
-    const all = await this.subscriptionService.list(this.tab(), 1, 10_000);
-    downloadCsv(
+  exportCsv(): void {
+    this.subscriptionService.list(this.tab(), 1, 10_000).subscribe(all => downloadCsv(
       'subscriptions.csv',
       ['Customer', 'Phone', 'Plan', 'Price', 'Started', 'Renews / ended', 'Sessions', 'Status'],
       all.items.map(s => [s.customer.name, formatPhone(s.customer.phone), s.planName, formatInr(s.pricePaise), s.startedOn, this.period(s), this.usage(s).text, this.status(s).label]),
-    );
+    ));
   }
 
-  private async load(tab: SubscriptionTab, page: number): Promise<void> {
-    this.loading.set(true);
-    try {
-      this.result.set(await this.subscriptionService.list(tab, page, PAGE_SIZE));
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private async loadSummary(): Promise<void> {
-    this.summary.set(await this.subscriptionService.summary());
+  private loadSummary(): void {
+    this.subscriptionService.summary().subscribe(s => this.summary.set(s));
   }
 }

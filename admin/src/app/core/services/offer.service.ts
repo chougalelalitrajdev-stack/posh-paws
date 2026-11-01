@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
 import { Offer, OfferDraft } from '../models/offer.model';
@@ -10,19 +10,19 @@ import { Offer, OfferDraft } from '../models/offer.model';
 export class OfferService {
   private http = inject(HttpClient);
 
-  list(): Promise<Offer[]> {
-    return firstValueFrom(this.http.get<Offer[]>(API.offers));
+  list(): Observable<Offer[]> {
+    return this.http.get<Offer[]>(API.offers);
   }
 
   /** Create (no id) or update. The editor shows errors itself. */
-  save(draft: OfferDraft, id?: string): Promise<Offer> {
+  save(draft: OfferDraft, id?: string): Observable<Offer> {
     const request = id
       ? this.http.put<Offer>(`${API.offers}/${id}`, draft, { context: withoutErrorAlert() })
       : this.http.post<Offer>(API.offers, draft, { context: withoutErrorAlert() });
-    return firstValueFrom(request);
+    return request;
   }
 
-  setPaused(id: string, paused: boolean): Promise<Offer> {
-    return firstValueFrom(this.http.post<Offer>(`${API.offers}/${id}/${paused ? 'pause' : 'resume'}`, {}));
+  setPaused(id: string, paused: boolean): Observable<Offer> {
+    return this.http.post<Offer>(`${API.offers}/${id}/${paused ? 'pause' : 'resume'}`, {});
   }
 }

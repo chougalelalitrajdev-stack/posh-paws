@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../core/constants/app.constants';
 import { TEMPLATE_APPROVALS } from '../../core/constants/status.constants';
 import { TEMPLATE_FIELDS, TEMPLATE_MAX_LENGTH } from '../../core/constants/template.constants';
@@ -56,7 +57,7 @@ export class TemplatesComponent {
   protected tryHref = computed(() => whatsappLink('', this.preview()));
 
   constructor() {
-    void this.templateService.load().then(() => this.fill());
+    this.templateService.load().subscribe(() => this.fill());
     this.body.valueChanges.subscribe(v => this.text.set(v));
   }
 
@@ -89,7 +90,7 @@ export class TemplatesComponent {
     this.fill();
   }
 
-  async save(): Promise<void> {
+  save(): void {
     const t = this.selected();
     if (!t || this.body.invalid || this.saving()) {
       this.body.markAsTouched();
@@ -97,17 +98,15 @@ export class TemplatesComponent {
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const saved = await this.templateService.save(t.key, this.body.value, this.autoSend.value);
-      this.fill();
-      this.alert.success(saved.approval === 'pending' && t.approval !== 'pending'
-        ? `${saved.name} saved. WhatsApp checks the new text before it can go out automatically; Open WhatsApp works now.`
-        : `${saved.name} saved.`);
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    this.templateService.save(t.key, this.body.value, this.autoSend.value).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: saved => {
+        this.fill();
+        this.alert.success(saved.approval === 'pending' && t.approval !== 'pending'
+          ? `${saved.name} saved. WhatsApp checks the new text before it can go out automatically; Open WhatsApp works now.`
+          : `${saved.name} saved.`);
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   private fill(): void {

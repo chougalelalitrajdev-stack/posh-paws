@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { BookingSettings, Closure, DayHours } from '../../../core/models/settings.model';
 import { AlertService } from '../../../core/services/alert.service';
 import { CatalogService } from '../../../core/services/catalog.service';
@@ -70,7 +71,7 @@ export class BookingSettingsComponent {
   });
 
   constructor() {
-    void this.catalog.load();
+    this.catalog.load().subscribe();
     const s = this.settingsService.settings();
     if (s) this.fill(s.booking);
   }
@@ -94,7 +95,7 @@ export class BookingSettingsComponent {
     if (s) this.fill(s.booking);
   }
 
-  async save(): Promise<void> {
+  save(): void {
     if (this.saving()) return;
     const v = this.form.getRawValue();
     const draft: BookingSettings = {
@@ -104,15 +105,13 @@ export class BookingSettingsComponent {
     };
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const saved = await this.settingsService.save('booking', draft);
-      this.fill(saved.booking);
-      this.alert.success('Booking rules saved. New slots follow them; bookings already made stay where they are.');
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    this.settingsService.save('booking', draft).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: saved => {
+        this.fill(saved.booking);
+        this.alert.success('Booking rules saved. New slots follow them; bookings already made stay where they are.');
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   openClosure(): void {
@@ -121,7 +120,7 @@ export class BookingSettingsComponent {
     this.closureOpen.set(true);
   }
 
-  async addClosure(): Promise<void> {
+  addClosure(): void {
     if (this.closureForm.invalid || this.addingClosure()) {
       this.closureForm.markAllAsTouched();
       return;
@@ -129,17 +128,16 @@ export class BookingSettingsComponent {
     const v = this.closureForm.getRawValue();
     this.addingClosure.set(true);
     this.closureError.set(null);
-    try {
-      const saved = await this.settingsService.addClosure({ date: v.date, name: v.name, closesAt: v.allDay ? null : v.closesAt });
-      const added = saved.booking.closures.find(c => c.date === v.date);
-      this.closureOpen.set(false);
-      const n = added?.affectedBookings ?? 0;
-      this.alert.success(n ? `${v.name} added. ${n} booking${n === 1 ? '' : 's'} on that day still need moving.` : `${v.name} added. No slots are offered then.`);
-    } catch (e) {
-      this.closureError.set(errorMessage(e));
-    } finally {
-      this.addingClosure.set(false);
-    }
+    this.settingsService.addClosure({ date: v.date, name: v.name, closesAt: v.allDay ? null : v.closesAt })
+      .pipe(finalize(() => this.addingClosure.set(false)))
+      .subscribe({
+        next: saved => {
+          const n = saved.booking.closures.find(c => c.date === v.date)?.affectedBookings ?? 0;
+          this.closureOpen.set(false);
+          this.alert.success(n ? `${v.name} added. ${n} booking${n === 1 ? '' : 's'} on that day still need moving.` : `${v.name} added. No slots are offered then.`);
+        },
+        error: e => this.closureError.set(errorMessage(e)),
+      });
   }
 
   async removeClosure(c: Closure): Promise<void> {
@@ -147,8 +145,7 @@ export class BookingSettingsComponent {
       title: `Remove ${c.name}?`, message: `Slots open again on ${longDate(c.date)}.`, confirmLabel: 'Remove closure', tone: 'danger',
     });
     if (!ok) return;
-    await this.settingsService.removeClosure(c.id);
-    this.alert.success(`${c.name} removed.`);
+    this.settingsService.removeClosure(c.id).subscribe(() => this.alert.success(`${c.name} removed.`));
   }
 
   protected closureLabel(c: Closure): string {

@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, OnInit, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { GalleryCategory, GalleryPhoto } from '../../../../core/models/gallery.model';
 import { GalleryService } from '../../../../core/services/gallery.service';
 import { errorMessage } from '../../../../core/utils/error.utils';
@@ -37,16 +38,12 @@ export class PhotoDialogComponent implements OnInit {
     this.form.setValue({ caption, categoryId, pet, visible });
   }
 
-  async save(): Promise<void> {
+  save(): void {
     if (this.saving()) return;
     this.saving.set(true);
     this.error.set(null);
-    try {
-      this.saved.emit(await this.gallery.update(this.photo().id, { ...this.form.getRawValue(), imageUrl: this.photo().imageUrl }));
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    this.gallery.update(this.photo().id, { ...this.form.getRawValue(), imageUrl: this.photo().imageUrl })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({ next: saved => this.saved.emit(saved), error: e => this.error.set(errorMessage(e)) });
   }
 }

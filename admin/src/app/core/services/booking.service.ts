@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
@@ -19,7 +19,7 @@ export class BookingService {
   private readonly _counts = signal<StageCounts | null>(null);
   readonly counts = this._counts.asReadonly();
 
-  list(filters: BookingFilters): Promise<Paged<Booking>> {
+  list(filters: BookingFilters): Observable<Paged<Booking>> {
     const params: Record<string, string | number> = {};
     if (filters.stages?.length) params['stage'] = filters.stages.join(',');
     if (filters.customerId) params['customerId'] = filters.customerId;
@@ -29,91 +29,90 @@ export class BookingService {
     if (filters.paymentStatus) params['paymentStatus'] = filters.paymentStatus;
     if (filters.page) params['page'] = filters.page;
     if (filters.pageSize) params['pageSize'] = filters.pageSize;
-    return firstValueFrom(this.http.get<Paged<Booking>>(API.bookings, { params }));
+    return this.http.get<Paged<Booking>>(API.bookings, { params });
   }
 
-  get(id: string): Promise<Booking> {
-    return firstValueFrom(this.http.get<Booking>(`${API.bookings}/${id}`));
+  get(id: string): Observable<Booking> {
+    return this.http.get<Booking>(`${API.bookings}/${id}`);
   }
 
-  async refreshCounts(): Promise<void> {
-    this._counts.set(await firstValueFrom(this.http.get<StageCounts>(API.bookingCounts)));
+  /** Reloads the stage counts in the background (tab counts, Requests badge). */
+  refreshCounts(): void {
+    this.http.get<StageCounts>(API.bookingCounts).subscribe({ next: c => this._counts.set(c), error: () => undefined });
   }
 
-  calendar(from: string, days: number): Promise<CalendarData> {
-    return firstValueFrom(this.http.get<CalendarData>(API.calendar, { params: { from, days } }));
+  calendar(from: string, days: number): Observable<CalendarData> {
+    return this.http.get<CalendarData>(API.calendar, { params: { from, days } });
   }
 
   /** Free start times per day for a service, ignoring the booking being moved. */
-  slots(serviceId: string, from: string, days: number, excludeBookingId?: string): Promise<DayAvailability[]> {
+  slots(serviceId: string, from: string, days: number, excludeBookingId?: string): Observable<DayAvailability[]> {
     const params: Record<string, string | number> = { serviceId, from, days };
     if (excludeBookingId) params['excludeBookingId'] = excludeBookingId;
-    return firstValueFrom(this.http.get<DayAvailability[]>(API.slots, { params }));
+    return this.http.get<DayAvailability[]>(API.slots, { params });
   }
 
   /** Creates a draft, or updates a request/draft. The New booking screen shows errors itself. */
-  saveDetails(details: BookingDetails, id?: string): Promise<Booking> {
+  saveDetails(details: BookingDetails, id?: string): Observable<Booking> {
     const request = id
       ? this.http.put<Booking>(`${API.bookings}/${id}`, details, { context: withoutErrorAlert() })
       : this.http.post<Booking>(API.bookings, details, { context: withoutErrorAlert() });
-    return this.refreshAfter(firstValueFrom(request));
+    return this.refreshAfter(request);
   }
 
-  sendPaymentLink(id: string, amountType: AmountType): Promise<Booking> {
+  sendPaymentLink(id: string, amountType: AmountType): Observable<Booking> {
     return this.action(id, 'payment-link', { amountType }, true);
   }
 
-  setCallOutcome(id: string, outcome: CallOutcome): Promise<Booking> {
+  setCallOutcome(id: string, outcome: CallOutcome): Observable<Booking> {
     return this.action(id, 'call-outcome', { outcome });
   }
 
-  markPaid(id: string): Promise<Booking> {
+  markPaid(id: string): Observable<Booking> {
     return this.action(id, 'mark-paid');
   }
 
   /** Mock backend only: pretends the customer paid through the link. */
-  simulateOnlinePayment(id: string): Promise<Booking> {
+  simulateOnlinePayment(id: string): Observable<Booking> {
     if (!environment.useMocks) throw new Error('Only available with mock data.');
     return this.action(id, 'demo-pay');
   }
 
-  reschedule(id: string, date: string, time: string): Promise<Booking> {
+  reschedule(id: string, date: string, time: string): Observable<Booking> {
     return this.action(id, 'reschedule', { date, time }, true);
   }
 
-  cancel(id: string, reason?: string): Promise<Booking> {
+  cancel(id: string, reason?: string): Observable<Booking> {
     return this.action(id, 'cancel', { reason });
   }
 
-  complete(id: string): Promise<Booking> {
+  complete(id: string): Observable<Booking> {
     return this.action(id, 'complete');
   }
 
-  markNoShow(id: string): Promise<Booking> {
+  markNoShow(id: string): Observable<Booking> {
     return this.action(id, 'no-show');
   }
 
-  addNote(id: string, text: string): Promise<Booking> {
+  addNote(id: string, text: string): Observable<Booking> {
     return this.action(id, 'notes', { text });
   }
 
-  addBlock(block: NewTimeBlock): Promise<TimeBlock> {
-    return firstValueFrom(this.http.post<TimeBlock>(API.blocks, block, { context: withoutErrorAlert() }));
+  addBlock(block: NewTimeBlock): Observable<TimeBlock> {
+    return this.http.post<TimeBlock>(API.blocks, block, { context: withoutErrorAlert() });
   }
 
-  async removeBlock(id: string): Promise<void> {
-    await firstValueFrom(this.http.delete(`${API.blocks}/${id}`));
+  removeBlock(id: string): Observable<void> {
+    return this.http.delete<void>(`${API.blocks}/${id}`);
   }
 
   /** POST /bookings/{id}/{name}. `inline` = the screen shows errors itself (e.g. 409 slot taken). */
-  private action(id: string, name: string, body: object = {}, inline = false): Promise<Booking> {
+  private action(id: string, name: string, body: object = {}, inline = false): Observable<Booking> {
     const options = inline ? { context: withoutErrorAlert() } : {};
-    return this.refreshAfter(firstValueFrom(this.http.post<Booking>(`${API.bookings}/${id}/${name}`, body, options)));
+    return this.refreshAfter(this.http.post<Booking>(`${API.bookings}/${id}/${name}`, body, options));
   }
 
-  private async refreshAfter(request: Promise<Booking>): Promise<Booking> {
-    const booking = await request;
-    void this.refreshCounts();
-    return booking;
+  private refreshAfter(request: Observable<Booking>): Observable<Booking> {
+    return request.pipe(tap(() => this.refreshCounts()));
   }
 }

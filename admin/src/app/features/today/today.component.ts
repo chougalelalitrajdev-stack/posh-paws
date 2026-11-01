@@ -87,8 +87,8 @@ export class TodayComponent {
   });
 
   constructor() {
-    void this.catalog.load();
-    void this.load();
+    this.catalog.load().subscribe();
+    this.dashboard.summary().subscribe(d => this.data.set(d));
   }
 
   protected scheduleStatus(b: Booking): { label: string; tone: Tone } {
@@ -97,7 +97,4 @@ export class TodayComponent {
     return { label: 'Confirmed', tone: 'success' };
   }
 
-  private async load(): Promise<void> {
-    this.data.set(await this.dashboard.summary());
-  }
 }

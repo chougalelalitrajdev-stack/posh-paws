@@ -1,5 +1,6 @@
 import { HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { firstValueFrom } from 'rxjs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { STORAGE_KEYS } from '../constants/storage-keys';
 import { MOCK_PASSWORD } from '../mocks/mock-data';
@@ -8,6 +9,7 @@ import { AuthService } from './auth.service';
 
 describe('AuthService (against the mock API)', () => {
   let auth: AuthService;
+  const login = (email: string, password: string, remember: boolean) => firstValueFrom(auth.login(email, password, remember));
 
   beforeEach(() => {
     localStorage.clear();
@@ -17,7 +19,7 @@ describe('AuthService (against the mock API)', () => {
   });
 
   it('signs in with a demo account and knows its role', async () => {
-    await auth.login('  Meera@PoshPaws.in ', MOCK_PASSWORD, true);
+    await login('  Meera@PoshPaws.in ', MOCK_PASSWORD, true);
     expect(auth.isLoggedIn()).toBe(true);
     expect(auth.user()?.role).toBe('admin');
     expect(auth.hasRole('super_admin', 'admin')).toBe(true);
@@ -26,13 +28,13 @@ describe('AuthService (against the mock API)', () => {
   });
 
   it('keeps the session only for the tab when "keep me signed in" is off', async () => {
-    await auth.login('amit@poshpaws.in', MOCK_PASSWORD, false);
+    await login('amit@poshpaws.in', MOCK_PASSWORD, false);
     expect(sessionStorage.getItem(STORAGE_KEYS.authToken)).not.toBeNull();
     expect(localStorage.getItem(STORAGE_KEYS.authToken)).toBeNull();
   });
 
   it('rejects a wrong password with 401 and a readable message', async () => {
-    const error = await auth.login('owner@poshpaws.in', 'nope', true).catch(e => e as HttpErrorResponse);
+    const error = await login('owner@poshpaws.in', 'nope', true).catch(e => e as HttpErrorResponse);
     expect(error).toBeInstanceOf(HttpErrorResponse);
     expect((error as HttpErrorResponse).status).toBe(401);
     expect((error as HttpErrorResponse).error.detail).toContain("don't match");
@@ -40,7 +42,7 @@ describe('AuthService (against the mock API)', () => {
   });
 
   it('clears everything on logout', async () => {
-    await auth.login('owner@poshpaws.in', MOCK_PASSWORD, true);
+    await login('owner@poshpaws.in', MOCK_PASSWORD, true);
     auth.logout();
     expect(auth.isLoggedIn()).toBe(false);
     expect(localStorage.getItem(STORAGE_KEYS.authUser)).toBeNull();

@@ -51,6 +51,11 @@ Rules (same as customer): imports go `features → shared → core`, never backw
 ## Admin-specific conventions
 
 - **Forms use Reactive Forms** (`NonNullableFormBuilder`); show field errors once touched; disable submit while saving.
+- **Async = RxJS for calls, signals for state.** Services return `Observable`s straight from `HttpClient` (cache updates in `tap`); nothing happens until a caller subscribes, so every call site subscribes. State lives in signals (a `BehaviorSubject` only if a signal genuinely can't do it).
+  - Loads that depend on changing inputs (filters, tabs, pages, route ids): `toObservable(query).pipe(tap(loading), switchMap(q => service.list(q).pipe(catchError(() => of(null)))), takeUntilDestroyed())`, so a newer request cancels the older one. To load again after an action, bump a `version` signal that is part of the query.
+  - Button actions: `service.save(...).pipe(finalize(() => saving.set(false))).subscribe({ next, error })`; chain follow-ups with `switchMap` (save → reload) so the toast comes after the screen is up to date.
+  - Shared caches (`CatalogService`, `SettingsService`, `TemplateService`): `load()` returns the cached data straight away once loaded and shares one request while loading.
+  - Not API work, so still Promises: `confirm.ask()`, clipboard, image resizing (wrapped with `from()` in `UploadService`).
 - **Roles**: `super_admin`, `admin`, `staff` (`ROLE_MATRIX` in app.constants, shown in Settings › Team & roles). Hide what a role can't use (nav items carry `roles` in `nav.config.ts`) AND guard the route with `roleGuard`. Staff see catalog and content read-only (`CATALOG_EDIT_ROLES`: hide buttons with `*ppHasRole`, disable the form); the server refuses their writes with 403 (`requireRole` in the mocks). Settings is Super Admin + Admin (`SETTINGS_ROLES`); Team & roles and refunds are Super Admin only (`OWNER_ROLES`).
 - **Confirm before destructive actions**: `await confirm.ask({ title, message, confirmLabel, tone: 'danger' })`.
 - **Errors**: interceptor toasts by default; screens that show errors inline pass `{ context: withoutErrorAlert() }`.

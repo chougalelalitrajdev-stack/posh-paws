@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { OWNER_ROLES } from '../../core/constants/app.constants';
 import { PAYMENT_STATES } from '../../core/constants/status.constants';
 import { Paged } from '../../core/models/paged.model';
@@ -85,16 +87,26 @@ export class PaymentListComponent {
     ];
   });
 
+  /** Bump to load the list and totals again (after a refund). */
+  private version = signal(0);
+  private query = computed(() => ({ ...this.period(), tab: this.tab(), page: this.page(), version: this.version() }));
+  private summaryQuery = computed(() => ({ ...this.period(), version: this.version() }));
+
   constructor() {
-    effect(() => {
-      const { from, to } = this.period();
-      const tab = this.tab();
-      const page = this.page();
-      untracked(() => void this.load(tab, from, to, page));
+    // A newer period, tab or page cancels the older request (switchMap).
+    toObservable(this.query).pipe(
+      tap(() => this.loading.set(true)),
+      switchMap(q => this.paymentService.list({ tab: q.tab, from: q.from, to: q.to, page: q.page, pageSize: PAGE_SIZE }).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(result => {
+      if (result) this.result.set(result);
+      this.loading.set(false);
     });
-    effect(() => {
-      const { from, to } = this.period();
-      untracked(() => void this.loadSummary(from, to));
+    toObservable(this.summaryQuery).pipe(
+      switchMap(({ from, to }) => this.paymentService.summary(from, to).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(summary => {
+      if (summary) this.summary.set(summary);
     });
   }
 
@@ -126,36 +138,18 @@ export class PaymentListComponent {
     });
     if (!ok) return;
     this.busyId.set(p.id);
-    try {
-      await this.paymentService.refund(p.id);
+    this.paymentService.refund(p.id).pipe(finalize(() => this.busyId.set(null))).subscribe(() => {
       this.alert.success(`${p.id} marked as refunded.`);
-      const { from, to } = this.period();
-      await Promise.all([this.load(this.tab(), from, to, this.page()), this.loadSummary(from, to)]);
-    } finally {
-      this.busyId.set(null);
-    }
+      this.version.update(v => v + 1);
+    });
   }
 
-  async exportCsv(): Promise<void> {
+  exportCsv(): void {
     const { from, to, label } = this.period();
-    const all = await this.paymentService.list({ tab: this.tab(), from, to, page: 1, pageSize: 10_000 });
-    downloadCsv(
+    this.paymentService.list({ tab: this.tab(), from, to, page: 1, pageSize: 10_000 }).subscribe(all => downloadCsv(
       `payments-${label.toLowerCase().replace(/\s+/g, '-')}.csv`,
       ['Payment', 'For', 'Item', 'Customer', 'Amount', 'Status', 'Updated'],
       all.items.map(p => [p.id, p.reference, p.item, p.customer.name, formatInr(p.amountPaise), PAYMENT_STATES[p.status].label, p.at.slice(0, 16).replace('T', ' ')]),
-    );
-  }
-
-  private async load(tab: PaymentTab, from: string, to: string, page: number): Promise<void> {
-    this.loading.set(true);
-    try {
-      this.result.set(await this.paymentService.list({ tab, from, to, page, pageSize: PAGE_SIZE }));
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private async loadSummary(from: string, to: string): Promise<void> {
-    this.summary.set(await this.paymentService.summary(from, to));
+    ));
   }
 }

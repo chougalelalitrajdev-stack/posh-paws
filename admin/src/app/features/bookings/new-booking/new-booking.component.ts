@@ -1,7 +1,9 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { EMPTY, Observable, catchError, filter, finalize, map, of, switchMap, tap } from 'rxjs';
 import { CALL_OUTCOMES, SOURCES } from '../../../core/constants/status.constants';
 import { AmountType, Booking, BookingDetails, CallOutcome } from '../../../core/models/booking.model';
 import { DayAvailability } from '../../../core/models/calendar.model';
@@ -145,25 +147,32 @@ export class NewBookingComponent {
   });
   protected canSaveDraft = computed(() => !!this.customer() && !!this.pet() && !!this.service() && !this.done());
 
+  /** What the screen was opened with (query params). */
+  private start = computed(() => ({ from: this.from(), customerId: this.customerId(), petId: this.petIdParam() }));
+  /** The service whose slots step 3 shows; null outside step 3. */
+  private slotService = computed(() => (this.step() === 3 ? this.service()?.id ?? null : null));
+
   constructor() {
-    void this.catalog.load();
-    void this.settings.load();
-    void this.templates.load();
+    this.catalog.load().subscribe();
+    this.settings.load().subscribe();
+    this.templates.load().subscribe();
 
-    effect(() => {
-      const id = this.from();
-      const customerId = this.customerId();
-      const petId = this.petIdParam();
-      untracked(() => {
-        if (id) void this.loadSource(id);
-        else if (customerId) void this.loadCustomer(customerId, petId);
-        else this.reset();
-      });
-    });
+    // Opening another request or customer cancels the previous load (switchMap), so details never mix.
+    toObservable(this.start).pipe(
+      tap(() => this.reset()),
+      switchMap(({ from, customerId, petId }) => (from ? this.loadSource(from) : customerId ? this.loadCustomer(customerId, petId) : EMPTY)),
+      takeUntilDestroyed(),
+    ).subscribe();
 
-    effect(() => {
-      const service = this.service();
-      if (service && this.step() === 3) untracked(() => void this.loadSlots(service.id));
+    // Slots load each time step 3 opens; a newer service cancels the older request.
+    toObservable(this.slotService).pipe(
+      filter(id => id !== null),
+      tap(() => this.daysLoading.set(true)),
+      switchMap(id => this.bookingService.slots(id, today(), 7, this.source()?.id).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(days => {
+      this.daysLoading.set(false);
+      if (days) this.applySlots(days);
     });
   }
 
@@ -187,32 +196,32 @@ export class NewBookingComponent {
   }
 
   // ── Step 1 ──
-  async findCustomer(): Promise<void> {
+  findCustomer(): void {
     if (this.phone.invalid) {
       this.phone.markAsTouched();
       return;
     }
     this.lookup.set('searching');
     this.error.set(null);
-    const found = await this.customerService.findByPhone(this.phone.value).catch(() => null);
-    if (found) {
-      this.setCustomer(found, false);
-      this.lookup.set('idle');
-    } else {
-      this.lookup.set('not-found');
-    }
+    this.customerService.findByPhone(this.phone.value).pipe(catchError(() => of(null))).subscribe(found => {
+      if (found) {
+        this.setCustomer(found, false);
+        this.lookup.set('idle');
+      } else {
+        this.lookup.set('not-found');
+      }
+    });
   }
 
-  async createCustomer(): Promise<void> {
+  createCustomer(): void {
     if (this.newName.invalid) {
       this.newName.markAsTouched();
       return;
     }
-    await this.run(async () => {
-      const c = await this.customerService.create({ name: this.newName.value.trim(), phone: this.phone.value });
+    this.run(this.customerService.create({ name: this.newName.value.trim(), phone: this.phone.value }).pipe(tap(c => {
       this.setCustomer(c, true);
       this.lookup.set('idle');
-    });
+    })));
   }
 
   changeCustomer(): void {
@@ -222,20 +231,19 @@ export class NewBookingComponent {
     this.lookup.set('idle');
   }
 
-  async addPet(): Promise<void> {
+  addPet(): void {
     const c = this.customer();
     if (!c || this.petForm.invalid) {
       this.petForm.markAllAsTouched();
       return;
     }
-    await this.run(async () => {
-      const { name, type, breed } = this.petForm.getRawValue();
-      const pet = await this.petService.add(c.id, { name: name.trim(), type, ...(breed.trim() && { breed: breed.trim() }) });
+    const { name, type, breed } = this.petForm.getRawValue();
+    this.run(this.petService.add(c.id, { name: name.trim(), type, ...(breed.trim() && { breed: breed.trim() }) }).pipe(tap(pet => {
       this.customer.set({ ...c, pets: [...c.pets, pet] });
       this.petId.set(pet.id);
       this.addingPet.set(false);
       this.petForm.reset({ name: '', type: 'dog', breed: '' });
-    });
+    })));
   }
 
   continueFromPet(): void {
@@ -255,29 +263,29 @@ export class NewBookingComponent {
   }
 
   /** Saves the details, creates the payment link, then shows the "send it" panel. */
-  async createLink(copy: boolean): Promise<void> {
-    await this.run(async () => {
-      const saved = await this.bookingService.saveDetails(this.details(), this.source()?.id);
-      this.source.set(saved);
-      const booking = await this.bookingService.sendPaymentLink(saved.id, this.amountType());
-      this.done.set(booking);
-      if (copy) await this.copy(booking.payment!.link, 'Payment link copied.');
-    });
+  createLink(copy: boolean): void {
+    this.run(this.bookingService.saveDetails(this.details(), this.source()?.id).pipe(
+      tap(saved => this.source.set(saved)),
+      switchMap(saved => this.bookingService.sendPaymentLink(saved.id, this.amountType())),
+      tap(booking => {
+        this.done.set(booking);
+        if (copy) void this.copy(booking.payment!.link, 'Payment link copied.');
+      }),
+    ));
   }
 
-  async saveDraft(): Promise<void> {
+  saveDraft(): void {
     if (!this.canSaveDraft()) return;
-    await this.run(async () => {
-      const saved = await this.bookingService.saveDetails(this.details(), this.source()?.id);
+    this.run(this.bookingService.saveDetails(this.details(), this.source()?.id).pipe(tap(saved => {
       this.source.set(saved);
       this.alert.success(`Draft saved as ${saved.id}.`);
-    });
+    })));
   }
 
-  async setOutcome(outcome: string): Promise<void> {
+  setOutcome(outcome: string): void {
     const b = this.source();
     if (!b) return;
-    this.source.set(await this.bookingService.setCallOutcome(b.id, outcome as CallOutcome));
+    this.bookingService.setCallOutcome(b.id, outcome as CallOutcome).subscribe(updated => this.source.set(updated));
   }
 
   async copy(text: string, success: string): Promise<void> {
@@ -306,64 +314,60 @@ export class NewBookingComponent {
     return this.catalog.servicesFor(type).find(s => s.name.toLowerCase() === wanted)?.id ?? null;
   }
 
-  private async loadSource(id: string): Promise<void> {
-    this.reset();
+  /** Continues a request or draft: the booking, then its customer (services must be loaded to match the request). */
+  private loadSource(id: string): Observable<unknown> {
     this.loadingSource.set(true);
-    try {
-      await this.catalog.load();
-      const b = await this.bookingService.get(id);
-      this.source.set(b);
-      this.setCustomer(await this.customerService.get(b.customer.id), false);
-      if (b.pet) this.petId.set(b.pet.id);
-      this.serviceId.set(b.service?.id ?? (this.pet() ? this.matchRequestedService(this.pet()!.type) : null));
-      this.date.set(b.date);
-      this.time.set(b.time);
-    } finally {
-      this.loadingSource.set(false);
-    }
+    return this.catalog.load().pipe(
+      switchMap(() => this.bookingService.get(id)),
+      switchMap(b => this.customerService.get(b.customer.id).pipe(map(c => ({ b, c })))),
+      tap(({ b, c }) => {
+        this.source.set(b);
+        this.setCustomer(c, false);
+        if (b.pet) this.petId.set(b.pet.id);
+        this.serviceId.set(b.service?.id ?? (this.pet() ? this.matchRequestedService(this.pet()!.type) : null));
+        this.date.set(b.date);
+        this.time.set(b.time);
+      }),
+      catchError(() => EMPTY),
+      finalize(() => this.loadingSource.set(false)),
+    );
   }
 
-  private async loadCustomer(customerId: string, petId?: string): Promise<void> {
-    this.reset();
+  private loadCustomer(customerId: string, petId?: string): Observable<unknown> {
     this.loadingSource.set(true);
-    try {
-      await this.catalog.load();
-      this.setCustomer(await this.customerService.get(customerId), false);
-      if (petId && this.customer()?.pets.some(p => p.id === petId)) this.petId.set(petId);
-    } finally {
-      this.loadingSource.set(false);
-    }
+    return this.catalog.load().pipe(
+      switchMap(() => this.customerService.get(customerId)),
+      tap(c => {
+        this.setCustomer(c, false);
+        if (petId && c.pets.some(p => p.id === petId)) this.petId.set(petId);
+      }),
+      catchError(() => EMPTY),
+      finalize(() => this.loadingSource.set(false)),
+    );
   }
 
-  private async loadSlots(serviceId: string): Promise<void> {
-    this.daysLoading.set(true);
-    try {
-      const days = await this.bookingService.slots(serviceId, today(), 7, this.source()?.id);
-      this.days.set(days);
-      if (!this.date() || !days.some(d => d.date === this.date())) this.date.set(days.find(d => d.slots.some(s => s.available))?.date ?? days[0]?.date ?? null);
-      const day = days.find(d => d.date === this.date());
-      if (!day?.slots.some(s => s.time === this.time() && s.available)) this.time.set(null);
-    } finally {
-      this.daysLoading.set(false);
-    }
+  /** Keeps the picked day and time if they're still offered; otherwise picks the first day with a free slot. */
+  private applySlots(days: DayAvailability[]): void {
+    this.days.set(days);
+    if (!this.date() || !days.some(d => d.date === this.date())) this.date.set(days.find(d => d.slots.some(s => s.available))?.date ?? days[0]?.date ?? null);
+    const day = days.find(d => d.date === this.date());
+    if (!day?.slots.some(s => s.time === this.time() && s.available)) this.time.set(null);
   }
 
-  /** Runs a step action; a taken slot sends the user back to pick another time. */
-  private async run(action: () => Promise<void>): Promise<void> {
+  /** Runs one step action at a time; a taken slot (409) sends the user back to pick another time. */
+  private run(action: Observable<unknown>): void {
     if (this.busy()) return;
     this.busy.set(true);
     this.error.set(null);
-    try {
-      await action();
-    } catch (e) {
-      this.error.set(errorMessage(e));
-      if (e instanceof HttpErrorResponse && e.status === 409 && this.step() === 4) {
-        this.time.set(null);
-        this.step.set(3);
-      }
-    } finally {
-      this.busy.set(false);
-    }
+    action.pipe(finalize(() => this.busy.set(false))).subscribe({
+      error: e => {
+        this.error.set(errorMessage(e));
+        if (e instanceof HttpErrorResponse && e.status === 409 && this.step() === 4) {
+          this.time.set(null);
+          this.step.set(3);
+        }
+      },
+    });
   }
 
   private reset(): void {

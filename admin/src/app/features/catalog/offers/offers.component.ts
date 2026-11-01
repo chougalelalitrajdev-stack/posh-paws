@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, finalize, map, switchMap, tap } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../../core/constants/app.constants';
 import { OFFER_STATUSES } from '../../../core/constants/status.constants';
 import { Offer, OfferDraft, OfferScope } from '../../../core/models/offer.model';
@@ -87,8 +88,8 @@ export class OffersComponent {
   });
 
   constructor() {
-    void this.catalog.load();
-    void this.load();
+    this.catalog.load().subscribe();
+    this.load().subscribe();
     this.form.valueChanges.subscribe(() => this.value.set(this.form.getRawValue()));
   }
 
@@ -158,7 +159,7 @@ export class OffersComponent {
     }
   }
 
-  async save(asDraft: boolean): Promise<void> {
+  save(asDraft: boolean): void {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
@@ -171,18 +172,20 @@ export class OffersComponent {
     };
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const saved = await this.offerService.save(draft, this.selectedId() ?? undefined);
-      this.adding.set(false);
-      this.selectedId.set(saved.id);
-      await this.load();
-      this.fill(saved);
-      this.alert.success(asDraft ? 'Draft saved. Customers can’t use it yet.' : `${saved.title} saved. It’s ${OFFER_STATUSES[saved.status].label.toLowerCase()}.`);
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    this.offerService.save(draft, this.selectedId() ?? undefined).pipe(
+      tap(saved => {
+        this.adding.set(false);
+        this.selectedId.set(saved.id);
+      }),
+      switchMap(saved => this.load().pipe(map(() => saved))),
+      finalize(() => this.saving.set(false)),
+    ).subscribe({
+      next: saved => {
+        this.fill(saved);
+        this.alert.success(asDraft ? 'Draft saved. Customers can’t use it yet.' : `${saved.title} saved. It’s ${OFFER_STATUSES[saved.status].label.toLowerCase()}.`);
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   async setPaused(paused: boolean): Promise<void> {
@@ -197,10 +200,10 @@ export class OffersComponent {
       });
       if (!ok) return;
     }
-    const saved = await this.offerService.setPaused(o.id, paused);
-    await this.load();
-    this.fill(saved);
-    this.alert.success(paused ? `${o.title} paused.` : `${o.title} resumed. It’s ${OFFER_STATUSES[saved.status].label.toLowerCase()}.`);
+    this.offerService.setPaused(o.id, paused).pipe(switchMap(saved => this.load().pipe(map(() => saved)))).subscribe(saved => {
+      this.fill(saved);
+      this.alert.success(paused ? `${o.title} paused.` : `${o.title} resumed. It’s ${OFFER_STATUSES[saved.status].label.toLowerCase()}.`);
+    });
   }
 
   private fill(o: Offer | null): void {
@@ -216,13 +219,15 @@ export class OffersComponent {
     this.value.set(this.form.getRawValue());
   }
 
-  private async load(): Promise<void> {
-    const offers = await this.offerService.list();
-    this.offers.set(offers);
-    if (!this.selectedId() && !this.adding() && offers.length) {
-      this.selectedId.set(offers[0].id);
-      this.fill(offers[0]);
-    }
+  /** Loads the offers; the first time, opens the first one. */
+  private load(): Observable<Offer[]> {
+    return this.offerService.list().pipe(tap(offers => {
+      this.offers.set(offers);
+      if (!this.selectedId() && !this.adding() && offers.length) {
+        this.selectedId.set(offers[0].id);
+        this.fill(offers[0]);
+      }
+    }));
   }
 
   private async okToLeave(): Promise<boolean> {

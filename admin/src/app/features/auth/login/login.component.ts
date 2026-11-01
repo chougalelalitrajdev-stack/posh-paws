@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { errorMessage } from '../../../core/utils/error.utils';
 import { MOCK_PASSWORD, STAFF } from '../../../core/mocks/mock-data';
@@ -38,7 +39,7 @@ export class LoginComponent {
     : [];
   protected readonly demoPassword = MOCK_PASSWORD;
 
-  async submit(): Promise<void> {
+  submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -48,14 +49,10 @@ export class LoginComponent {
     const { email, password, remember } = this.form.getRawValue();
     this.submitting.set(true);
     this.error.set(null);
-    try {
-      await this.auth.login(email, password, remember);
-      await this.router.navigateByUrl(this.safeReturnUrl());
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.submitting.set(false);
-    }
+    this.auth.login(email, password, remember).pipe(finalize(() => this.submitting.set(false))).subscribe({
+      next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   useDemo(email: string): void {

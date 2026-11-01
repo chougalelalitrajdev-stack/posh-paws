@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, input, OnInit, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogService } from '../../../core/services/catalog.service';
 import { AlertService } from '../../../core/services/alert.service';
@@ -43,22 +44,22 @@ export class BlockTimeComponent implements OnInit {
     this.form.patchValue({ date: this.date(), stationId: this.catalog.stations()[0]?.id ?? '' });
   }
 
-  async save(): Promise<void> {
+  save(): void {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const v = this.form.getRawValue();
-      await this.bookingService.addBlock({ ...v, durationMinutes: Number(v.durationMinutes), reason: v.reason.trim() || 'Blocked' });
-      this.alert.success('Time blocked.');
-      this.saved.emit();
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    const v = this.form.getRawValue();
+    this.bookingService.addBlock({ ...v, durationMinutes: Number(v.durationMinutes), reason: v.reason.trim() || 'Blocked' })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: () => {
+          this.alert.success('Time blocked.');
+          this.saved.emit();
+        },
+        error: e => this.error.set(errorMessage(e)),
+      });
   }
 }

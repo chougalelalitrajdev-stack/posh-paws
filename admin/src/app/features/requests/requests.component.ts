@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { URGENT_REQUEST_MINUTES } from '../../core/constants/app.constants';
 import { CALL_OUTCOMES, SOURCES } from '../../core/constants/status.constants';
 import { Booking } from '../../core/models/booking.model';
@@ -43,7 +44,7 @@ export class RequestsComponent {
   ]);
 
   constructor() {
-    void this.load();
+    this.bookingService.list({ stages: ['request'], pageSize: 200 }).pipe(finalize(() => this.loading.set(false))).subscribe(page => this.requests.set(page.items));
   }
 
   protected urgent(b: Booking): boolean {
@@ -54,12 +55,4 @@ export class RequestsComponent {
     return CALL_OUTCOMES.find(o => o.value === b.request?.callOutcome)?.label ?? '';
   }
 
-  private async load(): Promise<void> {
-    try {
-      const page = await this.bookingService.list({ stages: ['request'], pageSize: 200 });
-      this.requests.set(page.items);
-    } finally {
-      this.loading.set(false);
-    }
-  }
 }

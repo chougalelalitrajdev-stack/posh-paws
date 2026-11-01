@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Observable, catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { VACCINATION } from '../../../core/constants/pet.constants';
 import { SOURCES } from '../../../core/constants/status.constants';
@@ -145,24 +147,26 @@ export class BookingDetailComponent {
   });
 
   constructor() {
-    void this.catalog.load();
-    void this.templates.load();
-    effect(() => {
-      const id = this.id();
-      untracked(() => void this.load(id));
-    });
+    this.catalog.load().subscribe();
+    this.templates.load().subscribe();
+    // Opening another booking cancels the previous one's requests (switchMap).
+    toObservable(this.id).pipe(
+      tap(() => this.booking.set(null)),
+      switchMap(id => this.bookingService.get(id).pipe(
+        tap(b => this.booking.set(b)),
+        switchMap(b => this.customerService.get(b.customer.id)),
+        catchError(() => of(null)),
+      )),
+      takeUntilDestroyed(),
+    ).subscribe(customer => this.customer.set(customer));
   }
 
   protected durationText(): string {
     return formatDuration(this.booking()?.service?.durationMinutes ?? 0);
   }
 
-  async resendLink(): Promise<void> {
-    await this.run(async b => {
-      const updated = await this.bookingService.sendPaymentLink(b.id, b.payment?.amountType ?? 'full');
-      this.alert.success('New payment link created. Send it on WhatsApp.');
-      return updated;
-    });
+  resendLink(): void {
+    this.run(b => this.bookingService.sendPaymentLink(b.id, b.payment?.amountType ?? 'full'), 'New payment link created. Send it on WhatsApp.');
   }
 
   async copyLink(): Promise<void> {
@@ -184,11 +188,11 @@ export class BookingDetailComponent {
       message: `${formatInr(b.payment.amountPaise)} received from ${b.customer.name}. The booking will be confirmed.`,
       confirmLabel: 'Mark paid',
     });
-    if (ok) await this.run(x => this.bookingService.markPaid(x.id), 'Marked paid. Booking confirmed.');
+    if (ok) this.run(x => this.bookingService.markPaid(x.id), 'Marked paid. Booking confirmed.');
   }
 
-  async simulatePayment(): Promise<void> {
-    await this.run(x => this.bookingService.simulateOnlinePayment(x.id), 'Customer paid online (demo). Booking confirmed.');
+  simulatePayment(): void {
+    this.run(x => this.bookingService.simulateOnlinePayment(x.id), 'Customer paid online (demo). Booking confirmed.');
   }
 
   async cancel(): Promise<void> {
@@ -204,23 +208,22 @@ export class BookingDetailComponent {
       cancelLabel: 'Keep it',
       tone: 'danger',
     });
-    if (ok) await this.run(x => this.bookingService.cancel(x.id), 'Booking cancelled.');
+    if (ok) this.run(x => this.bookingService.cancel(x.id), 'Booking cancelled.');
   }
 
-  async complete(): Promise<void> {
-    await this.run(x => this.bookingService.complete(x.id), 'Marked completed.');
+  complete(): void {
+    this.run(x => this.bookingService.complete(x.id), 'Marked completed.');
   }
 
   async noShow(): Promise<void> {
     const ok = await this.confirm.ask({ title: 'Mark as no-show?', message: 'Use this when the customer didn’t come.', confirmLabel: 'Mark no-show', tone: 'danger' });
-    if (ok) await this.run(x => this.bookingService.markNoShow(x.id), 'Marked as no-show.');
+    if (ok) this.run(x => this.bookingService.markNoShow(x.id), 'Marked as no-show.');
   }
 
-  async saveNote(): Promise<void> {
+  saveNote(): void {
     const text = this.note().trim();
     if (!text) return;
-    await this.run(x => this.bookingService.addNote(x.id, text), 'Note added.');
-    this.note.set('');
+    this.run(x => this.bookingService.addNote(x.id, text), 'Note added.', () => this.note.set(''));
   }
 
   onRescheduled(b: Booking): void {
@@ -234,22 +237,14 @@ export class BookingDetailComponent {
   }
 
   /** Runs one action on the booking and shows the updated booking. Errors are toasted by the interceptor. */
-  private async run(action: (b: Booking) => Promise<Booking>, success?: string): Promise<void> {
+  private run(action: (b: Booking) => Observable<Booking>, success?: string, done?: () => void): void {
     const b = this.booking();
     if (!b || this.busy()) return;
     this.busy.set(true);
-    try {
-      this.booking.set(await action(b));
+    action(b).pipe(finalize(() => this.busy.set(false))).subscribe(updated => {
+      this.booking.set(updated);
       if (success) this.alert.success(success);
-    } finally {
-      this.busy.set(false);
-    }
-  }
-
-  private async load(id: string): Promise<void> {
-    this.booking.set(null);
-    const b = await this.bookingService.get(id);
-    this.booking.set(b);
-    this.customer.set(await this.customerService.get(b.customer.id));
+      done?.();
+    });
   }
 }

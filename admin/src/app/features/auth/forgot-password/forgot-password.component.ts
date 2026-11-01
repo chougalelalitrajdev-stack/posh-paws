@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { errorMessage } from '../../../core/utils/error.utils';
 
@@ -20,20 +21,16 @@ export class ForgotPasswordComponent {
   protected sentTo = signal<string | null>(null);
   protected error = signal<string | null>(null);
 
-  async submit(): Promise<void> {
+  submit(): void {
     if (this.email.invalid) {
       this.email.markAsTouched();
       return;
     }
     this.submitting.set(true);
     this.error.set(null);
-    try {
-      await this.auth.requestPasswordReset(this.email.value);
-      this.sentTo.set(this.email.value.trim());
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.submitting.set(false);
-    }
+    this.auth.requestPasswordReset(this.email.value).pipe(finalize(() => this.submitting.set(false))).subscribe({
+      next: () => this.sentTo.set(this.email.value.trim()),
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 }

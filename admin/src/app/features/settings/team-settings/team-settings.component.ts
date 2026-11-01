@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, finalize, map, switchMap, tap } from 'rxjs';
 import { ROLE_LABELS, ROLE_MATRIX } from '../../../core/constants/app.constants';
 import { StaffRole, TeamMember } from '../../../core/models/staff-user.model';
 import { AlertService } from '../../../core/services/alert.service';
@@ -46,7 +47,7 @@ export class TeamSettingsComponent {
   });
 
   constructor() {
-    void this.load();
+    this.load().subscribe();
   }
 
   protected seen(m: TeamMember): string {
@@ -68,13 +69,12 @@ export class TeamSettingsComponent {
       return;
     }
     this.busyId.set(m.id);
-    try {
-      await this.settingsService.setRole(m.id, role);
-      this.alert.success(`${m.name} is now ${ROLE_LABELS[role]}.`);
-    } finally {
-      this.busyId.set(null);
-      await this.load();
-    }
+    this.settingsService.setRole(m.id, role).pipe(
+      finalize(() => {
+        this.busyId.set(null);
+        this.load().subscribe(); // also puts the select back if the change was refused
+      }),
+    ).subscribe(() => this.alert.success(`${m.name} is now ${ROLE_LABELS[role]}.`));
   }
 
   async remove(m: TeamMember): Promise<void> {
@@ -83,9 +83,8 @@ export class TeamSettingsComponent {
       confirmLabel: 'Remove', cancelLabel: 'Keep', tone: 'danger',
     });
     if (!ok) return;
-    await this.settingsService.removeMember(m.id);
-    await this.load();
-    this.alert.success(`${m.name} removed from the team.`);
+    this.settingsService.removeMember(m.id).pipe(switchMap(() => this.load())).subscribe(() =>
+      this.alert.success(`${m.name} removed from the team.`));
   }
 
   openInvite(): void {
@@ -94,26 +93,26 @@ export class TeamSettingsComponent {
     this.inviteOpen.set(true);
   }
 
-  async invite(): Promise<void> {
+  invite(): void {
     if (this.inviteForm.invalid || this.inviting()) {
       this.inviteForm.markAllAsTouched();
       return;
     }
     this.inviting.set(true);
     this.inviteError.set(null);
-    try {
-      const m = await this.settingsService.invite(this.inviteForm.getRawValue());
-      this.inviteOpen.set(false);
-      await this.load();
-      this.alert.success(`${m.name} added as ${ROLE_LABELS[m.role]}. Invitation emails start once the backend is live.`);
-    } catch (e) {
-      this.inviteError.set(errorMessage(e));
-    } finally {
-      this.inviting.set(false);
-    }
+    this.settingsService.invite(this.inviteForm.getRawValue()).pipe(
+      switchMap(m => this.load().pipe(map(() => m))),
+      finalize(() => this.inviting.set(false)),
+    ).subscribe({
+      next: m => {
+        this.inviteOpen.set(false);
+        this.alert.success(`${m.name} added as ${ROLE_LABELS[m.role]}. Invitation emails start once the backend is live.`);
+      },
+      error: e => this.inviteError.set(errorMessage(e)),
+    });
   }
 
-  private async load(): Promise<void> {
-    this.team.set(await this.settingsService.team());
+  private load(): Observable<TeamMember[]> {
+    return this.settingsService.team().pipe(tap(team => this.team.set(team)));
   }
 }

@@ -45,7 +45,7 @@ export class ShellComponent {
   );
 
   constructor() {
-    void this.bookingService.refreshCounts();
+    this.bookingService.refreshCounts();
   }
 
   private canSee(item: NavItem): boolean {

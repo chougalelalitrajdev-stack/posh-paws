@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { Observable, catchError, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
 import { Booking, BookingRequest, TimeSlot } from '../models/booking.model';
@@ -33,39 +34,37 @@ export class BookingService {
   });
 
   constructor() {
-    effect(() => {
-      const userId = this.auth.user()?.id;
-      untracked(() => void this.load(userId));
-    });
+    // A new user cancels the previous user's request (switchMap), so bookings never mix.
+    toObservable(this.auth.user).pipe(
+      map(user => user?.id ?? null),
+      distinctUntilChanged(),
+      switchMap(userId => (userId ? this.fetch() : of([]))),
+      takeUntilDestroyed(),
+    ).subscribe(bookings => this._bookings.set(bookings));
   }
 
-  getSlots(date: string, serviceId: string): Promise<TimeSlot[]> {
-    return firstValueFrom(this.http.get<TimeSlot[]>(API.slots, { params: { date, serviceId } }));
+  getSlots(date: string, serviceId: string): Observable<TimeSlot[]> {
+    return this.http.get<TimeSlot[]>(API.slots, { params: { date, serviceId } });
   }
 
   /** The booking page shows errors itself (e.g. 409 when the slot was just taken), so no global toast. */
-  async book(request: BookingRequest): Promise<Booking> {
-    const booking = await firstValueFrom(this.http.post<Booking>(API.bookings, request, { context: withoutErrorAlert() }));
-    this._bookings.update(list => [...list, booking]);
-    return booking;
+  book(request: BookingRequest): Observable<Booking> {
+    return this.http.post<Booking>(API.bookings, request, { context: withoutErrorAlert() }).pipe(
+      tap(booking => this._bookings.update(list => [...list, booking])),
+    );
   }
 
-  async cancel(id: string): Promise<void> {
-    const cancelled = await firstValueFrom(this.http.post<Booking>(`${API.bookings}/${id}/cancel`, {}));
-    this._bookings.update(list => list.map(b => (b.id === cancelled.id ? cancelled : b)));
+  cancel(id: string): Observable<Booking> {
+    return this.http.post<Booking>(`${API.bookings}/${id}/cancel`, {}).pipe(
+      tap(cancelled => this._bookings.update(list => list.map(b => (b.id === cancelled.id ? cancelled : b)))),
+    );
   }
 
-  private async load(userId: string | undefined): Promise<void> {
-    if (!userId) {
-      this._bookings.set([]);
-      return;
-    }
+  private fetch(): Observable<Booking[]> {
     this._loading.set(true);
-    try {
-      const bookings = await firstValueFrom(this.http.get<Booking[]>(API.bookings));
-      if (this.auth.user()?.id === userId) this._bookings.set(bookings);
-    } finally {
-      this._loading.set(false);
-    }
+    return this.http.get<Booking[]>(API.bookings).pipe(
+      catchError(() => of([])), // the error interceptor has shown a toast
+      finalize(() => this._loading.set(false)),
+    );
   }
 }

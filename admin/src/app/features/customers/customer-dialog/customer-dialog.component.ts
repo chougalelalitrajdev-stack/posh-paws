@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, OnInit, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { Customer } from '../../../core/models/customer.model';
 import { CustomerService } from '../../../core/services/customer.service';
 import { errorMessage } from '../../../core/utils/error.utils';
@@ -40,21 +41,17 @@ export class CustomerDialogComponent implements OnInit {
     return control.invalid && control.touched;
   }
 
-  async save(): Promise<void> {
+  save(): void {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const details = this.form.getRawValue();
-      const c = this.customer();
-      this.saved.emit(c ? await this.customerService.update(c.id, details) : await this.customerService.create(details));
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    const details = this.form.getRawValue();
+    const c = this.customer();
+    (c ? this.customerService.update(c.id, details) : this.customerService.create(details))
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({ next: saved => this.saved.emit(saved), error: e => this.error.set(errorMessage(e)) });
   }
 }

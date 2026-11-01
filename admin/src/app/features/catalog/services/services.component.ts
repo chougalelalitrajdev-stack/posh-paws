@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../../core/constants/app.constants';
 import { PetType, Service, ServiceCategory, ServiceDraft } from '../../../core/models/catalog.model';
 import { AlertService } from '../../../core/services/alert.service';
@@ -86,7 +87,7 @@ export class ServicesComponent {
   protected descriptionLength = signal(0);
 
   constructor() {
-    void this.catalog.load().then(() => this.refreshRows(true));
+    this.catalog.load().subscribe(() => this.refreshRows(true));
     this.form.controls.description.valueChanges.subscribe(v => this.descriptionLength.set(v.length));
   }
 
@@ -119,38 +120,37 @@ export class ServicesComponent {
     else this.adding.set(false);
   }
 
-  async save(): Promise<void> {
+  save(): void {
     if (this.form.invalid || this.saving()) {
       this.form.markAllAsTouched();
       return;
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const v = this.form.getRawValue();
-      const draft: ServiceDraft = {
-        name: v.name, petType: v.petType, category: v.category, description: v.description, durationMinutes: Number(v.durationMinutes),
-        pricePaise: Math.round(Number(v.priceRupees)) * 100, imageUrl: v.imageUrl, visible: v.visible,
-      };
-      const saved = await this.catalog.saveService(draft, this.selectedId() ?? undefined);
-      this.adding.set(false);
-      this.selectedId.set(saved.id);
-      if (!saved.archived) this.view.set(saved.petType);
-      this.refreshRows(false);
-      this.fill(saved);
-      this.alert.success('Saved. The app shows the change within a minute.');
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    const v = this.form.getRawValue();
+    const draft: ServiceDraft = {
+      name: v.name, petType: v.petType, category: v.category, description: v.description, durationMinutes: Number(v.durationMinutes),
+      pricePaise: Math.round(Number(v.priceRupees)) * 100, imageUrl: v.imageUrl, visible: v.visible,
+    };
+    this.catalog.saveService(draft, this.selectedId() ?? undefined).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: saved => {
+        this.adding.set(false);
+        this.selectedId.set(saved.id);
+        if (!saved.archived) this.view.set(saved.petType);
+        this.refreshRows(false);
+        this.fill(saved);
+        this.alert.success('Saved. The app shows the change within a minute.');
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
-  async toggleVisible(s: Service, visible: boolean): Promise<void> {
-    await this.catalog.saveService({ ...this.draftOf(s), visible }, s.id);
-    this.refreshRows(false);
-    if (s.id === this.selectedId()) this.form.controls.visible.setValue(visible);
-    this.alert.success(visible ? `${s.name} is shown in the app.` : `${s.name} is hidden from the app. Staff can still book it.`);
+  toggleVisible(s: Service, visible: boolean): void {
+    this.catalog.saveService({ ...this.draftOf(s), visible }, s.id).subscribe(() => {
+      this.refreshRows(false);
+      if (s.id === this.selectedId()) this.form.controls.visible.setValue(visible);
+      this.alert.success(visible ? `${s.name} is shown in the app.` : `${s.name} is hidden from the app. Staff can still book it.`);
+    });
   }
 
   async archive(): Promise<void> {
@@ -165,43 +165,46 @@ export class ServicesComponent {
       tone: 'danger',
     });
     if (!ok) return;
-    await this.catalog.setArchived(s.id, true);
-    this.form.markAsPristine();
-    this.alert.success(`${s.name} archived.`);
-    this.refreshRows(true);
+    this.catalog.setArchived(s.id, true).subscribe(() => {
+      this.form.markAsPristine();
+      this.alert.success(`${s.name} archived.`);
+      this.refreshRows(true);
+    });
   }
 
-  async restore(): Promise<void> {
+  restore(): void {
     const s = this.selected();
     if (!s) return;
-    await this.catalog.setArchived(s.id, false);
-    this.alert.success(`${s.name} restored. It's hidden from the app until you switch it on.`);
-    this.view.set(s.petType);
-    this.refreshRows(false);
-    this.fill(this.selected()!);
+    this.catalog.setArchived(s.id, false).subscribe(() => {
+      this.alert.success(`${s.name} restored. It's hidden from the app until you switch it on.`);
+      this.view.set(s.petType);
+      this.refreshRows(false);
+      this.fill(this.selected()!);
+    });
   }
 
-  async drop(e: CdkDragDrop<Service[]>): Promise<void> {
+  drop(e: CdkDragDrop<Service[]>): void {
     if (e.previousIndex === e.currentIndex) return;
     const rows = [...this.rows()];
     moveItemInArray(rows, e.previousIndex, e.currentIndex);
-    await this.saveOrder(rows);
+    this.saveOrder(rows);
   }
 
   /** Keyboard alternative to dragging: arrow keys on the handle move the row. */
-  async moveWithKeys(e: KeyboardEvent, index: number): Promise<void> {
+  moveWithKeys(e: KeyboardEvent, index: number): void {
     const to = e.key === 'ArrowUp' ? index - 1 : e.key === 'ArrowDown' ? index + 1 : -1;
     if (to < 0 || to >= this.rows().length) return;
     e.preventDefault();
     const rows = [...this.rows()];
     moveItemInArray(rows, index, to);
-    await this.saveOrder(rows);
+    this.saveOrder(rows);
     setTimeout(() => document.getElementById(`handle-${rows[to].id}`)?.focus());
   }
 
-  private async saveOrder(rows: Service[]): Promise<void> {
+  /** Shows the new order straight away, then saves it. */
+  private saveOrder(rows: Service[]): void {
     this.rows.set(rows);
-    await this.catalog.reorder(this.view() as PetType, rows.map(r => r.id));
+    this.catalog.reorder(this.view() as PetType, rows.map(r => r.id)).subscribe();
   }
 
   private refreshRows(selectFirst: boolean): void {

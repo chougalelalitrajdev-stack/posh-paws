@@ -1,4 +1,5 @@
 import { Component, HostListener, computed, effect, inject, signal, untracked, ChangeDetectionStrategy } from '@angular/core';
+import { finalize } from 'rxjs';
 import { PetDialogService } from '../../../core/services/pet-dialog.service';
 import { PetService } from '../../../core/services/pet.service';
 import { PetDraft, PetCoat, PetGender, PetSize, PetTemperament, PetType, VaccinationStatus } from '../../../core/models/pet.model';
@@ -70,21 +71,17 @@ export class PetDialogComponent {
     this.dialog.close();
   }
 
-  async save(): Promise<void> {
+  save(): void {
     if (!this.canSave() || this.submitting()) return;
     this.submitting.set(true);
     this.error.set(null);
-    try {
-      const draft = this.buildDraft();
-      const editing = this.dialog.editing();
-      if (editing) await this.pets.update({ ...draft, id: editing.id });
-      else await this.pets.add(draft);
-      this.dialog.close();
-    } catch (e) {
-      this.error.set(errorMessage(e, 'Could not save your pet. Please try again.'));
-    } finally {
-      this.submitting.set(false);
-    }
+    const draft = this.buildDraft();
+    const editing = this.dialog.editing();
+    const request = editing ? this.pets.update({ ...draft, id: editing.id }) : this.pets.add(draft);
+    request.pipe(finalize(() => this.submitting.set(false))).subscribe({
+      next: () => this.dialog.close(),
+      error: e => this.error.set(errorMessage(e, 'Could not save your pet. Please try again.')),
+    });
   }
 
   stepYears(delta: number): void {

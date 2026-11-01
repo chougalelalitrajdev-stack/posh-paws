@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@a
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { FormArray, FormControl, FormGroup, NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Observable, finalize, map, switchMap, tap } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../../core/constants/app.constants';
 import { Billing, Plan, PlanDraft } from '../../../core/models/plan.model';
 import { AlertService } from '../../../core/services/alert.service';
@@ -74,8 +75,8 @@ export class PlansComponent {
   protected per = computed(() => BILLING.find(b => b.value === this.value().billing)?.per ?? 'month');
 
   constructor() {
-    void this.catalog.load();
-    void this.load();
+    this.catalog.load().subscribe();
+    this.load().subscribe();
     this.form.valueChanges.subscribe(() => this.value.set(this.form.getRawValue()));
     this.form.controls.unlimited.valueChanges.subscribe(() => this.syncSessions());
   }
@@ -167,18 +168,18 @@ export class PlansComponent {
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const saved = await this.planService.save(draft, current?.id);
-      await this.load();
-      this.adding.set(false);
-      this.selectedId.set(saved.id);
-      this.fill(this.selected());
-      this.alert.success(`${saved.name} plan saved.`);
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    this.planService.save(draft, current?.id).pipe(
+      switchMap(saved => this.load().pipe(map(() => saved))),
+      finalize(() => this.saving.set(false)),
+    ).subscribe({
+      next: saved => {
+        this.adding.set(false);
+        this.selectedId.set(saved.id);
+        this.fill(this.selected());
+        this.alert.success(`${saved.name} plan saved.`);
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
   private moveBenefit(from: number, to: number): void {
@@ -216,14 +217,16 @@ export class PlansComponent {
     else sessions.enable({ emitEvent: false });
   }
 
-  private async load(): Promise<void> {
-    const plans = await this.planService.list();
-    this.plans.set(plans);
-    if (!this.selectedId() && !this.adding() && plans.length) {
-      const pick = plans.find(p => p.featured) ?? plans[0];
-      this.selectedId.set(pick.id);
-      this.fill(pick);
-    }
+  /** Loads the plans; the first time, opens the recommended one. */
+  private load(): Observable<Plan[]> {
+    return this.planService.list().pipe(tap(plans => {
+      this.plans.set(plans);
+      if (!this.selectedId() && !this.adding() && plans.length) {
+        const pick = plans.find(p => p.featured) ?? plans[0];
+        this.selectedId.set(pick.id);
+        this.fill(pick);
+      }
+    }));
   }
 
   private async okToLeave(): Promise<boolean> {

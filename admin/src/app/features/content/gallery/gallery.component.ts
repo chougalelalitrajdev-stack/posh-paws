@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
+import { Observable, catchError, concatMap, finalize, from, map, of, switchMap, tap, toArray } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../../core/constants/app.constants';
 import { IMAGE_SIZES } from '../../../core/constants/content.constants';
 import { GalleryBulkAction, GalleryData, GalleryPhoto } from '../../../core/models/gallery.model';
@@ -65,7 +66,7 @@ export class GalleryComponent {
   protected savingCategories = signal(false);
 
   constructor() {
-    void this.load();
+    this.load().subscribe();
   }
 
   setCategory(key: string): void {
@@ -87,7 +88,7 @@ export class GalleryComponent {
   onDrop(e: DragEvent): void {
     e.preventDefault();
     this.dragging.set(false);
-    if (e.dataTransfer?.files.length && this.canEdit()) void this.upload([...e.dataTransfer.files]);
+    if (e.dataTransfer?.files.length && this.canEdit()) this.upload([...e.dataTransfer.files]);
   }
 
   onDragOver(e: DragEvent): void {
@@ -99,31 +100,33 @@ export class GalleryComponent {
     const input = e.target as HTMLInputElement;
     const files = [...(input.files ?? [])];
     input.value = '';
-    if (files.length) void this.upload(files);
+    if (files.length) this.upload(files);
   }
 
   /** Uploads one at a time into the current category (or the first one), hidden until captioned. */
-  private async upload(files: File[]): Promise<void> {
+  private upload(files: File[]): void {
     const categoryId = this.category() === ALL ? this.data().categories[0]?.id : this.category();
     if (!categoryId) return;
-    const errors: string[] = [];
-    let added = 0;
-    for (const [i, file] of files.entries()) {
-      this.progress.set(`Uploading ${i + 1} of ${files.length}…`);
-      try {
-        const url = await this.uploads.uploadImage(file, IMAGE_SIZES.gallery);
-        await this.gallery.add(url, categoryId, '');
-        added++;
-      } catch (e) {
-        errors.push(`${file.name}: ${e instanceof HttpErrorResponse || !(e instanceof Error) ? errorMessage(e) : e.message}`);
-      }
-    }
-    this.progress.set(null);
-    this.uploadErrors.set(errors);
-    if (added) {
-      await this.load();
-      this.alert.success(`${plural(added, 'photo')} added to ${this.categoryName().get(categoryId)}. Add captions, then show them in the app.`);
-    }
+    from(files).pipe(
+      // One file at a time (concatMap), so the progress line and the demo storage check stay in order.
+      concatMap((file, i) => {
+        this.progress.set(`Uploading ${i + 1} of ${files.length}…`);
+        return this.uploads.uploadImage(file, IMAGE_SIZES.gallery).pipe(
+          switchMap(url => this.gallery.add(url, categoryId, '')),
+          map(() => null),
+          catchError(e => of(`${file.name}: ${e instanceof HttpErrorResponse || !(e instanceof Error) ? errorMessage(e) : e.message}`)),
+        );
+      }),
+      toArray(),
+      finalize(() => this.progress.set(null)),
+    ).subscribe(results => {
+      const errors = results.filter((r): r is string => r !== null);
+      const added = results.length - errors.length;
+      this.uploadErrors.set(errors);
+      if (!added) return;
+      this.load().subscribe(() =>
+        this.alert.success(`${plural(added, 'photo')} added to ${this.categoryName().get(categoryId)}. Add captions, then show them in the app.`));
+    });
   }
 
   // ── Selected photos ──
@@ -138,29 +141,30 @@ export class GalleryComponent {
       });
       if (!ok) return;
     }
-    await this.runBulk({ action, ids }, { show: 'shown in the app', hide: 'hidden from the app', delete: 'deleted' }[action]);
+    this.runBulk({ action, ids }, { show: 'shown in the app', hide: 'hidden from the app', delete: 'deleted' }[action]);
   }
 
-  async moveTo(e: Event): Promise<void> {
+  moveTo(e: Event): void {
     const select = e.target as HTMLSelectElement;
     const categoryId = select.value;
     select.value = '';
-    if (categoryId) await this.runBulk({ action: 'move', ids: this.selectedIds(), categoryId }, `moved to ${this.categoryName().get(categoryId)}`);
+    if (categoryId) this.runBulk({ action: 'move', ids: this.selectedIds(), categoryId }, `moved to ${this.categoryName().get(categoryId)}`);
   }
 
-  private async runBulk(action: GalleryBulkAction, done: string): Promise<void> {
+  private runBulk(action: GalleryBulkAction, done: string): void {
     const n = action.ids.length;
-    this.apply(await this.gallery.bulk(action));
-    this.selectedIds.set([]);
-    this.alert.success(`${plural(n, 'photo')} ${done}.`);
+    this.gallery.bulk(action).subscribe(data => {
+      this.apply(data);
+      this.selectedIds.set([]);
+      this.alert.success(`${plural(n, 'photo')} ${done}.`);
+    });
   }
 
   // ── One photo ──
 
   onPhotoSaved(photo: GalleryPhoto): void {
     this.editing.set(null);
-    void this.load();
-    this.alert.success(photo.visible ? 'Photo saved. It’s shown in the app.' : 'Photo saved. It’s hidden from the app.');
+    this.load().subscribe(() => this.alert.success(photo.visible ? 'Photo saved. It’s shown in the app.' : 'Photo saved. It’s hidden from the app.'));
   }
 
   async onPhotoDeleted(photo: GalleryPhoto): Promise<void> {
@@ -170,31 +174,32 @@ export class GalleryComponent {
     });
     if (!ok) return;
     this.editing.set(null);
-    await this.runBulk({ action: 'delete', ids: [photo.id] }, 'deleted');
+    this.runBulk({ action: 'delete', ids: [photo.id] }, 'deleted');
   }
 
   // ── Reorder ──
 
-  async drop(e: CdkDragDrop<GalleryPhoto[]>): Promise<void> {
-    if (e.previousIndex !== e.currentIndex) await this.saveOrder(e.previousIndex, e.currentIndex);
+  drop(e: CdkDragDrop<GalleryPhoto[]>): void {
+    if (e.previousIndex !== e.currentIndex) this.saveOrder(e.previousIndex, e.currentIndex);
   }
 
   /** Keyboard alternative to dragging: arrow keys on the handle move the photo. */
-  async moveWithKeys(e: KeyboardEvent, index: number): Promise<void> {
+  moveWithKeys(e: KeyboardEvent, index: number): void {
     const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
     const to = step === undefined ? -1 : index + step;
     if (to < 0 || to >= this.photos().length) return;
     e.preventDefault();
     const id = this.photos()[index].id;
-    await this.saveOrder(index, to);
+    this.saveOrder(index, to);
     setTimeout(() => document.getElementById(`handle-${id}`)?.focus());
   }
 
-  private async saveOrder(from: number, to: number): Promise<void> {
+  /** Shows the new order straight away, then saves it. */
+  private saveOrder(fromIndex: number, toIndex: number): void {
     const photos = [...this.photos()];
-    moveItemInArray(photos, from, to);
+    moveItemInArray(photos, fromIndex, toIndex);
     this.photos.set(photos);
-    this.apply(await this.gallery.reorder(photos.map(p => p.id)));
+    this.gallery.reorder(photos.map(p => p.id)).subscribe(data => this.apply(data));
   }
 
   // ── Categories ──
@@ -218,24 +223,27 @@ export class GalleryComponent {
     this.categoryRows.update(rows => rows.filter((_, j) => j !== i));
   }
 
-  async saveCategories(): Promise<void> {
+  saveCategories(): void {
     this.savingCategories.set(true);
     this.categoryError.set(null);
-    try {
-      this.apply(await this.gallery.saveCategories(this.categoryRows().map(({ id, name }) => ({ id, name }))));
-      if (this.category() !== ALL && !this.data().categories.some(c => c.id === this.category())) this.setCategory(ALL);
-      this.categoriesOpen.set(false);
-      this.alert.success('Categories saved.');
-    } catch (e) {
-      this.categoryError.set(errorMessage(e));
-    } finally {
-      this.savingCategories.set(false);
-    }
+    this.gallery.saveCategories(this.categoryRows().map(({ id, name }) => ({ id, name })))
+      .pipe(finalize(() => this.savingCategories.set(false)))
+      .subscribe({
+        next: data => {
+          this.apply(data);
+          if (this.category() !== ALL && !this.data().categories.some(c => c.id === this.category())) this.setCategory(ALL);
+          this.categoriesOpen.set(false);
+          this.alert.success('Categories saved.');
+        },
+        error: e => this.categoryError.set(errorMessage(e)),
+      });
   }
 
-  private async load(): Promise<void> {
-    this.apply(await this.gallery.load());
-    this.loaded.set(true);
+  private load(): Observable<GalleryData> {
+    return this.gallery.load().pipe(tap(data => {
+      this.apply(data);
+      this.loaded.set(true);
+    }));
   }
 
   private apply(data: GalleryData): void {

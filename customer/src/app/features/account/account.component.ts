@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { PetDialogService } from '../../core/services/pet-dialog.service';
 import { PetService } from '../../core/services/pet.service';
@@ -82,18 +83,18 @@ export class AccountComponent {
     return `${dateLongLabel(b.date)} · ${timeLabel(b.time)}`;
   }
 
-  async cancelBooking(b: Booking): Promise<void> {
+  cancelBooking(b: Booking): void {
     if (this.confirmingCancel() !== b.id) {
       this.confirmingCancel.set(b.id);
       return;
     }
     this.cancelling.set(b.id);
-    try {
-      await this.bookingService.cancel(b.id);
-    } finally {
-      this.cancelling.set(null);
-      this.confirmingCancel.set(null);
-    }
+    this.bookingService.cancel(b.id).pipe(
+      finalize(() => {
+        this.cancelling.set(null);
+        this.confirmingCancel.set(null);
+      }),
+    ).subscribe({ error: () => undefined }); // the error interceptor shows a toast
   }
 
   addPet(): void {

@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, ElementRef, computed, effect, inject, input, linkedSignal, signal, untracked, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ElementRef, computed, inject, input, linkedSignal, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, of, switchMap, tap } from 'rxjs';
 import { VACCINATION } from '../../../core/constants/pet.constants';
 import { CustomerPet } from '../../../core/models/customer.model';
 import { Paged } from '../../../core/models/paged.model';
@@ -68,16 +70,29 @@ export class PetListComponent {
     ];
   });
 
+  /** Bump to load the list and the open record again (after a save). */
+  private version = signal(0);
+  private listQuery = computed(() => ({ filters: this.filters(), version: this.version() }));
+  private recordQuery = computed(() => ({ id: this.selectedId(), version: this.version() }));
+
   constructor() {
-    void this.loadCounts();
-    effect(() => {
-      const filters = this.filters();
-      untracked(() => void this.loadList(filters));
+    this.loadCounts();
+    // A newer search or filter cancels the older request (switchMap).
+    toObservable(this.listQuery).pipe(
+      tap(() => this.loading.set(true)),
+      switchMap(({ filters }) => this.petService.list(filters).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(result => {
+      this.loading.set(false);
+      if (!result) return;
+      this.result.set(result);
+      if (!this.selectedId() && result.items.length) this.selectedId.set(result.items[0].pet.id);
     });
-    effect(() => {
-      const id = this.selectedId();
-      untracked(() => void this.loadRecord(id));
-    });
+    // Picking another pet cancels the previous one's request, so the panel never shows the wrong pet.
+    toObservable(this.recordQuery).pipe(
+      switchMap(({ id }) => (id ? this.petService.get(id).pipe(catchError(() => of(null))) : of(null))),
+      takeUntilDestroyed(),
+    ).subscribe(record => this.record.set(record));
   }
 
   onSearch(e: Event): void {
@@ -105,31 +120,16 @@ export class PetListComponent {
     if (window.innerWidth < 992) setTimeout(() => this.panel()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
-  async onSaved(pet: CustomerPet): Promise<void> {
+  onSaved(pet: CustomerPet): void {
     const added = this.dialog() === null;
     this.dialog.set(undefined);
     this.alert.success(added ? `${pet.name} added.` : `${pet.name} saved.`);
-    await Promise.all([this.loadList(this.filters()), this.loadCounts()]);
     this.selectedId.set(pet.id);
-    await this.loadRecord(pet.id);
+    this.version.update(v => v + 1);
+    this.loadCounts();
   }
 
-  private async loadList(filters: PetFilters): Promise<void> {
-    this.loading.set(true);
-    try {
-      const result = await this.petService.list(filters);
-      this.result.set(result);
-      if (!this.selectedId() && result.items.length) this.selectedId.set(result.items[0].pet.id);
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private async loadCounts(): Promise<void> {
-    this.counts.set(await this.petService.counts());
-  }
-
-  private async loadRecord(id: string | null): Promise<void> {
-    this.record.set(id ? await this.petService.get(id) : null);
+  private loadCounts(): void {
+    this.petService.counts().subscribe(c => this.counts.set(c));
   }
 }

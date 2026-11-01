@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, finalize } from 'rxjs';
 import { OWNER_ROLES } from '../../core/constants/app.constants';
 import { Settings } from '../../core/models/settings.model';
 import { AlertService } from '../../core/services/alert.service';
@@ -63,7 +64,7 @@ export class SettingsComponent {
   };
 
   constructor() {
-    void this.settingsService.load().then(s => this.fillAll(s));
+    this.settingsService.load().subscribe(s => this.fillAll(s));
   }
 
   protected simple(): SimpleSection | null {
@@ -82,7 +83,7 @@ export class SettingsComponent {
     if (s) this.fillAll(s);
   }
 
-  async save(): Promise<void> {
+  save(): void {
     const key = this.simple();
     if (!key) return;
     const form = this.forms[key];
@@ -92,18 +93,16 @@ export class SettingsComponent {
     }
     this.saving.set(true);
     this.error.set(null);
-    try {
-      const saved = await this.saveSection(key);
-      this.fillAll(saved);
-      this.alert.success(`${this.sectionLabel()} saved.`);
-    } catch (e) {
-      this.error.set(errorMessage(e));
-    } finally {
-      this.saving.set(false);
-    }
+    this.saveSection(key).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: saved => {
+        this.fillAll(saved);
+        this.alert.success(`${this.sectionLabel()} saved.`);
+      },
+      error: e => this.error.set(errorMessage(e)),
+    });
   }
 
-  private saveSection(key: SimpleSection): Promise<Settings> {
+  private saveSection(key: SimpleSection): Observable<Settings> {
     const current = this.settings()!;
     switch (key) {
       case 'business': return this.settingsService.save('business', this.forms.business.getRawValue());

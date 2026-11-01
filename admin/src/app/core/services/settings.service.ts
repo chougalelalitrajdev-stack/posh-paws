@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { Observable, finalize, of, shareReplay, switchMap, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
 import { Closure, Settings, SettingsSection } from '../models/settings.model';
@@ -12,7 +12,7 @@ export class SettingsService {
   private http = inject(HttpClient);
 
   private readonly _settings = signal<Settings | null>(null);
-  private loading: Promise<Settings> | null = null;
+  private loading$: Observable<Settings> | null = null;
 
   readonly settings = this._settings.asReadonly();
   readonly holdPaise = computed(() => this._settings()?.payments.slotHoldPaise ?? 0);
@@ -23,61 +23,51 @@ export class SettingsService {
     return b ? `Start times every ${b.slotStepMinutes} min, each with a station free for the whole service plus a ${b.bufferMinutes} min buffer. Breaks and closures are blocked.` : '';
   });
 
-  /** Loads once; later calls reuse the same result. */
-  load(): Promise<Settings> {
-    this.loading ??= firstValueFrom(this.http.get<Settings>(API.settings))
-      .then(s => {
-        this._settings.set(s);
-        return s;
-      })
-      .catch(e => {
-        this.loading = null;
-        throw e;
-      });
-    return this.loading;
+  /** Loads once: later calls emit the current settings straight away, and calls while loading share one request. */
+  load(): Observable<Settings> {
+    const current = this._settings();
+    if (current) return of(current);
+    this.loading$ ??= this.http.get<Settings>(API.settings).pipe(
+      tap(s => this._settings.set(s)),
+      finalize(() => (this.loading$ = null)),
+      shareReplay(1),
+    );
+    return this.loading$;
   }
 
   /** Saves one section. The page shows errors itself. */
-  async save<K extends SettingsSection>(section: K, value: Settings[K]): Promise<Settings> {
-    return this.keep(await firstValueFrom(this.http.put<Settings>(`${API.settings}/${section}`, value, { context: withoutErrorAlert() })));
+  save<K extends SettingsSection>(section: K, value: Settings[K]): Observable<Settings> {
+    return this.http.put<Settings>(`${API.settings}/${section}`, value, { context: withoutErrorAlert() }).pipe(tap(s => this._settings.set(s)));
   }
 
-  /** The dialog shows errors itself. */
-  async addClosure(closure: Pick<Closure, 'date' | 'name' | 'closesAt'>): Promise<Settings> {
-    await firstValueFrom(this.http.post<Closure>(`${API.settings}/closures`, closure, { context: withoutErrorAlert() }));
-    return this.refresh();
+  /** The dialog shows errors itself. Emits the settings with the new closure (and its booking count). */
+  addClosure(closure: Pick<Closure, 'date' | 'name' | 'closesAt'>): Observable<Settings> {
+    return this.http.post<Closure>(`${API.settings}/closures`, closure, { context: withoutErrorAlert() }).pipe(
+      switchMap(() => this.http.get<Settings>(API.settings)),
+      tap(s => this._settings.set(s)),
+    );
   }
 
-  async removeClosure(id: string): Promise<Settings> {
-    return this.keep(await firstValueFrom(this.http.delete<Settings>(`${API.settings}/closures/${id}`)));
+  removeClosure(id: string): Observable<Settings> {
+    return this.http.delete<Settings>(`${API.settings}/closures/${id}`).pipe(tap(s => this._settings.set(s)));
   }
 
   // ── Team & roles (Super Admin) ──
 
-  team(): Promise<TeamMember[]> {
-    return firstValueFrom(this.http.get<TeamMember[]>(API.team));
+  team(): Observable<TeamMember[]> {
+    return this.http.get<TeamMember[]>(API.team);
   }
 
   /** The dialog shows errors itself. */
-  invite(member: { name: string; email: string; role: StaffRole }): Promise<TeamMember> {
-    return firstValueFrom(this.http.post<TeamMember>(API.team, member, { context: withoutErrorAlert() }));
+  invite(member: { name: string; email: string; role: StaffRole }): Observable<TeamMember> {
+    return this.http.post<TeamMember>(API.team, member, { context: withoutErrorAlert() });
   }
 
-  setRole(id: string, role: StaffRole): Promise<TeamMember> {
-    return firstValueFrom(this.http.put<TeamMember>(`${API.team}/${id}`, { role }));
+  setRole(id: string, role: StaffRole): Observable<TeamMember> {
+    return this.http.put<TeamMember>(`${API.team}/${id}`, { role });
   }
 
-  removeMember(id: string): Promise<void> {
-    return firstValueFrom(this.http.delete<void>(`${API.team}/${id}`));
-  }
-
-  private async refresh(): Promise<Settings> {
-    return this.keep(await firstValueFrom(this.http.get<Settings>(API.settings)));
-  }
-
-  private keep(s: Settings): Settings {
-    this._settings.set(s);
-    this.loading = Promise.resolve(s);
-    return s;
+  removeMember(id: string): Observable<void> {
+    return this.http.delete<void>(`${API.team}/${id}`);
   }
 }

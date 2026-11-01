@@ -1,5 +1,7 @@
-import { Component, ChangeDetectionStrategy, computed, effect, inject, input, linkedSignal, signal, untracked } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, of, switchMap, tap } from 'rxjs';
 import { Customer, CustomerFilters, CustomerSegment, CustomerSummary } from '../../../core/models/customer.model';
 import { Paged } from '../../../core/models/paged.model';
 import { CustomerService } from '../../../core/services/customer.service';
@@ -70,10 +72,15 @@ export class CustomerListComponent {
   }));
 
   constructor() {
-    void this.loadCounts();
-    effect(() => {
-      const filters = this.filters();
-      untracked(() => void this.load(filters));
+    this.customerService.counts().subscribe(c => this.counts.set(c));
+    // A newer search, filter or page cancels the older request (switchMap).
+    toObservable(this.filters).pipe(
+      tap(() => this.loading.set(true)),
+      switchMap(f => this.customerService.list(f).pipe(catchError(() => of(null)))),
+      takeUntilDestroyed(),
+    ).subscribe(result => {
+      if (result) this.result.set(result);
+      this.loading.set(false);
     });
   }
 
@@ -109,25 +116,11 @@ export class CustomerListComponent {
   }
 
   /** Every customer matching the current filters, not just this page. */
-  async exportCsv(): Promise<void> {
-    const all = await this.customerService.list({ ...this.filters(), page: 1, pageSize: 10_000 });
-    downloadCsv(
+  exportCsv(): void {
+    this.customerService.list({ ...this.filters(), page: 1, pageSize: 10_000 }).subscribe(all => downloadCsv(
       'customers.csv',
       ['Name', 'Phone', 'Pets', 'Plan', 'Bookings', 'Spent', 'Last visit'],
       all.items.map(c => [c.name, formatPhone(c.phone), c.petNames.join(', '), c.planName ?? 'No plan', c.bookingsCount, formatInr(c.spentPaise), c.lastVisit ?? '']),
-    );
-  }
-
-  private async load(filters: CustomerFilters): Promise<void> {
-    this.loading.set(true);
-    try {
-      this.result.set(await this.customerService.list(filters));
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  private async loadCounts(): Promise<void> {
-    this.counts.set(await this.customerService.counts());
+    ));
   }
 }

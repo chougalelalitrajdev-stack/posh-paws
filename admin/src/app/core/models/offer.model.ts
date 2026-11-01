@@ -1,5 +1,3 @@
-import { Paise } from './catalog.model';
-
 export type OfferStatus = 'draft' | 'scheduled' | 'live' | 'paused' | 'expired' | 'used_up';
 export type OfferScope = 'all_services' | 'some_services' | 'plans';
 
