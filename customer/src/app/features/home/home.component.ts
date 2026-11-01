@@ -1,5 +1,6 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { filter } from 'rxjs';
 import { LoginDialogService } from '../../core/services/login-dialog.service';
 // Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
 // import { BookingDialogService } from '../../core/services/booking-dialog.service';
@@ -60,8 +61,7 @@ export class HomeComponent {
     void this.router.navigate(['/book'], { queryParams: { pet: this.activePet() } });
   }
 
-  async subscribeToPlan(plan: PlanItem): Promise<void> {
-    if (!(await this.login.ensureLoggedIn())) return;
-    this.subscribeDialog.open(plan);
+  subscribeToPlan(plan: PlanItem): void {
+    this.login.ensureLoggedIn().pipe(filter(Boolean)).subscribe(() => this.subscribeDialog.open(plan));
   }
 }

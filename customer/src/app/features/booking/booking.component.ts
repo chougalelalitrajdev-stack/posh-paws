@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { catchError, finalize, of, switchMap, tap, timer } from 'rxjs';
+import { catchError, filter, finalize, of, switchMap, tap, timer } from 'rxjs';
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -141,7 +141,7 @@ export class BookingComponent {
     });
   }
 
-  async next(): Promise<void> {
+  next(): void {
     if (!this.canContinue()) return;
     this.error.set(null);
     switch (this.step()) {
@@ -149,7 +149,7 @@ export class BookingComponent {
         this.goTo('slot');
         break;
       case 'slot':
-        if (await this.loginDialog.ensureLoggedIn()) this.goTo('pet');
+        this.loginDialog.ensureLoggedIn().pipe(filter(Boolean)).subscribe(() => this.goTo('pet'));
         break;
       case 'pet':
         this.goTo('review');
