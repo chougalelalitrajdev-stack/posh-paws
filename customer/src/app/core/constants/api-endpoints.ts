@@ -11,7 +11,11 @@ export const API = {
   },
   services: `${api}/services`,
   plans: `${api}/plans`,
+  shop: `${api}/shop`,
   pets: `${api}/pets`,
   slots: `${api}/slots`,
   bookings: `${api}/bookings`,
+  bookingQuote: `${api}/bookings/quote`,
+  subscriptions: `${api}/subscriptions`,
+  currentSubscription: `${api}/subscriptions/current`,
 };

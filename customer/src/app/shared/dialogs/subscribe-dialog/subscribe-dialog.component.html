@@ -49,6 +49,7 @@
             <p class="pp-dialog-note">
               💡 Payment gateway integration coming soon — this is a placeholder step.
             </p>
+            @if (error()) { <p class="pp-dialog-error" role="alert">{{ error() }}</p> }
 
             <button
               class="btn-pp-accent w-100 justify-content-center"

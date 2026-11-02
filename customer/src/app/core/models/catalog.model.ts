@@ -49,3 +49,14 @@ export interface Highlight {
   title: string;
   description: string;
 }
+
+/** GET /shop: what the app needs from Settings to explain payments. */
+export interface ShopInfo {
+  /** Paid online to confirm an app booking. */
+  advancePaise: Paise;
+  /** Cancelling at least this many hours before refunds the advance. */
+  freeCancellationHours: number;
+  /** The shop's UPI ID and QR, for paying the balance after the groom. */
+  upiId: string;
+  qrImageUrl: string | null;
+}

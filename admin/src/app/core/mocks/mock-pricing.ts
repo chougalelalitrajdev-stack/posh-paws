@@ -59,8 +59,8 @@ export function quoteBill(customerId: string, serviceId: string, offerCode: stri
   const hold = withAdvance ? db().settings.payments.slotHoldPaise : null;
 
   if (member && member.plan.eligibleServiceIds.includes(serviceId) && member.left > 0) {
-    const left = member.left === Infinity ? 'unlimited' : `${member.left} left`;
-    return newBill(price, { kind: 'session', label: `${member.plan.name} plan session (${left})`, amountPaise: price }, hold);
+    // No count in the label: the bill is kept, and a count would go stale.
+    return newBill(price, { kind: 'session', label: `${member.plan.name} plan session`, amountPaise: price }, hold);
   }
   const options: BillDiscount[] = [];
   if (member && member.plan.discountPercent > 0) {

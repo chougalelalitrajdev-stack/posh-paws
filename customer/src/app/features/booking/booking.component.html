@@ -18,10 +18,12 @@
               <div class="bk-row"><dt>Pet</dt><dd>{{ petEmoji[b.petType] }} {{ b.petName }}</dd></div>
               <div class="bk-row"><dt>Date</dt><dd>{{ dateLongLabel(b.date) }}</dd></div>
               <div class="bk-row"><dt>Time</dt><dd>{{ timeRangeLabel(b.time, b.durationMinutes) }}</dd></div>
-              <div class="bk-row"><dt>Paid now</dt><dd>{{ b.depositPaise | inr }}</dd></div>
-              <div class="bk-row"><dt>Payment ref.</dt><dd>{{ paymentRef() }}</dd></div>
-              <div class="bk-row bk-row-strong"><dt>Pay at the salon</dt><dd>{{ (b.pricePaise - b.depositPaise) | inr }}</dd></div>
+              @if (paymentRef()) { <div class="bk-row"><dt>Payment ref.</dt><dd>{{ paymentRef() }}</dd></div> }
             </dl>
+            <pp-bill [bill]="b.bill" [payments]="b.payments" />
+            @if (b.bill.balancePaise) {
+              <p class="pp-dialog-note">💳 Pay {{ b.bill.balancePaise | inr }} at the shop after the groom: scan the shop's UPI QR{{ catalog.shop()?.upiId ? ' (' + catalog.shop()!.upiId + ')' : '' }}, or pay by cash or card.</p>
+            }
             <p class="pp-dialog-note">📍 Posh Paws, Koregaon Park, Pune. Please arrive 5 minutes before your slot.</p>
           </div>
 
@@ -190,7 +192,7 @@
             <!-- ══════════ 4. Review order ══════════ -->
             @if (step() === 'review') {
               <h2 class="bk-panel-title">Review your booking</h2>
-              <p class="bk-panel-sub">Check the details, then continue to payment.</p>
+              <p class="bk-panel-sub">Check the details and your bill.</p>
 
               @if (selectedService(); as svc) {
                 <dl class="bk-rows">
@@ -212,24 +214,46 @@
                   }
                 </dl>
 
-                <dl class="bk-rows bk-price">
-                  <div class="bk-row"><dt>Service total</dt><dd>{{ svc.pricePaise | inr }}</dd></div>
-                  <div class="bk-row"><dt>Pay at the salon</dt><dd>{{ balancePaise() | inr }}</dd></div>
-                  <div class="bk-row bk-row-strong"><dt>To pay now (slot hold)</dt><dd>{{ depositPaise | inr }}</dd></div>
-                </dl>
+                @if (bill(); as bl) {
+                  <pp-bill [bill]="bl" mode="quote" />
+                } @else {
+                  <p class="bk-muted">Working out your bill…</p>
+                }
 
-                <p class="pp-dialog-note">
-                  💡 The {{ depositPaise | inr }} slot hold comes off your bill. Cancel at least
-                  {{ freeCancellationHours }} hours before your slot for a full refund.
-                </p>
+                <label class="bk-field-label" for="bk-code">Offer code <span class="bk-field-hint">· optional</span></label>
+                <div class="bk-code-row">
+                  <input id="bk-code" class="pp-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
+                    placeholder="e.g. FRIEND200" [value]="codeDraft()" [readOnly]="!!offerCode()" (input)="onCodeInput($event)" (keydown.enter)="applyCode()">
+                  @if (offerCode()) {
+                    <button class="btn-pp-ghost" type="button" (click)="removeCode()">Remove</button>
+                  } @else {
+                    <button class="btn-pp-outline" type="button" [disabled]="!codeDraft().trim()" (click)="applyCode()">Apply</button>
+                  }
+                </div>
+                @if (codeError()) { <p class="bk-error" role="alert">{{ codeError() }}</p> }
+                @else if (codeNote()) { <p class="bk-muted">{{ codeNote() }}</p> }
+
+                @if (bill(); as bl) {
+                  <p class="pp-dialog-note">
+                    @if (bl.advancePaise) {
+                      💡 Pay {{ bl.advancePaise | inr }} now to confirm; it comes off your bill. The rest is paid at the shop after the groom
+                      (shop UPI QR, cash or card). Cancel at least {{ catalog.shop()?.freeCancellationHours ?? 24 }} hours before your slot to get the
+                      {{ bl.advancePaise | inr }} back.
+                    } @else {
+                      🎟️ Nothing to pay: this visit uses one of your plan sessions@if (membership.current(); as plan) {
+                        ({{ plan.sessionsLeft === null ? 'unlimited' : plan.sessionsLeft + ' left before this one' }})}. If you cancel before your slot, you get it back.
+                    }
+                  </p>
+                }
               }
+              @if (error()) { <p class="bk-error" role="alert">{{ error() }}</p> }
 
             }
 
             <!-- ══════════ 5. Payment (dummy until a gateway is added) ══════════ -->
             @if (step() === 'payment') {
               <h2 class="bk-panel-title">Payment</h2>
-              <p class="bk-panel-sub">Pay {{ depositPaise | inr }} to hold your slot. The rest is paid at the salon.</p>
+              <p class="bk-panel-sub">Pay {{ bill()?.advancePaise ?? 0 | inr }} to confirm your slot. The rest is paid at the shop after the groom.</p>
 
               @if (submitting()) {
                 <div class="bk-paying" role="status">
@@ -240,7 +264,7 @@
               } @else {
                 <div class="bk-pay-amount">
                   <span class="bk-muted">Amount</span>
-                  <span class="bk-pay-total">{{ depositPaise | inr }}</span>
+                  <span class="bk-pay-total">{{ bill()?.advancePaise ?? 0 | inr }}</span>
                 </div>
 
                 <div class="bk-field-label">Pay with</div>
@@ -287,8 +311,9 @@
                 </dd>
               </div>
               <div class="bk-row"><dt>Pet</dt><dd>{{ stepIndex() >= 2 ? (selectedPet()?.name ?? '—') : '—' }}</dd></div>
-              @if (selectedService(); as svc) {
-                <div class="bk-row bk-row-strong"><dt>Total</dt><dd>{{ svc.pricePaise | inr }}</dd></div>
+              @if (selectedService()) {
+                @if (bill()?.discount; as d) { <div class="bk-row"><dt>Discount</dt><dd>−{{ d.amountPaise | inr }}</dd></div> }
+                <div class="bk-row bk-row-strong"><dt>Total</dt><dd>{{ totalPaise() | inr }}</dd></div>
               }
             </dl>
             <ng-container [ngTemplateOutlet]="actions" />
@@ -300,7 +325,7 @@
       <div class="pp-sticky-cta bk-bar d-lg-none">
         <div class="bk-bar-summary">
           @if (selectedService(); as svc) {
-            <span class="bk-bar-name">{{ svc.name }} · {{ svc.pricePaise | inr }}</span>
+            <span class="bk-bar-name">{{ svc.name }} · {{ totalPaise() | inr }}</span>
             <span class="bk-bar-meta">
               @if (date() && time()) { {{ dateLabel(date()!) }} · {{ timeRangeLabel(time()!, svc.durationMinutes) }} }
               @else { {{ svc.durationMinutes | duration }} }
@@ -329,9 +354,11 @@
               @case ('service') { Pick a time → }
               @case ('slot') { Continue → }
               @case ('pet') { Review → }
-              @case ('review') { Continue to payment → }
+              @case ('review') {
+                @if (submitting()) { Booking… } @else if (needsPayment() || !bill()) { Continue to payment → } @else { Confirm booking }
+              }
               @case ('payment') {
-                @if (submitting()) { Processing… } @else { Pay {{ depositPaise | inr }} }
+                @if (submitting()) { Processing… } @else { Pay {{ bill()?.advancePaise ?? 0 | inr }} }
               }
             }
           </button>
