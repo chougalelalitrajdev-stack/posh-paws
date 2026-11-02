@@ -48,6 +48,12 @@
   <pp-date-strip [dates]="dates" [(value)]="date" />
   <div class="mt-4"><pp-slot-grid [slots]="slots" [(value)]="slot" /></div>
 
+  <h2 class="sg-h">Bill (before and after booking)</h2>
+  <div class="row g-4">
+    <div class="col-md-6"><pp-bill [bill]="bill" mode="quote" /></div>
+    <div class="col-md-6"><pp-bill [bill]="bill" [payments]="billPayments" /></div>
+  </div>
+
   <h2 class="sg-h">Section header</h2>
   <pp-section-header eyebrow="Our offerings" linkTo="/services">
     <span ppTitle>Grooming <em>rituals</em></span>

@@ -1,4 +1,4 @@
-import { PlanItem, ServiceItem } from '../models/catalog.model';
+import { PlanItem, ServiceItem, ShopInfo } from '../models/catalog.model';
 
 // Data the fake API serves until the backend is live. It becomes the backend's seed data.
 
@@ -79,3 +79,38 @@ export const PLANS: PlanItem[] = [
     ],
   },
 ];
+
+/** Plan rules the server keeps (the admin's Membership plans): sessions per month, discount, services a session covers. */
+export const PLAN_RULES: Record<string, { sessionsPerPeriod: number | null; discountPercent: number; eligibleServiceIds: string[] }> = {
+  basic: { sessionsPerPeriod: 2, discountPercent: 0, eligibleServiceIds: ['dog-signature-bath', 'dog-nail-trim-filing', 'cat-gentle-cat-bath', 'cat-nail-trim-filing'] },
+  posh: {
+    sessionsPerPeriod: 5, discountPercent: 10,
+    eligibleServiceIds: [
+      'dog-signature-bath', 'dog-nail-trim-filing', 'dog-full-groom-style', 'dog-de-shedding-treatment',
+      'cat-gentle-cat-bath', 'cat-nail-trim-filing', 'cat-full-groom-trim', 'cat-de-shedding-treatment',
+    ],
+  },
+  royal: { sessionsPerPeriod: null, discountPercent: 20, eligibleServiceIds: SERVICES.map(s => s.id) },
+};
+
+export interface MockOffer {
+  code: string;
+  title: string;
+  type: 'percent' | 'flat';
+  /** Percent, or paise when flat. */
+  value: number;
+  /** null = every service. */
+  serviceIds: string[] | null;
+}
+
+/** Offer codes customers can enter at checkout (the admin's Offers). Each code works once per customer. */
+export const OFFERS: MockOffer[] = [
+  { code: 'FRIEND200', title: 'Refer a friend', type: 'flat', value: 20000, serviceIds: null },
+  {
+    code: 'DIWALI20', title: 'Diwali grooming week', type: 'percent', value: 20,
+    serviceIds: ['dog-signature-bath', 'dog-full-groom-style', 'dog-royal-package', 'dog-de-shedding-treatment', 'dog-flea-tick-spa', 'dog-nail-trim-filing'],
+  },
+];
+
+/** Settings › Payments in the admin. */
+export const SHOP: ShopInfo = { advancePaise: 10000, freeCancellationHours: 24, upiId: 'poshpaws@upi', qrImageUrl: null };

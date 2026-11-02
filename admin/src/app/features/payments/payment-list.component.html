@@ -29,7 +29,7 @@
           <td class="pp-nowrap">
             @if (p.kind === 'booking') { <a class="pp-strong" [routerLink]="['/bookings', p.reference]">{{ p.reference }}</a> }
             @else { <span class="pp-strong">{{ p.reference }}</span> }
-            <span class="pp-table-sub">{{ p.item }}</span>
+            <span class="pp-table-sub">{{ p.item }} · {{ p.detail }}</span>
           </td>
           <td class="pp-nowrap"><a [routerLink]="['/customers', p.customer.id]">{{ p.customer.name }}</a></td>
           <td class="pp-num pp-strong">{{ p.amountPaise | inr }}</td>
@@ -39,7 +39,7 @@
             @if (canRefund() && p.refundable) {
               <button class="pp-btn pp-btn-sm pp-btn-ghost pp-danger-text" type="button" [disabled]="busyId() === p.id" (click)="refund(p)">Refund</button>
             }
-            <a class="pp-btn pp-btn-sm" [class.pp-btn-primary]="p.status === 'failed' || p.status === 'expired'" [routerLink]="target(p)">{{ actionLabel(p) }}</a>
+            <a class="pp-btn pp-btn-sm" [class.pp-btn-primary]="p.status === 'failed' || p.status === 'expired' || p.status === 'due'" [routerLink]="target(p)">{{ actionLabel(p) }}</a>
           </td>
         </tr>
       }

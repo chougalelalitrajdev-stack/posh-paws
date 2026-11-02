@@ -65,10 +65,14 @@ function saveSection(section: SettingsSection, body: any): Settings {
     case 'business': s.business = cleanBusiness(body); break;
     case 'booking': s.booking = { ...cleanBooking(body), closures: s.booking.closures }; break;
     case 'payments':
+      if (body.upiId && !/^[\w.-]{2,}@[\w.-]{2,}$/.test(body.upiId.trim())) throw new MockError(400, 'That UPI ID doesn’t look right (it looks like name@bank).');
       s.payments = {
         ...s.payments,
         linkExpiryHours: between(body.linkExpiryHours, 1, 72, 'Links can last 1 to 72 hours.'),
-        slotHoldPaise: between(body.slotHoldPaise, 100, 500_000, 'Enter a hold amount in whole rupees.'),
+        slotHoldPaise: between(body.slotHoldPaise, 100, 500_000, 'Enter an advance in whole rupees.'),
+        freeCancellationHours: between(body.freeCancellationHours, 0, 168, 'Pick how long before the slot a cancellation still gets the advance back.'),
+        upiId: body.upiId?.trim() ?? '',
+        qrImageUrl: body.qrImageUrl || null,
       };
       break;
     case 'notifications':

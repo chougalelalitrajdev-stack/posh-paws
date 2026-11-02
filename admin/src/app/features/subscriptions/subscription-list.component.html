@@ -21,7 +21,13 @@
       @for (s of result()?.items ?? []; track s.id) {
         <tr>
           <td class="pp-nowrap"><a class="pp-strong" [routerLink]="['/customers', s.customer.id]">{{ s.customer.name }}</a><span class="pp-table-sub">{{ formatPhone(s.customer.phone) }}</span></td>
-          <td class="pp-nowrap">{{ s.planName }} · {{ s.pricePaise | inr }}</td>
+          <td class="pp-nowrap">
+            {{ s.planName }} · {{ s.pricePaise | inr }}
+            @if (s.nextPlan) { <span class="pp-table-sub">Moves to {{ s.nextPlan.planName }} on {{ shortDate(s.renewsOn!) }}</span> }
+            @if (canChange(s)) {
+              <button *ppHasRole="planChangers" class="pp-link pp-small pp-change-plan" type="button" (click)="changing.set(s)">Change plan</button>
+            }
+          </td>
           <td class="pp-nowrap">{{ shortDate(s.startedOn) }}</td>
           <td class="pp-nowrap" [class.pp-muted]="s.status === 'expired' || s.status === 'cancelled'">{{ period(s) }}</td>
           <td>
@@ -44,6 +50,11 @@
 
 @if (result(); as r) {
   <pp-pagination [page]="r.page" [pageSize]="r.pageSize" [total]="r.total" (pageChange)="page.set($event)" />
+}
+
+@if (changing(); as s) {
+  <pp-change-plan [subscriptionId]="s.id" [customerName]="s.customer.name" [nextPlanName]="s.nextPlan?.planName ?? null"
+    (closed)="changing.set(null)" (saved)="onPlanChanged()" />
 }
 
 @if (share(); as sh) {

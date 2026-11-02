@@ -1,4 +1,5 @@
-import { ActivityEntry, AmountType, Booking, BookingSource, BookingStage, PaymentStatus, RequestInfo } from '../models/booking.model';
+import { ActivityEntry, AmountType, BillDiscount, Booking, BookingSource, BookingStage, PaymentEntry, PaymentMethod, PaymentStatus, RequestInfo } from '../models/booking.model';
+import { SlotChanges } from '../models/calendar.model';
 import { Station } from '../models/catalog.model';
 import { GalleryPhoto } from '../models/gallery.model';
 import { Faq, FaqGroup, PageSection, SitePage } from '../models/page.model';
@@ -11,7 +12,7 @@ import { Subscription, SubscriptionStatus } from '../models/subscription.model';
 import { StaffUser, TeamMember } from '../models/staff-user.model';
 import { addDays, slotStart, today } from '../utils/date.utils';
 import type { StoredBanner, StoredCategory, StoredCustomer, StoredService } from './mock-db';
-import { discounted } from '../utils/money.utils';
+import { newBill, paymentEntryId, settleMoney } from './mock-money';
 
 // Data the fake API serves until the backend is live. It becomes the backend's seed data.
 // Names, pets and numbers follow the admin design. Booking dates are relative to today.
@@ -74,7 +75,7 @@ export const SETTINGS: Omit<Settings, 'booking'> & { booking: Omit<Settings['boo
     hours: [0, 1, 2, 3, 4, 5, 6].map(day => ({ day, open: true, opens: '09:00', closes: '19:00', breakFrom: '14:00', breakTo: '14:30' })),
     slotStepMinutes: 30, bufferMinutes: 15, bookAheadDays: 30, minNoticeMinutes: 30,
   },
-  payments: { currency: 'INR', linkExpiryHours: 24, slotHoldPaise: 10000, provider: null },
+  payments: { currency: 'INR', linkExpiryHours: 24, slotHoldPaise: 10000, freeCancellationHours: 24, upiId: 'poshpaws@upi', qrImageUrl: null, provider: null },
   notifications: { reminderTime: '18:00', unpaidNudgeHours: 6, staffAlerts: 'admins' },
   app: { bookButtonText: 'Book now', showPrices: true },
 };
@@ -216,7 +217,8 @@ const SEED_BOOKINGS: SeedBooking[] = [
   { id: 'PP-1037', customer: 'c5', pet: 'p6', service: 'cat-flea-tick-spa', stage: 'confirmed', payment: 'paid', createdMinutesAgo: 60 * 24 * 3, day: 0, time: '16:30', station: 'st2', amountType: 'full', sentMinutesAgo: 60 * 24 * 3, source: 'app' },
   { id: 'PP-1036', customer: 'c16', pet: 'p18', service: 'dog-signature-bath', stage: 'confirmed', payment: 'paid', createdMinutesAgo: 60 * 24 * 5, day: 0, time: '17:00', station: 'st1', amountType: 'hold', sentMinutesAgo: 60 * 24 * 5, source: 'app' },
   // Coming days
-  { id: 'PP-1035', customer: 'c6', pet: 'p8', service: 'dog-signature-bath', stage: 'confirmed', payment: 'paid', createdMinutesAgo: 60 * 24, day: 1, time: '10:00', station: 'st1', amountType: 'full', sentMinutesAgo: 60 * 23 },
+  // Booked by phone: confirmed with no advance, everything to pay at the shop.
+  { id: 'PP-1035', customer: 'c6', pet: 'p8', service: 'dog-signature-bath', stage: 'confirmed', createdMinutesAgo: 60 * 24, day: 1, time: '10:00', station: 'st1', source: 'phone' },
   { id: 'PP-1034', customer: 'c1', pet: 'p2', service: 'dog-nail-trim-filing', stage: 'confirmed', payment: 'paid', createdMinutesAgo: 60 * 30, day: 3, time: '11:00', station: 'st2', amountType: 'hold', sentMinutesAgo: 60 * 29, source: 'app' },
   { id: 'PP-1033', customer: 'c2', pet: 'p3', service: 'dog-de-shedding-treatment', stage: 'confirmed', payment: 'paid', createdMinutesAgo: 60 * 40, day: 4, time: '16:00', station: 'st1', amountType: 'full', sentMinutesAgo: 60 * 39, source: 'app' },
   // Earlier
@@ -247,7 +249,8 @@ export function seedBookings(customers: StoredCustomer[], now = new Date()): Boo
     const customer = customers.find(c => c.id === s.customer)!;
     const pet = customer.pets.find(p => p.id === s.pet)!;
     const service = SERVICES.find(sv => sv.id === s.service);
-    const price = service ? discounted(service.pricePaise, seedDiscount(customer.id)) : null;
+    // App bookings pay the advance online; staff bookings don't.
+    const bill = service ? newBill(service.pricePaise, seedMemberDiscount(customer.id, service.pricePaise), (s.source ?? 'app') === 'app' && !s.request ? SETTINGS.payments.slotHoldPaise : null) : null;
     const date = s.day === undefined ? null : addDays(today(), s.day);
     const createdAt = minutesAgo(s.createdMinutesAgo);
     const source = s.source ?? 'app';
@@ -260,47 +263,77 @@ export function seedBookings(customers: StoredCustomer[], now = new Date()): Boo
       activity.push({ at: createdAt, kind: 'request', title: source === 'app' ? 'Booked in the app' : 'Booking started by phone', by: source === 'app' ? undefined : 'Meera K.' });
     }
 
-    let payment: Booking['payment'] = null;
-    if (s.sentMinutesAgo !== undefined && price !== null && date && s.time) {
+    const payments: PaymentEntry[] = [];
+    const pay = (kind: PaymentEntry['kind'], amountPaise: number, method: PaymentMethod, at: string, by?: string, refundOf?: string) =>
+      payments.push({ id: paymentEntryId(s.id, payments), kind, amountPaise, method, at, ...(by && { by }), ...(refundOf && { refundOf }) });
+    let paymentLink: Booking['paymentLink'] = null;
+    if (s.sentMinutesAgo !== undefined && bill && date && s.time) {
       const sentAt = minutesAgo(s.sentMinutesAgo);
-      const amountPaise = s.amountType === 'hold' ? Math.min(SETTINGS.payments.slotHoldPaise, price) : price;
-      const paid = s.payment === 'paid' || s.payment === 'refunded';
-      payment = {
-        amountType: s.amountType ?? 'full',
-        amountPaise,
-        link: `https://pay.poshpaws.in/l/${s.id}`,
-        sentAt,
-        expiresAt: new Date(new Date(sentAt).getTime() + 24 * 3_600_000).toISOString(),
-        ...(paid && { paidAt: minutesAgo(Math.max(0, s.sentMinutesAgo - 20)), method: 'online' as const }),
-      };
       activity.push({ at: minutesAgo(s.sentMinutesAgo + 2), kind: 'details', title: 'Booking details saved', detail: `${service!.name} · ${date} ${s.time}` });
-      activity.push({ at: sentAt, kind: 'payment', title: source === 'app' ? 'Paid in the app' : 'Payment link sent on WhatsApp', by: source === 'app' ? undefined : 'Meera K.' });
-      if (s.payment === 'failed') activity.push({ at: minutesAgo(20), kind: 'payment', title: 'Payment failed', detail: 'The bank declined the payment.' });
-      if (paid && source !== 'app') activity.push({ at: payment.paidAt!, kind: 'payment', title: 'Paid online', detail: 'Booking confirmed automatically.' });
+      if (source === 'app' && !s.request) {
+        // Booked in the app: the advance was paid online straight away. (Callback requests go through staff.)
+        pay('advance', bill.advancePaise, 'online', sentAt);
+        activity.push({ at: sentAt, kind: 'payment', title: 'Advance paid in the app', detail: `₹${bill.advancePaise / 100}` });
+      } else if (s.payment === 'paid' || s.payment === 'refunded') {
+        const paidAt = minutesAgo(Math.max(0, s.sentMinutesAgo - 20));
+        pay('advance', bill.totalPaise, 'online', paidAt);
+        activity.push({ at: sentAt, kind: 'payment', title: 'Payment link sent on WhatsApp', by: 'Meera K.' });
+        activity.push({ at: paidAt, kind: 'payment', title: 'Paid online', detail: 'Booking confirmed automatically.' });
+      } else {
+        const amountType: AmountType = s.amountType ?? 'full';
+        paymentLink = {
+          amountType, amountPaise: amountType === 'hold' ? bill.advancePaise || Math.min(SETTINGS.payments.slotHoldPaise, bill.totalPaise) : bill.totalPaise,
+          url: `https://pay.poshpaws.in/l/${s.id}`, sentAt, expiresAt: new Date(new Date(sentAt).getTime() + 24 * 3_600_000).toISOString(),
+          ...(s.payment === 'failed' && { failed: true }),
+        };
+        activity.push({ at: sentAt, kind: 'payment', title: 'Payment link sent on WhatsApp', by: 'Meera K.' });
+        if (s.payment === 'failed') activity.push({ at: minutesAgo(20), kind: 'payment', title: 'Payment failed', detail: 'The bank declined the payment.' });
+      }
     }
+    if (s.stage === 'confirmed' && !payments.length && !paymentLink && bill && date) {
+      activity.push({ at: minutesAgo(s.createdMinutesAgo - 5), kind: 'status', title: 'Booking confirmed', detail: 'Booked by phone. Pays at the shop.', by: 'Meera K.' });
+    }
+    if (s.stage === 'completed' && bill && date && s.time) {
+      // The rest was paid at the shop after the groom: mostly by the shop's UPI QR, sometimes cash.
+      const rest = bill.totalPaise - payments.reduce((sum, p) => sum + p.amountPaise, 0);
+      if (rest > 0) pay('balance', rest, s.id.endsWith('3') ? 'cash' : 'upi_qr', slotStart(date, s.time).toISOString(), 'Amit J.');
+    }
+    if (s.payment === 'refunded' && payments[0]) pay('refund', payments[0].amountPaise, 'online', minutesAgo(60 * 24 * 4), 'Sanjay R.', payments[0].id);
     if (s.stage === 'completed' && date && s.time) activity.push({ at: slotStart(date, s.time).toISOString(), kind: 'status', title: 'Marked completed', by: 'Amit J.' });
     if (s.stage === 'no_show' && date && s.time) activity.push({ at: slotStart(date, s.time).toISOString(), kind: 'status', title: 'Marked as no-show', by: 'Amit J.' });
-    if (s.stage === 'cancelled') activity.push({ at: minutesAgo(60 * 24 * 4), kind: 'status', title: 'Booking cancelled', detail: 'Customer travelling. Refunded in full.', by: 'Sanjay R.' });
+    if (s.stage === 'cancelled') activity.push({ at: minutesAgo(60 * 24 * 4), kind: 'status', title: 'Booking cancelled', detail: 'Customer travelling. The advance was refunded (cancelled 24 h or more before).', by: 'Sanjay R.' });
 
-    return {
+    const booking: Booking = {
       id: s.id,
       createdAt,
       source,
       stage: s.stage,
-      paymentStatus: s.payment ?? 'not_requested',
+      paymentStatus: 'unpaid',
       customer: { id: customer.id, name: customer.name, phone: customer.phone },
       pet: { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed },
       service: service ? { id: service.id, name: service.name, durationMinutes: service.durationMinutes } : null,
       date,
       time: s.time ?? null,
       stationId: s.station ?? null,
-      pricePaise: price,
-      payment,
+      bill,
+      payments,
+      paymentLink,
       request: s.request,
-      bookedBy: source === 'app' ? undefined : 'Meera K.',
+      bookedBy: source === 'app' && !s.request ? undefined : 'Meera K.',
       activity: activity.sort((a, b) => b.at.localeCompare(a.at)),
-    } satisfies Booking;
+    };
+    settleMoney(booking);
+    return booking;
   });
+}
+
+
+/** Seeded bookings keep the member discount they had (no plan sessions, so the session counts stay as seeded). */
+function seedMemberDiscount(customerId: string, price: number): BillDiscount | null {
+  const sub = SEED_SUBSCRIPTIONS.find(s => s.customer === customerId && s.status === 'active');
+  const plan = sub && PLANS.find(p => p.id === sub.plan);
+  if (!plan || !plan.discountPercent) return null;
+  return { kind: 'membership', label: `${plan.name} member ${plan.discountPercent}% off`, amountPaise: Math.round((price * plan.discountPercent) / 100) };
 }
 
 interface SeedSubscription {
@@ -314,32 +347,32 @@ interface SeedSubscription {
   renewsInDays?: number;
   /** Expired / cancelled: ended this many days ago. */
   endedDaysAgo?: number;
+  /** Upgraded this many days ago from this plan, paid by UPI QR. */
+  upgradedFrom?: { plan: string; daysAgo: number };
+  /** A downgrade waiting for renewal. */
+  next?: string;
 }
 
 const SEED_SUBSCRIPTIONS: SeedSubscription[] = [
   { id: 'SUB-101', customer: 'c1', plan: 'posh', startedDaysAgo: 970, status: 'active', used: 2, renewsInDays: 4 },
-  { id: 'SUB-102', customer: 'c2', plan: 'royal', startedDaysAgo: 650, status: 'active', used: 3, renewsInDays: 12 },
+  { id: 'SUB-102', customer: 'c2', plan: 'royal', startedDaysAgo: 650, status: 'active', used: 3, renewsInDays: 12, next: 'posh' },
   { id: 'SUB-103', customer: 'c6', plan: 'posh', startedDaysAgo: 480, status: 'active', used: 4, renewsInDays: 1 },
   { id: 'SUB-104', customer: 'c5', plan: 'basic', startedDaysAgo: 435, status: 'active', used: 1, renewsInDays: 20 },
   { id: 'SUB-105', customer: 'c13', plan: 'basic', startedDaysAgo: 700, status: 'active', used: 0, renewsInDays: 11 },
-  { id: 'SUB-106', customer: 'c15', plan: 'posh', startedDaysAgo: 690, status: 'active', used: 1, renewsInDays: 9 },
+  { id: 'SUB-106', customer: 'c15', plan: 'posh', startedDaysAgo: 690, status: 'active', used: 1, renewsInDays: 9, upgradedFrom: { plan: 'basic', daysAgo: 3 } },
   { id: 'SUB-107', customer: 'c11', plan: 'posh', startedDaysAgo: 270, status: 'active', used: 5, renewsInDays: 2 },
   { id: 'SUB-108', customer: 'c8', plan: 'basic', startedDaysAgo: 6, status: 'payment_pending', used: 0 },
   { id: 'SUB-109', customer: 'c10', plan: 'royal', startedDaysAgo: 540, status: 'expired', used: 0, endedDaysAgo: 22 },
   { id: 'SUB-110', customer: 'c12', plan: 'basic', startedDaysAgo: 210, status: 'cancelled', used: 0, endedDaysAgo: 16 },
 ];
 
-/** Member discount at seed time (bookings copy the price they were made at). */
-function seedDiscount(customerId: string): number {
-  const sub = SEED_SUBSCRIPTIONS.find(s => s.customer === customerId && s.status === 'active');
-  return sub ? PLANS.find(p => p.id === sub.plan)!.discountPercent : 0;
-}
-
 export function seedSubscriptions(customers: StoredCustomer[]): Subscription[] {
   const t = today();
   return SEED_SUBSCRIPTIONS.map(s => {
     const customer = customers.find(c => c.id === s.customer)!;
     const plan = PLANS.find(p => p.id === s.plan)!;
+    const from = s.upgradedFrom && PLANS.find(p => p.id === s.upgradedFrom!.plan)!;
+    const next = s.next ? PLANS.find(p => p.id === s.next)! : null;
     return {
       id: s.id,
       customer: { id: customer.id, name: customer.name, phone: customer.phone },
@@ -352,7 +385,15 @@ export function seedSubscriptions(customers: StoredCustomer[]): Subscription[] {
       renewsOn: s.renewsInDays === undefined ? null : addDays(t, s.renewsInDays),
       endedOn: s.endedDaysAgo === undefined ? null : addDays(t, -s.endedDaysAgo),
       status: s.status,
-      paymentLink: s.status === 'payment_pending' ? { link: `https://pay.poshpaws.in/s/${s.id}`, sentAt: daysAgoIso(6) } : null,
+      paymentLink: s.status === 'payment_pending' ? { link: `https://pay.poshpaws.in/s/${s.id}`, sentAt: daysAgoIso(6), amountPaise: plan.pricePaise, planName: plan.name } : null,
+      nextPlan: next && { planId: next.id, planName: next.name, pricePaise: next.pricePaise },
+      changes: [
+        ...(next ? [{ at: daysAgoIso(1), kind: 'downgrade' as const, fromPlan: plan.name, toPlan: next.name, paidPaise: 0, method: null, by: 'Meera K.' }] : []),
+        ...(from ? [{
+          at: daysAgoIso(s.upgradedFrom!.daysAgo), kind: 'upgrade' as const, fromPlan: from.name, toPlan: plan.name,
+          paidPaise: plan.pricePaise - from.pricePaise, method: 'upi_qr' as const, by: 'Meera K.',
+        }] : []),
+      ],
     };
   });
 }
@@ -366,7 +407,7 @@ export function seedOffers(): Offer[] {
     offer({ id: 'off-1', title: 'Diwali grooming week', discountType: 'percent', value: 20, code: 'DIWALI20', appliesTo: 'some_services',
       serviceIds: ['dog-signature-bath', 'dog-full-groom-style', 'dog-royal-package', 'dog-de-shedding-treatment', 'dog-flea-tick-spa', 'dog-nail-trim-filing'],
       startsOn: addDays(t, -20), endsOn: addDays(t, 2), totalUses: 150, used: 84 }),
-    offer({ id: 'off-2', title: 'Refer a friend', discountType: 'flat', value: 20000, code: null, appliesTo: 'all_services',
+    offer({ id: 'off-2', title: 'Refer a friend', discountType: 'flat', value: 20000, code: 'FRIEND200', appliesTo: 'all_services',
       startsOn: addDays(t, -200), endsOn: null, totalUses: null, perCustomer: null, used: 31 }),
     offer({ id: 'off-3', title: 'First groom, 15% off', discountType: 'percent', value: 15, code: 'FIRSTPAW15', appliesTo: 'all_services',
       startsOn: addDays(t, 1), endsOn: addDays(t, 30), totalUses: 200, newCustomersOnly: true, used: 0 }),
@@ -493,6 +534,15 @@ export function seedClosures(): Omit<Settings['booking']['closures'][number], 'a
     { id: 'cl-1', date: addDays(t, 12), name: 'Festival holiday', closesAt: null },
     { id: 'cl-2', date: `${year}-12-25`, name: 'Christmas', closesAt: null },
     { id: 'cl-3', date: `${year + 1}-01-01`, name: 'New Year’s Day', closesAt: '14:00' },
+  ];
+}
+
+/** Slot board seed: tomorrow opens late (two morning times closed); the day after has an extra evening time. */
+export function seedSlotChanges(): SlotChanges[] {
+  const t = today();
+  return [
+    { date: addDays(t, 1), closed: ['09:00', '09:30'], extra: [] },
+    { date: addDays(t, 2), closed: [], extra: ['19:00'] },
   ];
 }
 

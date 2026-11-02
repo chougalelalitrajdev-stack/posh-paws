@@ -49,7 +49,13 @@ export interface BookingSettings {
 export interface PaymentSettings {
   currency: 'INR';
   linkExpiryHours: number;
+  /** The advance for app bookings. */
   slotHoldPaise: Paise;
+  /** Cancelled at least this long before the slot: the advance is refunded. */
+  freeCancellationHours: number;
+  /** The shop's UPI ID and QR image, shown to customers for paying the balance. */
+  upiId: string;
+  qrImageUrl: string | null;
   /** null until a payment gateway is connected. */
   provider: string | null;
 }

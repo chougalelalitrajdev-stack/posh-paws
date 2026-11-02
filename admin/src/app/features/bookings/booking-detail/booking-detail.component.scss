@@ -22,11 +22,13 @@
 
 .pp-detail-grid .pp-card-title { margin-bottom: var(--space-3); }
 
+.pp-pay-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
 .pp-pay-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  margin: var(--space-4) 0;
 
   > div { display: flex; flex-direction: column; gap: var(--space-px2); font-size: var(--fs-sm); }
   span { color: var(--pp-muted); font-size: var(--fs-xs); }

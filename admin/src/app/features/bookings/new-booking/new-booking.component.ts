@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { EMPTY, Observable, catchError, filter, finalize, map, of, switchMap, tap } from 'rxjs';
 import { CALL_OUTCOMES, SOURCES } from '../../../core/constants/status.constants';
-import { AmountType, Booking, BookingDetails, CallOutcome } from '../../../core/models/booking.model';
+import { AmountType, Booking, BookingBill, BookingDetails, CallOutcome } from '../../../core/models/booking.model';
 import { DayAvailability } from '../../../core/models/calendar.model';
 import { PetType, Service } from '../../../core/models/catalog.model';
 import { Customer, CustomerPet, CustomerPlan } from '../../../core/models/customer.model';
@@ -28,6 +28,7 @@ import { SlotPickerComponent } from '../../../shared/components/slot-picker/slot
 import { StatusPillComponent } from '../../../shared/components/status-pill/status-pill.component';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
+import { BillComponent } from '../../../shared/components/bill/bill.component';
 import { BookingStepComponent } from './booking-step/booking-step.component';
 
 type Step = 1 | 2 | 3 | 4;
@@ -40,7 +41,7 @@ type Step = 1 | 2 | 3 | 4;
   selector: 'pp-new-booking',
   imports: [
     RouterLink, ReactiveFormsModule, PageHeaderComponent, StatusPillComponent, SegmentedComponent,
-    SlotPickerComponent, BookingStepComponent, IconComponent, InrPipe, DurationPipe,
+    SlotPickerComponent, BookingStepComponent, BillComponent, IconComponent, InrPipe, DurationPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './new-booking.component.html',
@@ -91,10 +92,18 @@ export class NewBookingComponent {
   protected date = signal<string | null>(null);
   protected time = signal<string | null>(null);
   protected amountType = signal<AmountType>('full');
+  /** Step 4: phone bookings pay at the shop by default; a payment link is optional. */
+  protected payWith = signal<'shop' | 'link'>('shop');
+  protected offerInput = this.fb.control('');
+  /** The offer code applied to the bill (after Apply). */
+  protected offerCode = signal<string | null>(null);
+  protected quoteError = signal<string | null>(null);
+  /** The server's bill for the chosen service (member session or discount, or the offer). */
+  protected bill = signal<BookingBill | null>(null);
 
   protected busy = signal(false);
   protected error = signal<string | null>(null);
-  /** The booking once its payment link exists. */
+  /** The booking once it's confirmed or its payment link exists. */
   protected done = signal<Booking | null>(null);
 
   protected pet = computed<CustomerPet | null>(() => this.customer()?.pets.find(p => p.id === this.petId()) ?? null);
@@ -109,11 +118,17 @@ export class NewBookingComponent {
     const s = this.service();
     return s ? discounted(s.pricePaise, this.discount()) : null;
   });
+  /** What a payment link would ask for. */
   protected amount = computed(() => {
-    const price = this.price();
-    if (price === null) return null;
-    return this.amountType() === 'hold' ? Math.min(this.holdPaise(), price) : price;
+    const total = this.bill()?.totalPaise;
+    if (total === undefined) return null;
+    return this.amountType() === 'hold' ? Math.min(this.holdPaise(), total) : total;
   });
+  /** A plan session covers this service for this member (shown in step 2). */
+  protected coveredBySession = (s: Service) => {
+    const plan = this.plan();
+    return !!plan && plan.eligibleServiceIds.includes(s.id) && (plan.sessionsLeft === null || plan.sessionsLeft > 0);
+  };
   protected when = computed(() => {
     const d = this.date();
     const t = this.time();
@@ -126,13 +141,23 @@ export class NewBookingComponent {
       service: this.service()?.name ?? '[service]',
       date_time: this.when() || '[date and time]',
       amount: formatInr(this.amount() ?? 0),
-      payment_link: this.done()?.payment?.link ?? '[payment link]',
+      payment_link: this.done()?.paymentLink?.url ?? '[payment link]',
       link_hours: String(this.linkHours()),
     }),
   );
+  /** After a phone booking is confirmed: the confirmation to send instead of a payment link. */
+  protected confirmMessage = computed(() =>
+    this.templates.render('booking_confirmed', {
+      customer_name: firstName(this.customer()?.name ?? ''),
+      pet_name: this.pet()?.name ?? 'Your pet',
+      service: this.service()?.name ?? '[service]',
+      date_time: this.when() || '[date and time]',
+    }),
+  );
+  protected shareMessage = computed(() => (this.done()?.stage === 'confirmed' ? this.confirmMessage() : this.message()));
   protected whatsappHref = computed(() => {
     const c = this.customer();
-    return c ? whatsappLink(c.phone, this.message()) : '';
+    return c ? whatsappLink(c.phone, this.shareMessage()) : '';
   });
 
   protected title = computed(() => (this.pet() ? `Book ${this.pet()!.name} in` : 'New booking'));
@@ -149,6 +174,12 @@ export class NewBookingComponent {
 
   /** What the screen was opened with (query params). */
   private start = computed(() => ({ from: this.from(), customerId: this.customerId(), petId: this.petIdParam() }));
+  /** What the bill depends on. */
+  private quoteQuery = computed(() => {
+    const c = this.customer();
+    const s = this.serviceId();
+    return c && s ? { customerId: c.id, serviceId: s, offerCode: this.offerCode() } : null;
+  });
   /** The service whose slots step 3 shows; null outside step 3. */
   private slotService = computed(() => (this.step() === 3 ? this.service()?.id ?? null : null));
 
@@ -163,6 +194,21 @@ export class NewBookingComponent {
       switchMap(({ from, customerId, petId }) => (from ? this.loadSource(from) : customerId ? this.loadCustomer(customerId, petId) : EMPTY)),
       takeUntilDestroyed(),
     ).subscribe();
+
+    // The bill follows the customer, service and offer code; a newer one cancels the older request.
+    toObservable(this.quoteQuery).pipe(
+      tap(() => this.bill.set(null)),
+      switchMap(q => (q ? this.bookingService.quote(q).pipe(catchError(e => {
+        // A code that can't be used: say why and price the booking without it.
+        this.quoteError.set(errorMessage(e));
+        this.offerCode.set(null);
+        return of(null);
+      })) : of(null))),
+      takeUntilDestroyed(),
+    ).subscribe(bill => {
+      this.bill.set(bill);
+      if (bill && !bill.totalPaise) this.payWith.set('shop'); // nothing to pay: no link needed
+    });
 
     // Slots load each time step 3 opens; a newer service cancels the older request.
     toObservable(this.slotService).pipe(
@@ -263,13 +309,34 @@ export class NewBookingComponent {
   }
 
   /** Saves the details, creates the payment link, then shows the "send it" panel. */
+  applyOffer(): void {
+    const code = this.offerInput.value.trim().toUpperCase();
+    this.quoteError.set(null);
+    this.offerCode.set(code || null);
+  }
+
+  clearOffer(): void {
+    this.offerInput.setValue('');
+    this.quoteError.set(null);
+    this.offerCode.set(null);
+  }
+
+  /** Phone booking: confirmed now, everything paid at the shop. */
+  confirmBooking(): void {
+    this.run(this.bookingService.saveDetails(this.details(), this.source()?.id).pipe(
+      tap(saved => this.source.set(saved)),
+      switchMap(saved => this.bookingService.confirm(saved.id)),
+      tap(booking => this.done.set(booking)),
+    ));
+  }
+
   createLink(copy: boolean): void {
     this.run(this.bookingService.saveDetails(this.details(), this.source()?.id).pipe(
       tap(saved => this.source.set(saved)),
       switchMap(saved => this.bookingService.sendPaymentLink(saved.id, this.amountType())),
       tap(booking => {
         this.done.set(booking);
-        if (copy) void this.copy(booking.payment!.link, 'Payment link copied.');
+        if (copy) void this.copy(booking.paymentLink!.url, 'Payment link copied.');
       }),
     ));
   }
@@ -298,7 +365,7 @@ export class NewBookingComponent {
   }
 
   private details(): BookingDetails {
-    return { customerId: this.customer()!.id, petId: this.petId()!, serviceId: this.serviceId()!, date: this.date(), time: this.time() };
+    return { customerId: this.customer()!.id, petId: this.petId()!, serviceId: this.serviceId()!, date: this.date(), time: this.time(), offerCode: this.offerCode() };
   }
 
   private setCustomer(c: Customer, isNew: boolean): void {
@@ -323,6 +390,11 @@ export class NewBookingComponent {
       tap(({ b, c }) => {
         this.source.set(b);
         this.setCustomer(c, false);
+        // A draft keeps the offer code it was saved with.
+        if (b.offerCode) {
+          this.offerInput.setValue(b.offerCode);
+          this.offerCode.set(b.offerCode);
+        }
         if (b.pet) this.petId.set(b.pet.id);
         this.serviceId.set(b.service?.id ?? (this.pet() ? this.matchRequestedService(this.pet()!.type) : null));
         this.date.set(b.date);
@@ -384,6 +456,10 @@ export class NewBookingComponent {
     this.date.set(null);
     this.time.set(null);
     this.amountType.set('full');
+    this.payWith.set('shop');
+    this.offerInput.reset('');
+    this.offerCode.set(null);
+    this.quoteError.set(null);
     this.error.set(null);
     this.done.set(null);
   }

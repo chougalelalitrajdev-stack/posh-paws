@@ -1,7 +1,9 @@
 import { Component, HostListener, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { timer } from 'rxjs';
+import { finalize, switchMap, timer } from 'rxjs';
+import { MembershipService } from '../../../core/services/membership.service';
 import { SubscribeDialogService } from '../../../core/services/subscribe-dialog.service';
+import { errorMessage } from '../../../core/utils/error.utils';
 import { InrPipe } from '../../pipes/inr.pipe';
 
 @Component({
@@ -14,7 +16,9 @@ import { InrPipe } from '../../pipes/inr.pipe';
 })
 export class SubscribeDialogComponent {
   protected dialog = inject(SubscribeDialogService);
+  private membership = inject(MembershipService);
   protected submitting = signal(false);
+  protected error = signal<string | null>(null);
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
@@ -23,6 +27,7 @@ export class SubscribeDialogComponent {
 
   close(): void {
     if (this.submitting()) return;
+    this.error.set(null);
     this.dialog.close();
   }
 
@@ -35,13 +40,18 @@ export class SubscribeDialogComponent {
   }
 
   confirmPayment(): void {
-    if (this.submitting()) return;
+    const plan = this.dialog.plan();
+    if (!plan || this.submitting()) return;
     this.submitting.set(true);
+    this.error.set(null);
 
-    // No payment gateway exists yet — simulate the charge completing.
-    timer(700).subscribe(() => {
-      this.submitting.set(false);
-      this.dialog.markSubscribed();
+    // No payment gateway exists yet: simulate the charge, then start the plan.
+    timer(700).pipe(
+      switchMap(() => this.membership.subscribe(plan.id)),
+      finalize(() => this.submitting.set(false)),
+    ).subscribe({
+      next: () => this.dialog.markSubscribed(),
+      error: e => this.error.set(errorMessage(e)),
     });
   }
 }

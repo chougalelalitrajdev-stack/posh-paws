@@ -4,7 +4,7 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Observable, catchError, distinctUntilChanged, finalize, map, of, switchMap, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
-import { Booking, BookingRequest, TimeSlot } from '../models/booking.model';
+import { Booking, BookingBill, BookingRequest, QuoteRequest, TimeSlot } from '../models/booking.model';
 import { slotStart } from '../utils/date.utils';
 import { AuthService } from './auth.service';
 
@@ -45,6 +45,11 @@ export class BookingService {
 
   getSlots(date: string, serviceId: string): Observable<TimeSlot[]> {
     return this.http.get<TimeSlot[]>(API.slots, { params: { date, serviceId } });
+  }
+
+  /** The bill before booking: plan session, member discount or offer code. Wrong codes come back as 400 and are shown inline. */
+  quote(request: QuoteRequest): Observable<BookingBill> {
+    return this.http.post<BookingBill>(API.bookingQuote, request, { context: withoutErrorAlert() });
   }
 
   /** The booking page shows errors itself (e.g. 409 when the slot was just taken), so no global toast. */
