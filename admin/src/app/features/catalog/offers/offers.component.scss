@@ -51,19 +51,6 @@
 .pp-offer-code { font-family: var(--ff-mono); font-weight: 600; color: var(--pp-text); }
 .pp-offer-empty { text-align: center; color: var(--pp-muted); }
 
-.pp-offer-code-row { display: flex; gap: var(--space-2); }
-.pp-offer-code-input { flex: 1; min-width: 0; font-family: var(--ff-mono); text-transform: uppercase; }
-
-.pp-offer-scope {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0 var(--space-5);
-  margin: 0;
-  padding: 0;
-  border: 0;
-
-  legend { width: 100%; float: left; }
-}
+.pp-offer-code-input { font-family: var(--ff-mono); text-transform: uppercase; }
 
 .pp-offer-later { color: var(--pp-subtle); cursor: default; }

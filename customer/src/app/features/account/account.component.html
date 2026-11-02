@@ -15,7 +15,7 @@
 
     <!-- ── Quick stats strip ─────────────────────────── -->
     <div class="stats-strip">
-      @for (stat of quickStats; track stat.label) {
+      @for (stat of quickStats(); track stat.label) {
         <div class="stat-chip">
           <span class="stat-chip-icon">{{ stat.icon }}</span>
           <div>
@@ -65,6 +65,7 @@
                   <div class="booking-info">
                     <div class="booking-label">{{ b.serviceName }} — {{ b.petName }}</div>
                     <div class="booking-meta">{{ bookingMeta(b) }}</div>
+                    <ng-container [ngTemplateOutlet]="money" [ngTemplateOutletContext]="{ $implicit: b }" />
                   </div>
                   <div class="booking-actions">
                     <span class="booking-status" [class]="'status-' + b.status">
@@ -77,6 +78,8 @@
                     </button>
                   </div>
                 </div>
+                @if (confirmingCancel() === b.id) { <p class="booking-cancel-note" role="status">{{ cancelNote(b) }}</p> }
+                <ng-container [ngTemplateOutlet]="billPanel" [ngTemplateOutletContext]="{ $implicit: b }" />
               }
             }
           </div>
@@ -91,9 +94,11 @@
                 <div class="booking-info">
                   <div class="booking-label">{{ b.serviceName }} — {{ b.petName }}</div>
                   <div class="booking-meta">{{ bookingMeta(b) }}</div>
+                  <ng-container [ngTemplateOutlet]="money" [ngTemplateOutletContext]="{ $implicit: b }" />
                 </div>
                 <span class="booking-status" [class]="'status-' + b.status">{{ b.status | titlecase }}</span>
               </div>
+              <ng-container [ngTemplateOutlet]="billPanel" [ngTemplateOutletContext]="{ $implicit: b }" />
             } @empty {
               <div class="empty-state">
                 <div class="empty-icon">🐾</div>
@@ -104,29 +109,64 @@
           </div>
         }
 
+        <!-- The money line under a booking, and its bill when opened -->
+        <ng-template #money let-b>
+          <div class="booking-money">
+            <span [class.is-due]="b.bill.balancePaise > 0 && b.status !== 'cancelled'">{{ moneyLine(b) }}</span>
+            <button class="booking-bill-btn" type="button" [attr.aria-expanded]="openBill() === b.id" (click)="toggleBill(b.id)">
+              {{ openBill() === b.id ? 'Hide bill' : 'Bill' }}
+            </button>
+          </div>
+        </ng-template>
+        <ng-template #billPanel let-b>
+          @if (openBill() === b.id) {
+            <div class="booking-bill">
+              <pp-bill [bill]="b.bill" [payments]="b.payments" [closed]="b.status === 'cancelled' || b.status === 'no_show'" />
+              @if (b.bill.balancePaise && b.status !== 'cancelled') {
+                <p class="booking-bill-note">
+                  Pay at the shop after the groom: scan the shop's UPI QR@if (catalog.shop()?.upiId; as upi) { or pay <strong>{{ upi }}</strong> }, or pay by cash or card.
+                </p>
+              }
+            </div>
+          }
+        </ng-template>
       </div>
 
       <!-- Right: sidebar ────────────────────────────── -->
       <div class="col-lg-4 acct-side">
 
-        <!-- Membership banner -->
+        <!-- Membership banner (staff can change the plan; it shows here) -->
         <div class="membership-banner">
-          <div class="membership-label">Active membership</div>
-          <div class="membership-tier">{{ membership.tier }}</div>
-          <div class="membership-sub">{{ membership.tagline }}</div>
-
-          <!-- Session progress -->
-          <div class="session-progress-wrap">
-            <div class="session-progress-label">Sessions used this month</div>
-            <div class="session-progress-bar">
-              <div class="session-progress-fill" [style.width]="sessionProgress"></div>
+          @if (membership.current(); as plan) {
+            <div class="membership-label">{{ plan.status === 'active' ? 'Active membership' : 'Waiting for your first payment' }}</div>
+            <div class="membership-tier">{{ plan.planName }} Plan</div>
+            <div class="membership-sub">
+              {{ plan.sessionsTotal === null ? 'Unlimited sessions' : plan.sessionsTotal + ' sessions a month' }}@if (plan.discountPercent) { · {{ plan.discountPercent }}% off other services }
+              @if (plan.renewsOn) { <br>Renews {{ dateLongLabel(plan.renewsOn) }} }
             </div>
-            <div class="session-progress-meta">
-              {{ membership.sessionsUsed }} of {{ membership.sessionsTotal }} used
-            </div>
-          </div>
+            @if (plan.nextPlanName) {
+              <div class="membership-next">Moves to the {{ plan.nextPlanName }} plan at renewal</div>
+            }
 
-          <a class="membership-upgrade-link" routerLink="/membership">Upgrade plan →</a>
+            <div class="session-progress-wrap">
+              <div class="session-progress-label">Sessions this month</div>
+              @if (sessionProgress(); as width) {
+                <div class="session-progress-bar">
+                  <div class="session-progress-fill" [style.width]="width"></div>
+                </div>
+                <div class="session-progress-meta">{{ plan.sessionsUsed }} of {{ plan.sessionsTotal }} used · {{ plan.sessionsLeft }} left</div>
+              } @else {
+                <div class="session-progress-meta">{{ plan.sessionsUsed }} used · unlimited</div>
+              }
+            </div>
+
+            <a class="membership-upgrade-link" [href]="'tel:' + businessPhoneTel">Want a different plan? Call us and we'll switch it.</a>
+          } @else {
+            <div class="membership-label">Membership</div>
+            <div class="membership-tier">No plan yet</div>
+            <div class="membership-sub">Members get grooming sessions included and money off every other visit.</div>
+            <a class="membership-upgrade-link" routerLink="/membership">See plans →</a>
+          }
         </div>
 
         <!-- My pets -->

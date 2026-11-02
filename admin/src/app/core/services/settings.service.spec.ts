@@ -31,7 +31,7 @@ describe('SettingsService (load once, shared)', () => {
     service.load().subscribe();
     http.expectOne(API.settings).flush(settings(10000));
 
-    service.save('payments', { currency: 'INR', slotHoldPaise: 15000, linkExpiryHours: 24, provider: null }).subscribe();
+    service.save('payments', { currency: 'INR', slotHoldPaise: 15000, linkExpiryHours: 24, freeCancellationHours: 24, upiId: 'poshpaws@upi', qrImageUrl: null, provider: null }).subscribe();
     http.expectOne(`${API.settings}/payments`).flush(settings(15000));
 
     let later = 0;

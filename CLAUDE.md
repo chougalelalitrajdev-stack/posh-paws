@@ -27,3 +27,18 @@ One git repo, three independent apps. Each app has its own dependencies, lock fi
 - **Money is integer paise** (`120000` = ₹1,200). Dates are `YYYY-MM-DD`, times `HH:mm`, timestamps ISO 8601.
 - **Errors use FastAPI's shape**: `{"detail": "Human-readable message"}` with the right HTTP status (400 bad input, 401 not logged in, 403 not allowed, 404 not found, 409 conflict such as a slot already taken, 422 validation). Angular's error interceptor shows `detail` to the user.
 - When a model or route changes, update the backend schema and the Angular model in the same change.
+
+## Booking & payment rules (both apps follow them; the backend owns them)
+
+Agreed with the business on 2 Nov 2026. The server computes every number below; the apps only show them.
+
+- **Two ways to book.** In the customer app the customer picks an open slot and pays an **advance** online, which confirms the booking. When a customer phones, staff book in the admin and the booking is **confirmed with no advance** (staff may still send a payment link if they want one).
+- **The bill** (same in both apps): service price → at most one discount → total. Discounts don't stack; the best one wins:
+  - **Plan session:** a member with sessions left on a service their plan covers pays ₹0 and uses one session (reserved when the booking is confirmed, given back if it's cancelled, kept on a no-show).
+  - **Member discount:** the plan's discount % on any other service.
+  - **Offer:** a live offer (code or automatic) that applies to the service, used only if it beats the member discount. Its use is counted when the booking is confirmed and given back on cancel.
+- **Advance** (app bookings): Settings › Payments hold amount (₹100), never more than the total, none when the total is ₹0. It counts toward the bill. Cancelled at least `freeCancellationHours` (24) before the slot: refunded automatically. Later, or a no-show: kept.
+- **Balance** = total − paid. Paid at the shop by the shop's UPI QR, cash or card (staff record it, with the amount and method), or online by a payment link. Both apps show the bill, every payment and the balance.
+- **Payment status** comes from the money: `unpaid`, `link_sent`, `failed`, `part_paid`, `paid` (also when the total is ₹0), `refunded`.
+- **Plan changes** (admin): an upgrade starts now; the customer pays the price difference for this period, gets the new plan's sessions minus those already used, and keeps the renewal date. A downgrade starts at the next renewal.
+- **Slots:** weekly hours, breaks and holiday closures (Settings), per-station block time, and a per-day slot board where staff close single start times (no new bookings start then; bookings already made stay) or open extra ones (after hours or in a break; bookings, blocks, buffer and notice still apply). Both apps only ever offer the times the server lists.

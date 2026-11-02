@@ -1,0 +1,38 @@
+<pp-modal [title]="title()" (closed)="closed.emit()">
+  <form class="pp-form-grid" id="change-plan-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+    @if (options(); as opts) {
+      <fieldset class="pp-field pp-span pp-plan-choices">
+        <legend class="pp-label">New plan</legend>
+        @for (o of opts; track o.planId) {
+          <label class="pp-plan-choice" [class.is-disabled]="disabled(o)">
+            <input type="radio" formControlName="planId" [value]="o.planId" [attr.disabled]="disabled(o) || null">
+            <span class="pp-plan-choice-text">
+              <strong>{{ o.name }} · {{ o.pricePaise | inr }} a month</strong>
+              <span>{{ note(o) }}</span>
+            </span>
+          </label>
+        }
+      </fieldset>
+      @if (selected()?.change === 'upgrade') {
+        <p class="pp-span pp-plan-pay">Difference to pay now <strong>{{ selected()!.payNowPaise | inr }}</strong></p>
+        <fieldset class="pp-field pp-span pp-radio-row">
+          <legend class="pp-label">How they paid it</legend>
+          @for (m of methods; track m.value) {
+            <label class="pp-check"><input type="radio" formControlName="method" [value]="m.value"><span>{{ m.label }}</span></label>
+          }
+        </fieldset>
+        @if (form.controls.method.value === 'upi_qr' && settings.settings()?.payments?.upiId; as upiId) {
+          <p class="pp-hint pp-span">They can scan the shop QR or pay {{ upiId }} from anywhere. Check the money arrived before saving.</p>
+        }
+      }
+      <p class="pp-hint pp-span">Bookings already confirmed keep their bill. The customer sees the new plan in the app.</p>
+    } @else if (!error()) {
+      <p class="pp-muted pp-span">Loading plans…</p>
+    }
+  </form>
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="change-plan-form" [disabled]="saving() || !selected()">
+    @if (saving()) { Saving… } @else { {{ submitLabel() }} }
+  </button>
+</pp-modal>

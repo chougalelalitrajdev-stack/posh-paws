@@ -97,3 +97,10 @@
   color: var(--pp-muted);
   line-height: 1.6;
 }
+
+// Inline error message in a dialog step
+.pp-dialog-error {
+  margin: 0 0 var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--pp-accent-dark);
+}

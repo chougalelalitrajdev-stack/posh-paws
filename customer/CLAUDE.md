@@ -28,13 +28,13 @@ src/
   app/
     core/              app-wide logic, no UI. Grouped by file type.
       constants/       api-endpoints.ts (every API URL), app.constants.ts, storage-keys.ts, pet.constants.ts, content.constants.ts
-      models/          API shapes: user, pet, catalog, booking (*.model.ts)
-      services/        one per domain, HTTP + signal state: auth, pet, booking, catalog
+      models/          API shapes: user, pet, catalog, booking, membership (*.model.ts)
+      services/        one per domain, HTTP + signal state: auth, pet, booking (+ quote), membership (my plan), catalog (+ shop payment info)
                        app helpers: alert (toasts), loader, theme, and the dialog state services
       interceptors/    auth (Bearer token), loading (progress bar), error (toast / logout on 401)
       guards/          auth.guard.ts
       handlers/        global-error.handler.ts (uncaught errors -> toast)
-      utils/           date, pet, error, storage, text helpers (plain functions)
+      utils/           date, money (formatInr), pet, error, storage, text helpers (plain functions)
       mocks/           TEMPORARY fake backend (mock.interceptor.ts + mock-data.ts); delete when the API is live
     shared/            reusable UI, never calls the API
       components/      presentational building blocks (list below) + toast + loader
@@ -72,12 +72,13 @@ Rules:
 - **Errors:** the error interceptor turns every failed request into a toast (`AlertService`) and logs the user out on 401. If a screen shows the error itself, the service passes `{ context: withoutErrorAlert() }` and the component shows `errorMessage(e)` inline. `GlobalErrorHandler` toasts anything uncaught (it ignores HTTP errors, already reported).
 - **State:** global state in root services (user, alerts, loading, catalog), feature state in the domain service (my pets, my bookings), screen state in component signals. No NgRx.
 - **Loading:** the loading interceptor drives the top progress bar (`pp-loader`); components use their own `loading` signals for inline spinners.
+- **Money on a booking** follows "Booking & payment rules" in `../CLAUDE.md`, the same as the admin. The server works out the bill (`POST /bookings/quote` before booking; `bill`, `payments`, `paymentStatus` on every booking) and the app only shows it with `<pp-bill>`. The advance, the free-cancellation window and the shop's UPI details come from `GET /shop` (`CatalogService.shop`), never from constants. The customer's plan is `GET /subscriptions/current` (`MembershipService`); staff change plans in the admin, so the app only shows the plan, sessions left and any move at renewal.
 - **Login:** features needing login call `loginDialog.ensureLoggedIn().pipe(filter(Boolean)).subscribe(...)` (or use `authGuard`). They never touch login UI state.
 - **Global dialogs:** state lives in a small service in `core/services` (`providedIn: 'root'`); the component (mounted once in `app.html`) owns any async work. The call/callback `BookingDialogService` dialog is parked: its calls are commented out where "Book" buttons now `router.navigate(['/book'], { queryParams })`.
 
 ## Shared components (`src/app/shared/components`)
 
-`pp-icon` (SVG icon set; add icons in `icon/icons.ts`), `pp-page-hero`, `pp-section-header`, `pp-cta-banner`, `pp-service-card`, `pp-plan-card`, `pp-testimonial-card`, `pp-feature-card`, `pp-how-it-works`, `pp-accordion`, `pp-chip-group`, `pp-date-strip`, `pp-slot-grid`, `pp-toast`, `pp-loader`; pipes `inr` and `duration` in `shared/pipes`. See them all at `/styleguide` (dev only).
+`pp-icon` (SVG icon set; add icons in `icon/icons.ts`), `pp-bill` (a booking's bill: `mode="quote"` before booking, `"booking"` after), `pp-page-hero`, `pp-section-header`, `pp-cta-banner`, `pp-service-card`, `pp-plan-card`, `pp-testimonial-card`, `pp-feature-card`, `pp-how-it-works`, `pp-accordion`, `pp-chip-group`, `pp-date-strip`, `pp-slot-grid`, `pp-toast`, `pp-loader`; pipes `inr` and `duration` in `shared/pipes`. See them all at `/styleguide` (dev only).
 
 - Content slots use attributes: `ppTitle`, `ppLead`, `ppActions`, `ppVisual`, `ppFooter`, `ppAside`, `ppText`, `ppAction`. Use a `<span>`/element wrapper (not `<ng-container>`) for slot content.
 - `page-hero`, `section-header` and `cta-banner` use `ViewEncapsulation.None` with `pp-` prefixed classes so headings projected from the page get styled. The cards use normal encapsulation.
@@ -123,6 +124,6 @@ All routes are lazy-loaded from `features/` (`loadComponent`). `/account*` route
 | `/about` | `AboutComponent` |
 | `/membership` | `MembershipComponent`: plan cards, Subscribe dialog |
 | `/gallery` | `GalleryComponent` |
-| `/book` | `BookingComponent`: slot booking: service → date & time → pet → review → payment (dummy ₹100 slot hold until a gateway is added) → confirmed, with a link to My bookings. Query params `pet`, `service`, `petId` prefill it; login is asked for before the pet step; a 409 (slot taken) sends the user back to pick a new time |
-| `/account` | `AccountComponent` (login required): bookings (from `BookingService`, with cancel), pets, membership |
+| `/book` | `BookingComponent`: slot booking: service → date & time → pet → review (the bill from the server, offer code) → payment (the advance; dummy until a gateway is added) → confirmed with the bill and what's left to pay at the shop. A ₹0 bill (plan session) skips payment. Query params `pet`, `service`, `petId` prefill it; login is asked for before the pet step; a 409 (slot taken) sends the user back to pick a new time |
+| `/account` | `AccountComponent` (login required): bookings with their bill (from `BookingService`, with cancel and what cancelling does to the advance), pets, the plan (from `MembershipService`) |
 | `/account/pets/:id` | `PetDetailsComponent` (login required) |

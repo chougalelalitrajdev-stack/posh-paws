@@ -13,22 +13,28 @@ import { CatalogService } from '../../../core/services/catalog.service';
 import { TemplateService } from '../../../core/services/template.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { CustomerService } from '../../../core/services/customer.service';
+import { SettingsService } from '../../../core/services/settings.service';
 import { formatPhone, telLink, whatsappLink } from '../../../core/utils/contact.utils';
 import { formatDuration, minutesSince, petAge, shortDate, slotStart, timeRange, untilLabel, whenLabel } from '../../../core/utils/date.utils';
 import { formatInr } from '../../../core/utils/money.utils';
 import { firstName } from '../../../core/utils/message.utils';
 import { ActivityListComponent } from '../../../shared/components/activity-list/activity-list.component';
+import { BillComponent } from '../../../shared/components/bill/bill.component';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
 import { StatusPillComponent } from '../../../shared/components/status-pill/status-pill.component';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { BookingProgressComponent, ProgressStep } from '../booking-progress/booking-progress.component';
+import { RecordPaymentComponent } from '../record-payment/record-payment.component';
 import { RescheduleComponent } from '../reschedule/reschedule.component';
 
 /** One booking: progress, payment, appointment, pet, customer and activity (design: "Booking detail"). */
 @Component({
   selector: 'pp-booking-detail',
-  imports: [RouterLink, PageHeaderComponent, StatusPillComponent, RescheduleComponent, BookingProgressComponent, InrPipe, ActivityListComponent, AvatarComponent],
+  imports: [
+    RouterLink, PageHeaderComponent, StatusPillComponent, RescheduleComponent, RecordPaymentComponent, BookingProgressComponent, BillComponent, InrPipe,
+    ActivityListComponent, AvatarComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './booking-detail.component.html',
   styleUrl: './booking-detail.component.scss',
@@ -40,6 +46,7 @@ export class BookingDetailComponent {
   private alert = inject(AlertService);
   protected catalog = inject(CatalogService);
   private templates = inject(TemplateService);
+  private settings = inject(SettingsService);
 
   /** Route param. */
   readonly id = input.required<string>();
@@ -58,6 +65,7 @@ export class BookingDetailComponent {
   protected customer = signal<Customer | null>(null);
   protected busy = signal(false);
   protected rescheduling = signal(false);
+  protected recording = signal(false);
   protected note = signal('');
 
   protected title = computed(() => {
@@ -89,13 +97,18 @@ export class BookingDetailComponent {
     if (!b) return [];
     const first = (kind: ActivityEntry['kind'], title?: string) =>
       [...b.activity].reverse().find(a => a.kind === kind && (!title || a.title === title))?.at;
+    const confirmedAt = ['confirmed', 'completed', 'no_show'].includes(b.stage)
+      ? first('status', 'Booking confirmed') ?? b.payments.find(p => p.kind === 'advance')?.at ?? b.createdAt
+      : undefined;
+    const linkSent = first('payment', 'Payment link sent on WhatsApp');
     const steps = [
       { label: b.request ? 'Request' : 'Booked', at: b.createdAt },
-      { label: 'Details', at: first('details') ?? (b.payment ? b.createdAt : undefined) },
-      { label: 'Link sent', at: b.payment?.sentAt },
-      { label: 'Paid', at: b.payment?.paidAt },
-      { label: 'Confirmed', at: b.payment?.paidAt },
+      { label: 'Details', at: first('details') ?? (b.bill ? b.createdAt : undefined) },
+      // Only bookings that went through a payment link show that step.
+      ...(linkSent || b.paymentLink ? [{ label: 'Link sent', at: linkSent ?? b.paymentLink?.sentAt }] : []),
+      { label: 'Confirmed', at: confirmedAt },
       { label: 'Completed', at: b.stage === 'completed' ? first('status', 'Marked completed') ?? b.date ?? undefined : undefined },
+      { label: 'Paid in full', at: b.paymentStatus === 'paid' && b.bill?.totalPaise ? b.payments.at(-1)?.at : undefined },
     ];
     const current = steps.findIndex(s => !s.at);
     return steps.map((s, i) => ({
@@ -111,33 +124,34 @@ export class BookingDetailComponent {
     return !!b?.date && !!b.time && slotStart(b.date, b.time) <= new Date();
   });
 
-  protected paymentText = computed(() => {
+  /** The open payment link, if any. */
+  protected linkText = computed(() => {
     const b = this.booking();
-    const p = b?.payment;
-    if (!b || !p) return null;
-    const balance = (b.pricePaise ?? 0) - p.amountPaise;
-    const plan = this.customer()?.plan;
+    const l = b?.paymentLink;
+    if (!b || !l) return null;
+    const beforeVisit = b.stage === 'awaiting_payment';
     return {
-      amount: formatInr(p.amountPaise),
-      amountNote: p.amountType === 'hold'
-        ? `Slot hold · ${formatInr(balance)} at the visit`
-        : `Full amount · ${plan ? `${plan.name} member price` : 'no plan'}`,
-      sent: whenLabel(p.sentAt),
-      expires: p.paidAt
-        ? `Paid ${whenLabel(p.paidAt)}${p.method === 'desk' ? ' at the desk' : ' online'}`
-        : minutesSince(p.expiresAt) > 0 ? 'Expired' : `In ${untilLabel(p.expiresAt)}`,
-      expiresLabel: p.paidAt ? 'Paid' : 'Link expires',
-      expiresNote: p.paidAt ? 'Booking confirmed' : 'Slot is held until then',
+      amount: formatInr(l.amountPaise),
+      amountNote: beforeVisit ? (l.amountType === 'hold' ? 'Advance · holds the slot' : 'Full amount · holds the slot') : 'Balance',
+      sent: whenLabel(l.sentAt),
+      expires: l.failed ? 'Payment failed' : minutesSince(l.expiresAt) > 0 ? 'Expired' : `In ${untilLabel(l.expiresAt)}`,
+      expiresNote: beforeVisit ? 'Slot is held until then' : 'Or pay at the shop',
     };
+  });
+  /** Money can be taken until the booking is closed. */
+  protected canTakePayment = computed(() => {
+    const b = this.booking();
+    return !!b?.bill?.balancePaise && ['awaiting_payment', 'confirmed', 'completed'].includes(b.stage);
   });
 
   protected whatsappHref = computed(() => {
     const b = this.booking();
-    if (!b?.payment || !b.pet || !b.service || !b.date || !b.time) return '';
-    const hours = Math.round((new Date(b.payment.expiresAt).getTime() - new Date(b.payment.sentAt).getTime()) / 3_600_000);
+    const link = b?.paymentLink;
+    if (!b || !link || !b.pet || !b.service || !b.date || !b.time) return '';
+    const hours = Math.round((new Date(link.expiresAt).getTime() - new Date(link.sentAt).getTime()) / 3_600_000);
     return whatsappLink(b.customer.phone, this.templates.render('payment_link', {
       customer_name: firstName(b.customer.name), pet_name: b.pet.name, service: b.service.name, date_time: `${shortDate(b.date)} · ${b.time}`,
-      amount: formatInr(b.payment.amountPaise), payment_link: b.payment.link, link_hours: String(hours),
+      amount: formatInr(link.amountPaise), payment_link: link.url, link_hours: String(hours),
     }));
   });
 
@@ -149,6 +163,7 @@ export class BookingDetailComponent {
   constructor() {
     this.catalog.load().subscribe();
     this.templates.load().subscribe();
+    this.settings.load().subscribe();
     // Opening another booking cancels the previous one's requests (switchMap).
     toObservable(this.id).pipe(
       tap(() => this.booking.set(null)),
@@ -166,11 +181,22 @@ export class BookingDetailComponent {
   }
 
   resendLink(): void {
-    this.run(b => this.bookingService.sendPaymentLink(b.id, b.payment?.amountType ?? 'full'), 'New payment link created. Send it on WhatsApp.');
+    this.run(b => this.bookingService.sendPaymentLink(b.id, b.paymentLink?.amountType ?? 'full'), 'New payment link created. Send it on WhatsApp.');
+  }
+
+  /** A link for the balance, for customers who'd rather pay online than at the shop. */
+  sendBalanceLink(): void {
+    this.run(b => this.bookingService.sendPaymentLink(b.id, 'full'), 'Balance link created. Send it on WhatsApp.');
+  }
+
+  onPaymentRecorded(b: Booking): void {
+    this.booking.set(b);
+    this.recording.set(false);
+    this.alert.success(b.bill?.balancePaise ? `Payment recorded. ${formatInr(b.bill.balancePaise)} still due.` : 'Payment recorded. Paid in full.');
   }
 
   async copyLink(): Promise<void> {
-    const link = this.booking()?.payment?.link;
+    const link = this.booking()?.paymentLink?.url;
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
@@ -180,17 +206,6 @@ export class BookingDetailComponent {
     }
   }
 
-  async markPaid(): Promise<void> {
-    const b = this.booking();
-    if (!b?.payment) return;
-    const ok = await this.confirm.ask({
-      title: 'Mark as paid at the desk?',
-      message: `${formatInr(b.payment.amountPaise)} received from ${b.customer.name}. The booking will be confirmed.`,
-      confirmLabel: 'Mark paid',
-    });
-    if (ok) this.run(x => this.bookingService.markPaid(x.id), 'Marked paid. Booking confirmed.');
-  }
-
   simulatePayment(): void {
     this.run(x => this.bookingService.simulateOnlinePayment(x.id), 'Customer paid online (demo). Booking confirmed.');
   }
@@ -198,17 +213,29 @@ export class BookingDetailComponent {
   async cancel(): Promise<void> {
     const b = this.booking();
     if (!b) return;
-    const paid = b.paymentStatus === 'paid';
     const ok = await this.confirm.ask({
       title: b.stage === 'request' ? 'Cancel this request?' : 'Cancel this booking?',
-      message: paid
-        ? 'The slot is freed. The payment is not refunded automatically; a Super Admin refunds it from Payments.'
-        : 'The slot is freed and the payment link stops working.',
+      message: this.cancelMessage(b),
       confirmLabel: b.stage === 'request' ? 'Cancel request' : 'Cancel booking',
       cancelLabel: 'Keep it',
       tone: 'danger',
     });
     if (ok) this.run(x => this.bookingService.cancel(x.id), 'Booking cancelled.');
+  }
+
+  /** What happens to the money, by the refund rule (root CLAUDE.md › Booking & payment rules). */
+  private cancelMessage(b: Booking): string {
+    const parts = ['The slot is freed.'];
+    if (b.bill?.discount?.kind === 'session') parts.push('The plan session is given back.');
+    const advance = b.payments.filter(p => p.kind === 'advance' && p.method === 'online' && !b.payments.some(r => r.refundOf === p.id)).reduce((sum, p) => sum + p.amountPaise, 0);
+    if (advance) {
+      const hours = this.settings.settings()?.payments.freeCancellationHours ?? 24;
+      const early = !b.date || !b.time || slotStart(b.date, b.time).getTime() - Date.now() >= hours * 3_600_000;
+      parts.push(early ? `The ${formatInr(advance)} advance is refunded automatically.` : `The ${formatInr(advance)} advance is kept (less than ${hours} h before the slot).`);
+    }
+    if (b.payments.some(p => p.kind === 'balance' && !b.payments.some(r => r.refundOf === p.id))) parts.push('Other payments aren’t refunded automatically; a Super Admin refunds them from Payments.');
+    if (b.paymentLink) parts.push('The payment link stops working.');
+    return parts.join(' ');
   }
 
   complete(): void {

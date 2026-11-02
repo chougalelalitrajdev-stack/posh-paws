@@ -2,11 +2,14 @@ import { Paise, PetType } from './catalog.model';
 
 /** Where the booking is in its life (design: "two simple tracks"). */
 export type BookingStage = 'request' | 'draft' | 'awaiting_payment' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
-export type PaymentStatus = 'not_requested' | 'link_sent' | 'paid' | 'failed' | 'refunded';
+/** Worked out by the server from the bill, the payments and any open link (see "Booking & payment rules" in the root CLAUDE.md). */
+export type PaymentStatus = 'unpaid' | 'link_sent' | 'failed' | 'part_paid' | 'paid' | 'refunded';
 export type BookingSource = 'app' | 'phone' | 'walk_in';
 export type CallOutcome = 'reached' | 'no_answer' | 'call_back_later';
-/** Full price now, or the refundable slot hold with the balance at the visit. */
+/** What a payment link asks for: the advance (slot hold) or everything still due. */
 export type AmountType = 'full' | 'hold';
+/** `online` = through a payment link or the app; the rest are taken at the shop. */
+export type PaymentMethod = 'online' | 'upi_qr' | 'cash' | 'card';
 
 /** What the customer asked for in a callback request. */
 export interface RequestInfo {
@@ -18,17 +21,53 @@ export interface RequestInfo {
   callOutcome?: CallOutcome;
 }
 
-export interface BookingPayment {
+/** An open payment link. Cleared once it's paid. */
+export interface PaymentLink {
   amountType: AmountType;
   amountPaise: Paise;
-  link: string;
+  url: string;
   /** ISO timestamps */
   sentAt: string;
   expiresAt: string;
-  paidAt?: string;
-  /** 'online' when paid through the link, 'desk' when marked at the salon. */
-  method?: 'online' | 'desk';
-  refundedAt?: string;
+  /** The customer's bank declined it. */
+  failed?: boolean;
+}
+
+/** Money received for a booking, or given back. Amounts are positive; `refund` entries are subtracted. */
+export interface PaymentEntry {
+  /** e.g. PAY-1051-1 */
+  id: string;
+  kind: 'advance' | 'balance' | 'refund';
+  amountPaise: Paise;
+  method: PaymentMethod;
+  /** ISO timestamp */
+  at: string;
+  /** Staff who took or refunded it at the shop. */
+  by?: string;
+  /** For a refund: the entry it gives back. */
+  refundOf?: string;
+}
+
+/** The one discount on a bill (they don't stack; the best wins). */
+export interface BillDiscount {
+  kind: 'session' | 'membership' | 'offer';
+  /** e.g. "Posh plan session", "Posh member 10% off", "DIWALI20 · Diwali grooming week". */
+  label: string;
+  amountPaise: Paise;
+  offerId?: string;
+}
+
+/** What the booking costs and what's been paid. The server works it out; both apps show it as is. */
+export interface BookingBill {
+  servicePricePaise: Paise;
+  discount: BillDiscount | null;
+  totalPaise: Paise;
+  /** Asked for online when booked in the app; 0 for phone bookings. */
+  advancePaise: Paise;
+  /** Payments minus refunds. */
+  paidPaise: Paise;
+  /** total − paid, never below 0. */
+  balancePaise: Paise;
 }
 
 export interface ActivityEntry {
@@ -56,9 +95,12 @@ export interface Booking {
   date: string | null;
   time: string | null;
   stationId: string | null;
-  /** Service price after any member discount. */
-  pricePaise: Paise | null;
-  payment: BookingPayment | null;
+  /** Null until a service is picked. Prices are fixed when the booking is confirmed. */
+  bill: BookingBill | null;
+  payments: PaymentEntry[];
+  paymentLink: PaymentLink | null;
+  /** Offer code typed for this booking, if any. */
+  offerCode?: string | null;
   request?: RequestInfo;
   bookedBy?: string;
   activity: ActivityEntry[];
@@ -71,6 +113,21 @@ export interface BookingDetails {
   serviceId: string;
   date: string | null;
   time: string | null;
+  /** Offer code the customer gave; the server checks it. */
+  offerCode?: string | null;
+}
+
+/** POST /admin/bookings/quote: the bill a booking would have, without saving anything. */
+export interface QuoteRequest {
+  customerId: string;
+  serviceId: string;
+  offerCode?: string | null;
+}
+
+/** POST /admin/bookings/{id}/payments: money taken at the shop. */
+export interface NewShopPayment {
+  amountPaise: Paise;
+  method: Exclude<PaymentMethod, 'online'>;
 }
 
 /** GET /admin/bookings filters. Empty fields mean "any". */

@@ -38,26 +38,39 @@
   <div class="pp-detail-grid">
     <div class="pp-detail-main">
       <section class="pp-card" aria-labelledby="pay-title">
-        <div class="pp-card-head"><h2 id="pay-title" class="pp-card-title">Payment</h2></div>
-        @if (paymentText(); as pt) {
-          <div class="pp-pay-facts">
-            <div><span>Amount</span><strong>{{ pt.amount }}</strong><span>{{ pt.amountNote }}</span></div>
-            <div><span>Sent</span><strong>{{ pt.sent }}</strong><span>to {{ formatPhone(b.customer.phone) }}</span></div>
-            <div><span>{{ pt.expiresLabel }}</span><strong>{{ pt.expires }}</strong><span>{{ pt.expiresNote }}</span></div>
-          </div>
-          <div class="pp-pay-link">
-            <code>{{ b.payment?.link }}</code>
-            <button class="pp-btn pp-btn-sm" type="button" (click)="copyLink()">Copy link</button>
-            @if (b.stage === 'awaiting_payment') {
+        <div class="pp-card-head">
+          <h2 id="pay-title" class="pp-card-title">Payment</h2>
+          @if (canTakePayment()) {
+            <span class="pp-pay-actions">
+              @if (!b.paymentLink && b.stage !== 'awaiting_payment') {
+                <button class="pp-btn pp-btn-sm" type="button" [disabled]="busy()" (click)="sendBalanceLink()">Send balance link</button>
+              }
+              <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busy()" (click)="recording.set(true)">Record payment</button>
+            </span>
+          }
+        </div>
+        @if (b.bill) {
+          <pp-bill [bill]="b.bill" [payments]="b.payments" [showBalance]="b.stage !== 'cancelled' && b.stage !== 'no_show'" />
+          @if (b.stage === 'cancelled' || b.stage === 'no_show') {
+            <p class="pp-muted pp-empty-line">{{ b.stage === 'no_show' ? 'No-show' : 'Cancelled' }}: nothing more is due.</p>
+          }
+          @if (linkText(); as lt) {
+            <div class="pp-pay-facts">
+              <div><span>Payment link</span><strong>{{ lt.amount }}</strong><span>{{ lt.amountNote }}</span></div>
+              <div><span>Sent</span><strong>{{ lt.sent }}</strong><span>to {{ formatPhone(b.customer.phone) }}</span></div>
+              <div><span>Link expires</span><strong>{{ lt.expires }}</strong><span>{{ lt.expiresNote }}</span></div>
+            </div>
+            <div class="pp-pay-link">
+              <code>{{ b.paymentLink?.url }}</code>
+              <button class="pp-btn pp-btn-sm" type="button" (click)="copyLink()">Copy link</button>
               <a class="pp-btn pp-btn-sm" [href]="whatsappHref()" target="_blank" rel="noopener">Send on WhatsApp</a>
-              <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busy()" (click)="markPaid()">Mark paid at desk</button>
               @if (useMocks) {
                 <button class="pp-link pp-demo" type="button" [disabled]="busy()" (click)="simulatePayment()">Demo: customer pays online</button>
               }
-            }
-          </div>
+            </div>
+          }
         } @else {
-          <p class="pp-muted pp-empty-line">No payment requested yet. Pick a slot and send a payment link to hold it.</p>
+          <p class="pp-muted pp-empty-line">No service picked yet, so there's no bill.</p>
         }
       </section>
 
@@ -68,7 +81,7 @@
           <div><dt>When</dt><dd>{{ whenText() }}</dd></div>
           <div><dt>Station</dt><dd>{{ catalog.stationName(b.stationId) || '—' }}</dd></div>
           <div><dt>Booked by</dt><dd>{{ b.bookedBy ? b.bookedBy + (b.request ? ' from a callback' : '') : sources[b.source] }}</dd></div>
-          @if (b.pricePaise !== null) { <div><dt>Price</dt><dd>{{ b.pricePaise | inr }}</dd></div> }
+          @if (b.bill) { <div><dt>Total</dt><dd>{{ b.bill.totalPaise | inr }}@if (b.bill.discount) { <span class="pp-muted"> · {{ b.bill.discount.label }}</span> }</dd></div> }
         </dl>
       </section>
 
@@ -118,6 +131,12 @@
       </section>
     </div>
   </div>
+
+  @if (recording()) {
+
+    <pp-record-payment [booking]="b" (closed)="recording.set(false)" (saved)="onPaymentRecorded($event)" />
+
+  }
 
   @if (rescheduling()) {
     <pp-reschedule [booking]="b" (closed)="rescheduling.set(false)" (saved)="onRescheduled($event)" />

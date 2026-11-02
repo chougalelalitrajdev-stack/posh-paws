@@ -52,20 +52,22 @@ describe('mock bookings API', () => {
     expect(slots.find(s => s.time === '10:00')!.available).toBe(true);
   });
 
-  it('turns a request into a confirmed booking: details → payment link → paid', async () => {
+  it('turns a request into a confirmed booking: details → payment link → advance taken at the shop', async () => {
     const date = addDays(today(), 1);
     const draft = await put<Booking>(`${API.bookings}/PP-1051`, { customerId: 'c1', petId: 'p1', serviceId: 'dog-royal-package', date, time: '15:00' });
     expect(draft.stage).toBe('draft');
-    expect(draft.pricePaise).toBe(405000); // ₹4,500 less the 10% Posh discount
+    // ₹4,500 less the 10% Posh discount (Royal Package isn't on the Posh plan, so no session); staff bookings take no advance.
+    expect(draft.bill).toMatchObject({ servicePricePaise: 450000, totalPaise: 405000, advancePaise: 0, discount: { kind: 'membership' } });
 
     const sent = await post<Booking>(`${API.bookings}/PP-1051/payment-link`, { amountType: 'hold' });
     expect(sent).toMatchObject({ stage: 'awaiting_payment', paymentStatus: 'link_sent' });
-    expect(sent.payment!.amountPaise).toBe(10000);
+    expect(sent.paymentLink!.amountPaise).toBe(10000);
     expect(sent.stationId).toBeTruthy();
 
-    const paid = await post<Booking>(`${API.bookings}/PP-1051/mark-paid`);
-    expect(paid).toMatchObject({ stage: 'confirmed', paymentStatus: 'paid' });
-    expect(paid.activity[0].title).toBe('Marked paid at the desk');
+    const paid = await post<Booking>(`${API.bookings}/PP-1051/payments`, { amountPaise: 10000, method: 'upi_qr' });
+    expect(paid).toMatchObject({ stage: 'confirmed', paymentStatus: 'part_paid', paymentLink: null });
+    expect(paid.bill).toMatchObject({ paidPaise: 10000, balancePaise: 395000 });
+    expect(paid.activity[0].title).toBe('Payment taken at the shop');
     expect(paid.activity[0].by).toBe('Meera K.');
   });
 
@@ -73,7 +75,7 @@ describe('mock bookings API', () => {
     const date = addDays(today(), 5);
     const book = (id: string, customerId: string, petId: string) =>
       put<Booking>(`${API.bookings}/${id}`, { customerId, petId, serviceId: 'dog-signature-bath', date, time: '10:00' })
-        .then(() => post<Booking>(`${API.bookings}/${id}/payment-link`, { amountType: 'full' }));
+        .then(() => post<Booking>(`${API.bookings}/${id}/confirm`));
 
     const first = await book('PP-1051', 'c1', 'p1');
     const second = await book('PP-1050', 'c10', 'p12');

@@ -1,0 +1,22 @@
+@let b = bill();
+<dl class="pp-bill">
+  <div class="pp-bill-row"><dt>Service</dt><dd>{{ b.servicePricePaise | inr }}</dd></div>
+  @if (b.discount; as d) {
+    <div class="pp-bill-row is-discount"><dt>{{ d.label }}</dt><dd>−{{ d.amountPaise | inr }}</dd></div>
+  }
+  <div class="pp-bill-row is-total"><dt>Total</dt><dd>{{ b.totalPaise | inr }}</dd></div>
+
+  @if (mode() === 'quote') {
+    @if (b.advancePaise) {
+      <div class="pp-bill-row"><dt>Pay now to confirm</dt><dd>{{ b.advancePaise | inr }}</dd></div>
+      <div class="pp-bill-row is-final"><dt>Pay at the shop after the groom</dt><dd>{{ b.totalPaise - b.advancePaise | inr }}</dd></div>
+    } @else {
+      <div class="pp-bill-row is-final"><dt>Nothing to pay</dt><dd>{{ 0 | inr }}</dd></div>
+    }
+  } @else {
+    @for (p of rows(); track p.id) {
+      <div class="pp-bill-row"><dt>{{ p.label }} <span class="pp-bill-when">· {{ p.when }}</span></dt><dd>{{ p.refund ? '+' : '−' }}{{ p.amountPaise | inr }}</dd></div>
+    }
+    <div class="pp-bill-row is-final" [class.is-due]="b.balancePaise > 0 && !closed()"><dt>{{ finalLabel() }}</dt><dd>{{ b.balancePaise | inr }}</dd></div>
+  }
+</dl>

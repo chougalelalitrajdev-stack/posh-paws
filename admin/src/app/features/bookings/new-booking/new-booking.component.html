@@ -97,10 +97,12 @@
       <!-- 2 · Service -->
       <pp-booking-step [number]="2" title="Service" [state]="stepState(2)"
         [summary]="service() ? service()!.name + ' · ' + durationText(service()?.durationMinutes) : ''" (change)="goTo(2)">
-        @if (requested() || discount()) {
+        @if (requested() || plan()) {
           <p class="pp-step-note">
             @if (requested()) { Asked for in the request: {{ requested() }}. }
-            @if (discount()) { Member prices include the {{ discount() }}% {{ plan()?.name }} discount. }
+            @if (plan(); as pl) {
+              {{ pl.name }} member: services on the plan use a session ({{ pl.sessionsLeft === null ? 'unlimited' : pl.sessionsLeft + ' left' }})@if (discount()) {; others are {{ discount() }}% off}.
+            }
           </p>
         }
         <div class="pp-services" role="radiogroup" aria-label="Service">
@@ -110,8 +112,12 @@
               <span class="pp-service-name">{{ s.name }}</span>
               <span class="pp-muted">{{ s.durationMinutes | duration }}</span>
               <span class="pp-service-price">
-                {{ memberPrice(s) | inr }}
-                @if (discount()) { <s class="pp-muted">{{ s.pricePaise | inr }}</s> }
+                @if (coveredBySession(s)) {
+                  Plan session <s class="pp-muted">{{ s.pricePaise | inr }}</s>
+                } @else {
+                  {{ memberPrice(s) | inr }}
+                  @if (discount()) { <s class="pp-muted">{{ s.pricePaise | inr }}</s> }
+                }
               </span>
             </button>
           }
@@ -131,41 +137,90 @@
         </div>
       </pp-booking-step>
 
-      <!-- 4 · Payment link -->
-      <pp-booking-step [number]="4" title="Payment link" [state]="stepState(4)" summary="Link created" (change)="goTo(4)">
+      <!-- 4 · Bill and confirm -->
+      <pp-booking-step [number]="4" title="Bill and confirm" [state]="stepState(4)"
+        [summary]="done()?.stage === 'confirmed' ? 'Confirmed' : 'Payment link sent'" (change)="goTo(4)">
         <div class="pp-field">
-          <span class="pp-label">Amount to collect</span>
-          <div class="pp-amounts" role="radiogroup" aria-label="Amount to collect">
-            <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'full'" [attr.aria-checked]="amountType() === 'full'" (click)="amountType.set('full')">
-              <span><strong>Full amount</strong><span>Nothing to pay at the visit</span></span>
-              <strong>{{ price() | inr }}</strong>
-            </button>
-            @if ((price() ?? 0) > holdPaise()) {
-              <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'hold'" [attr.aria-checked]="amountType() === 'hold'" (click)="amountType.set('hold')">
-                <span><strong>Slot hold</strong><span>Refundable · balance at the visit</span></span>
-                <strong>{{ holdPaise() | inr }}</strong>
-              </button>
-            }
-          </div>
-          <p class="pp-step-note">The link expires in {{ linkHours() }} hours. Paying confirms the booking automatically.</p>
+          <span class="pp-label">Bill</span>
+          @if (bill(); as bl) { <pp-bill [bill]="bl" [showBalance]="false" /> } @else { <p class="pp-muted pp-small">Working out the price…</p> }
         </div>
 
         <div class="pp-field">
-          <span class="pp-label">WhatsApp message</span>
-          <p class="pp-message">{{ message() }}</p>
+          <label class="pp-label" for="nb-offer">Offer code <span class="pp-muted">(optional)</span></label>
+          <div class="pp-input-row">
+            <input id="nb-offer" class="pp-input pp-nb-code" type="text" autocapitalize="characters" placeholder="DIWALI20" [formControl]="offerInput"
+              aria-describedby="nb-offer-hint" (keydown.enter)="$event.preventDefault(); applyOffer()">
+            <button class="pp-btn" type="button" (click)="applyOffer()">Apply</button>
+            @if (offerCode()) { <button class="pp-btn pp-btn-ghost" type="button" (click)="clearOffer()">Remove</button> }
+          </div>
+          @if (quoteError()) { <p class="pp-field-error" role="alert">{{ quoteError() }}</p> }
+          <span id="nb-offer-hint" class="pp-hint">Plan sessions and member discounts apply by themselves. An offer is used only if it's better; they don't add up.</span>
         </div>
+
+        @if (bill()?.totalPaise) {
+          <fieldset class="pp-field pp-radio-row">
+            <legend class="pp-label">How will they pay?</legend>
+            <label class="pp-check"><input type="radio" name="nb-pay-with" [checked]="payWith() === 'shop'" (change)="payWith.set('shop')"><span>At the shop after the groom (no advance)</span></label>
+            <label class="pp-check"><input type="radio" name="nb-pay-with" [checked]="payWith() === 'link'" (change)="payWith.set('link')"><span>Send a payment link now</span></label>
+          </fieldset>
+        }
+
+        @if (payWith() === 'link') {
+          <div class="pp-field">
+            <span class="pp-label">Amount to ask for</span>
+            <div class="pp-amounts" role="radiogroup" aria-label="Amount to ask for">
+              <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'full'" [attr.aria-checked]="amountType() === 'full'" (click)="amountType.set('full')">
+                <span><strong>Full amount</strong><span>Nothing to pay at the visit</span></span>
+                <strong>{{ bill()?.totalPaise | inr }}</strong>
+              </button>
+              @if ((bill()?.totalPaise ?? 0) > holdPaise()) {
+                <button class="pp-choice pp-amount" type="button" role="radio" [class.active]="amountType() === 'hold'" [attr.aria-checked]="amountType() === 'hold'" (click)="amountType.set('hold')">
+                  <span><strong>Advance</strong><span>Refundable · balance at the visit</span></span>
+                  <strong>{{ holdPaise() | inr }}</strong>
+                </button>
+              }
+            </div>
+            <p class="pp-step-note">The link expires in {{ linkHours() }} hours and holds the slot until then. Paying confirms the booking automatically.</p>
+          </div>
+          <div class="pp-field">
+            <span class="pp-label">WhatsApp message</span>
+            <p class="pp-message">{{ message() }}</p>
+          </div>
+        } @else {
+          <p class="pp-step-note">The booking is confirmed now. {{ bill()?.totalPaise ? 'They pay ' + (bill()?.totalPaise | inr) + ' at the shop by the shop QR, cash or card.' : 'Nothing to pay: the plan session covers it.' }}</p>
+        }
 
         @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
         <div class="pp-step-actions">
-          <button class="pp-btn" type="button" [disabled]="busy()" (click)="createLink(true)">Create and copy link</button>
-          <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="createLink(false)">
-            <pp-icon name="message" [size]="16" />
-            @if (busy()) { Creating… } @else { Create booking and send on WhatsApp }
-          </button>
+          @if (payWith() === 'link') {
+            <button class="pp-btn" type="button" [disabled]="busy() || !bill()" (click)="createLink(true)">Create and copy link</button>
+            <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy() || !bill()" (click)="createLink(false)">
+              <pp-icon name="message" [size]="16" />
+              @if (busy()) { Creating… } @else { Create booking and send on WhatsApp }
+            </button>
+          } @else {
+            <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy() || !bill()" (click)="confirmBooking()">
+              @if (busy()) { Confirming… } @else { Confirm booking }
+            </button>
+          }
         </div>
       </pp-booking-step>
 
       @if (done(); as b) {
+        @if (b.stage === 'confirmed') {
+          <div class="pp-alert pp-alert-success pp-done" role="status">
+            <strong>Booked: {{ b.pet?.name }} on {{ when() }}</strong>
+            <span>Booking {{ b.id }} is confirmed.
+              {{ b.bill?.totalPaise ? (b.bill?.totalPaise | inr) + ' to pay at the shop.' : 'The plan session covers it.' }}
+              Send {{ b.customer.name.split(' ')[0] }} the confirmation:</span>
+            <div class="pp-done-actions">
+              <a class="pp-btn pp-btn-primary" [href]="whatsappHref()" target="_blank" rel="noopener"><pp-icon name="message" [size]="16" />Open WhatsApp to send</a>
+              <button class="pp-btn" type="button" (click)="copy(shareMessage(), 'Message copied.')">Copy message</button>
+              <a class="pp-btn" [routerLink]="['/bookings', b.id]">Open booking</a>
+              <a class="pp-btn pp-btn-ghost" routerLink="/requests">Next request</a>
+            </div>
+          </div>
+        } @else {
         <div class="pp-alert pp-alert-success pp-done" role="status">
           <strong>Payment link ready for {{ formatPhone(b.customer.phone) }}</strong>
           <span>Booking {{ b.id }} is now Awaiting payment and holds {{ when() }}. It confirms by itself when {{ b.customer.name.split(' ')[0] }} pays;
@@ -177,6 +232,7 @@
             <a class="pp-btn pp-btn-ghost" routerLink="/requests">Next request</a>
           </div>
         </div>
+        }
       }
     </div>
 
@@ -212,14 +268,15 @@
       <section class="pp-card" aria-labelledby="summary-title">
         <div class="pp-summary-head">
           <h2 id="summary-title" class="pp-summary-title">Booking summary</h2>
-          <pp-status-pill [stage]="done() ? 'awaiting_payment' : 'draft'" />
+          <pp-status-pill [stage]="done()?.stage ?? 'draft'" />
         </div>
         <dl class="pp-rows">
           <div><dt>Customer</dt><dd>{{ customer()?.name ?? '—' }}</dd></div>
           <div><dt>Pet</dt><dd>{{ pet() ? pet()!.name + (pet()!.breed ? ' · ' + pet()!.breed : '') : '—' }}</dd></div>
           <div><dt>Service</dt><dd>{{ service() ? service()!.name + ' · ' + durationText(service()?.durationMinutes) : '—' }}</dd></div>
           <div><dt>When</dt><dd>{{ when() || 'Not picked yet' }}</dd></div>
-          <div><dt>To collect</dt><dd>{{ amount() | inr }}</dd></div>
+          <div><dt>Total</dt><dd>{{ bill() ? (bill()!.totalPaise | inr) : '—' }}</dd></div>
+          @if (bill()?.discount; as d) { <div><dt>Discount</dt><dd>{{ d.label }}</dd></div> }
         </dl>
       </section>
     </aside>

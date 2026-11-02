@@ -5,7 +5,7 @@ import { Paged } from '../models/paged.model';
 import { addDays, toIsoDate, today } from '../utils/date.utils';
 import { MockError, MockRequest, NO_ROUTE, StoredCustomer, db, requireStaff, route, save } from './mock-db';
 import { allPayments } from './mock-payments';
-import { planOf } from './mock-subscriptions';
+import { planChangeText, planOf } from './mock-subscriptions';
 
 const LAPSED_DAYS = 90;
 const SEGMENTS: CustomerSegment[] = ['all', 'members', 'new', 'lapsed', 'no_plan'];
@@ -47,11 +47,8 @@ function stats(c: StoredCustomer) {
   const bookings = bookingsOf(c.id);
   const completed = bookings.filter(b => b.stage === 'completed' && b.date).sort((a, b) => a.date!.localeCompare(b.date!));
   const last = completed.at(-1);
-  const spent = bookings.reduce((sum, b) => {
-    if (b.stage === 'completed') return sum + (b.pricePaise ?? 0);
-    if (b.paymentStatus === 'paid') return sum + (b.payment?.amountPaise ?? 0);
-    return sum;
-  }, 0);
+  // What they've actually paid: payments minus refunds, across all their bookings.
+  const spent = bookings.reduce((sum, b) => sum + (b.bill?.paidPaise ?? 0), 0);
   return {
     bookingsCount: bookings.filter(b => b.stage !== 'request' && b.stage !== 'draft').length,
     openRequests: bookings.filter(b => b.stage === 'request').length,
@@ -187,7 +184,8 @@ function activity(c: StoredCustomer): ActivityEntry[] {
   const fromPlans: ActivityEntry[] = db().subscriptions
     .filter(s => s.customer.id === c.id)
     .flatMap(s => [
-      { at: `${s.startedOn}T10:00:00`, kind: 'payment' as const, title: `Joined the ${s.planName} plan` },
+      { at: `${s.startedOn}T10:00:00`, kind: 'payment' as const, title: `Joined the ${s.changes.at(-1)?.fromPlan ?? s.planName} plan` },
+      ...s.changes.map(ch => ({ at: ch.at, kind: 'status' as const, ...planChangeText(ch, s.renewsOn), by: ch.by })),
       ...(s.endedOn ? [{ at: `${s.endedOn}T10:00:00`, kind: 'status' as const, title: `${s.planName} plan ${s.status === 'cancelled' ? 'cancelled' : 'expired'}` }] : []),
     ]);
   const joined: ActivityEntry = { at: c.customerSince, kind: 'request', title: 'Became a customer' };

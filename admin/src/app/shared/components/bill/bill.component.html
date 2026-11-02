@@ -1,0 +1,19 @@
+<dl class="pp-bill">
+  <div class="pp-bill-row"><dt>Service</dt><dd>{{ bill().servicePricePaise | inr }}</dd></div>
+  @if (bill().discount; as d) {
+    <div class="pp-bill-row is-discount"><dt>{{ d.label }}</dt><dd>−{{ d.amountPaise | inr }}</dd></div>
+  }
+  <div class="pp-bill-row is-total"><dt>Total</dt><dd>{{ bill().totalPaise | inr }}</dd></div>
+  @for (p of payments(); track p.id) {
+    <div class="pp-bill-row is-payment" [class.is-refund]="p.kind === 'refund'">
+      <dt>{{ label(p) }} <span>{{ whenLabel(p.at) }}@if (p.by) { · {{ p.by }} }</span></dt>
+      <dd>{{ p.kind === 'refund' ? '' : '−' }}{{ p.amountPaise | inr }}</dd>
+    </div>
+  }
+  @if (showBalance()) {
+    <div class="pp-bill-row is-balance" [class.is-settled]="!bill().balancePaise">
+      <dt>{{ bill().balancePaise ? 'Balance due' : bill().totalPaise ? 'Paid in full' : 'Nothing to pay' }}</dt>
+      <dd>{{ bill().balancePaise | inr }}</dd>
+    </div>
+  }
+</dl>

@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@a
 import { Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
+import { PLAN_CHANGE_ROLES } from '../../core/constants/app.constants';
 import { Tone } from '../../core/constants/status.constants';
 import { Paged } from '../../core/models/paged.model';
 import { Subscription, SubscriptionSummary, SubscriptionTab } from '../../core/models/subscription.model';
@@ -18,7 +19,9 @@ import { PaginationComponent } from '../../shared/components/pagination/paginati
 import { ShareDialogComponent } from '../../shared/components/share-dialog/share-dialog.component';
 import { StatComponent } from '../../shared/components/stat/stat.component';
 import { StatusPillComponent } from '../../shared/components/status-pill/status-pill.component';
+import { HasRoleDirective } from '../../shared/directives/has-role.directive';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { ChangePlanComponent } from './change-plan/change-plan.component';
 
 const PAGE_SIZE = 10;
 const RENEWING_DAYS = 7;
@@ -35,7 +38,10 @@ interface Share { title: string; intro: string; phone: string; message: string }
 /** Customers on a plan (design: "Subscriptions"). Plan prices and benefits live in Membership plans. */
 @Component({
   selector: 'pp-subscription-list',
-  imports: [RouterLink, PageHeaderComponent, StatComponent, FilterTabsComponent, PaginationComponent, StatusPillComponent, ShareDialogComponent, InrPipe],
+  imports: [
+    RouterLink, PageHeaderComponent, StatComponent, FilterTabsComponent, PaginationComponent, StatusPillComponent, ShareDialogComponent,
+    HasRoleDirective, InrPipe, ChangePlanComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './subscription-list.component.html',
   styleUrl: './subscription-list.component.scss',
@@ -47,6 +53,7 @@ export class SubscriptionListComponent {
 
   protected readonly formatPhone = formatPhone;
   protected readonly shortDate = shortDate;
+  protected readonly planChangers = PLAN_CHANGE_ROLES;
 
   protected tab = signal<SubscriptionTab>('all');
   protected page = signal(1);
@@ -55,6 +62,7 @@ export class SubscriptionListComponent {
   protected loading = signal(true);
   protected busyId = signal<string | null>(null);
   protected share = signal<Share | null>(null);
+  protected changing = signal<Subscription | null>(null);
 
   protected tabs = computed<FilterTab[]>(() => TABS.map(t => ({ ...t, count: this.summary()?.counts[t.key] ?? null })));
 
@@ -142,13 +150,24 @@ export class SubscriptionListComponent {
         intro: `Link created for ${updated.customer.name}. Send it on WhatsApp:`,
         phone: updated.customer.phone,
         message: this.templates.render(updated.status === 'payment_pending' ? 'plan_payment' : 'plan_renewal', {
-          customer_name: firstName(updated.customer.name), plan: updated.planName, amount: formatInr(updated.pricePaise),
+          customer_name: firstName(updated.customer.name), plan: updated.paymentLink!.planName, amount: formatInr(updated.paymentLink!.amountPaise),
           renewal_date: updated.renewsOn ? shortDate(updated.renewsOn) : '', payment_link: updated.paymentLink!.link,
         }),
       });
       this.version.update(v => v + 1);
       this.loadSummary();
     });
+  }
+
+  /** Only plans still running can change. */
+  protected canChange(s: Subscription): boolean {
+    return s.status === 'active' || s.status === 'payment_pending';
+  }
+
+  onPlanChanged(): void {
+    this.changing.set(null);
+    this.version.update(v => v + 1);
+    this.loadSummary();
   }
 
   exportCsv(): void {

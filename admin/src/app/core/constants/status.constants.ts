@@ -1,4 +1,4 @@
-import { BookingSource, BookingStage, CallOutcome, PaymentStatus } from '../models/booking.model';
+import { BookingSource, BookingStage, CallOutcome, PaymentMethod, PaymentStatus } from '../models/booking.model';
 import { BannerStatus } from '../models/banner.model';
 import { OfferStatus } from '../models/offer.model';
 import { PaymentState } from '../models/payment.model';
@@ -18,11 +18,19 @@ export const STAGES: Record<BookingStage, { label: string; tone: Tone }> = {
 };
 
 export const PAYMENT_STATUSES: Record<PaymentStatus, { label: string; tone: Tone }> = {
-  not_requested: { label: 'Not requested', tone: 'neutral' },
+  unpaid: { label: 'Not paid', tone: 'neutral' },
   link_sent: { label: 'Link sent', tone: 'warn' },
-  paid: { label: 'Paid', tone: 'success' },
   failed: { label: 'Failed', tone: 'danger' },
+  part_paid: { label: 'Part paid', tone: 'info' },
+  paid: { label: 'Paid', tone: 'success' },
   refunded: { label: 'Refunded', tone: 'info' },
+};
+
+export const PAYMENT_METHODS: Record<PaymentMethod, string> = {
+  online: 'Online',
+  upi_qr: 'Shop QR (UPI)',
+  cash: 'Cash',
+  card: 'Card',
 };
 
 export const SOURCES: Record<BookingSource, string> = {
@@ -66,6 +74,7 @@ export const BANNER_STATUSES: Record<BannerStatus, { label: string; tone: Tone }
 
 /** Payments list and a customer's Payments tab (a link that ran out shows as Expired). */
 export const PAYMENT_STATES: Record<PaymentState, { label: string; tone: Tone }> = {
+  due: { label: 'Balance due', tone: 'warn' },
   link_sent: { label: 'Link sent', tone: 'warn' },
   expired: { label: 'Expired', tone: 'neutral' },
   paid: { label: 'Paid', tone: 'success' },

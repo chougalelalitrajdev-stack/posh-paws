@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { AlertService } from '../../core/services/alert.service';
 import { CatalogService } from '../../core/services/catalog.service';
-import { TimeSlot } from '../../core/models/booking.model';
+import { BookingBill, PaymentEntry, TimeSlot } from '../../core/models/booking.model';
 import { upcomingDates } from '../../core/utils/date.utils';
 import { PetGender } from '../../core/models/pet.model';
 import { PET_GENDER_OPTIONS } from '../../core/constants/pet.constants';
@@ -18,13 +18,14 @@ import { ServiceCardComponent } from '../../shared/components/service-card/servi
 import { TestimonialCardComponent } from '../../shared/components/testimonial-card/testimonial-card.component';
 import { DurationPipe } from '../../shared/pipes/duration.pipe';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
+import { BillComponent } from '../../shared/components/bill/bill.component';
 
 /** Development-only reference page (route `/styleguide`, registered only in dev mode). */
 @Component({
   selector: 'pp-styleguide',
   imports: [
     AccordionComponent, ChipGroupComponent, DateStripComponent, SlotGridComponent, FeatureCardComponent, IconComponent, PlanCardComponent,
-    SectionHeaderComponent, ServiceCardComponent, TestimonialCardComponent, InrPipe, DurationPipe,
+    SectionHeaderComponent, ServiceCardComponent, TestimonialCardComponent, BillComponent, InrPipe, DurationPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './styleguide.component.html',
@@ -54,6 +55,12 @@ export class StyleguideComponent {
   protected readonly date = signal<string | null>(this.dates[1]);
   protected readonly slots: TimeSlot[] = ['10:00', '10:30', '11:00', '14:00', '14:30', '17:30'].map((time, i) => ({ time, available: i % 3 !== 1 }));
   protected readonly slot = signal<string | null>('14:00');
+
+  protected readonly bill: BookingBill = {
+    servicePricePaise: 120000, discount: { kind: 'offer', label: 'FRIEND200 · Refer a friend', amountPaise: 20000 },
+    totalPaise: 100000, advancePaise: 10000, paidPaise: 10000, balancePaise: 90000,
+  };
+  protected readonly billPayments: PaymentEntry[] = [{ id: 'p1', kind: 'advance', amountPaise: 10000, method: 'online', at: new Date().toISOString() }];
 
   protected readonly faq = [
     { question: 'What is an accordion for?', answer: 'Hiding long answers until the visitor asks for them.' },

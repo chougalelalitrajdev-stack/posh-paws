@@ -146,3 +146,19 @@ textarea.pp-input {
   &:disabled { cursor: default; }
   @media (pointer: coarse) { min-height: var(--tap-target-min); }
 }
+
+// A row of radio buttons in a fieldset (Offers › Applies to, Record payment, New booking › How will they pay).
+.pp-radio-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 var(--space-5);
+  margin: 0;
+  padding: 0;
+  border: 0;
+
+  legend { width: 100%; float: left; }
+}
+
+// An input with buttons next to it (offer code + Apply, code + Generate).
+.pp-input-row { display: flex; gap: var(--space-2); .pp-input { flex: 1; min-width: 0; } }
