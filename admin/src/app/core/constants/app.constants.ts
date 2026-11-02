@@ -9,6 +9,9 @@ export const ROLE_LABELS: Record<StaffRole, string> = {
 /** Roles that can open Settings (Team & roles inside it is Super Admin only). */
 export const SETTINGS_ROLES: StaffRole[] = ['super_admin', 'admin'];
 
+/** Change a customer's membership plan. */
+export const PLAN_CHANGE_ROLES: StaffRole[] = ['super_admin', 'admin'];
+
 /** Team & roles, and refunds. */
 export const OWNER_ROLES: StaffRole[] = ['super_admin'];
 
@@ -22,6 +25,7 @@ export const CATALOG_EDIT_ROLES: StaffRole[] = ['super_admin', 'admin'];
 export const ROLE_MATRIX: { area: string; super_admin: string; admin: string; staff: string }[] = [
   { area: 'Requests, bookings, calendar', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
   { area: 'Customers and pets', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
+  { area: 'Change a customer’s plan', super_admin: 'Yes', admin: 'Yes', staff: 'No' },
   { area: 'Payments: view', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
   { area: 'Payments: refunds', super_admin: 'Yes', admin: 'No', staff: 'No' },
   { area: 'Services, plans, offers', super_admin: 'Yes', admin: 'Yes', staff: 'View only' },

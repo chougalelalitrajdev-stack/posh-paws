@@ -43,10 +43,23 @@
                       @for (h of linkHours; track h) { <option [ngValue]="h">{{ h }} hours</option> }
                     </select>
                     <span id="set-expiry-hint" class="pp-hint">Slots held by an unpaid link are released after this. Applies to new links.</span></div>
-                  <div class="pp-field"><label class="pp-label" for="set-hold">Slot hold amount (₹)</label>
+                  <div class="pp-field"><label class="pp-label" for="set-hold">Advance for app bookings (₹)</label>
                     <input id="set-hold" class="pp-input" type="number" min="1" step="1" inputmode="numeric" formControlName="slotHoldRupees" aria-describedby="set-hold-hint"
                       [class.is-invalid]="forms.payments.controls.slotHoldRupees.invalid && forms.payments.controls.slotHoldRupees.touched">
-                    <span id="set-hold-hint" class="pp-hint">Offered instead of the full amount when sending a booking link.</span></div>
+                    <span id="set-hold-hint" class="pp-hint">Paid online to confirm an app booking; counts toward the bill. Phone bookings need no advance.</span></div>
+                  <div class="pp-field"><label class="pp-label" for="set-cancel">Advance refunded if cancelled at least</label>
+                    <select id="set-cancel" class="pp-input" formControlName="freeCancellationHours" aria-describedby="set-cancel-hint">
+                      @for (h of cancelHours; track h) { <option [ngValue]="h">{{ h }} hours before the slot</option> }
+                    </select>
+                    <span id="set-cancel-hint" class="pp-hint">Later than that, or a no-show, and the advance is kept.</span></div>
+                  <div class="pp-field"><label class="pp-label" for="set-upi">Shop UPI ID</label>
+                    <input id="set-upi" class="pp-input" type="text" autocapitalize="none" placeholder="poshpaws@upi" formControlName="upiId" aria-describedby="set-upi-hint"
+                      [class.is-invalid]="forms.payments.controls.upiId.invalid && forms.payments.controls.upiId.touched">
+                    <span id="set-upi-hint" class="pp-hint">Customers see it with the QR for paying the balance.</span></div>
+                  <div class="pp-span">
+                    <pp-image-upload label="Shop UPI QR" hint="A clear photo or the PNG from your UPI app." aspect="1 / 1" [maxSide]="800"
+                      [url]="forms.payments.controls.qrImageUrl.value ?? undefined" (urlChange)="forms.payments.controls.qrImageUrl.setValue($event ?? null); forms.payments.markAsDirty()" />
+                  </div>
                   <div class="pp-field"><span class="pp-label">Currency</span><span class="pp-small">INR (₹)</span></div>
                   <div class="pp-field"><span class="pp-label">Payment provider</span><span class="pp-small">{{ settings()!.payments.provider ?? 'Not connected yet. Set up with the backend.' }}</span></div>
                 </form>

@@ -55,7 +55,7 @@
         </div>
         <div class="pp-field pp-span">
           <label class="pp-label" for="offer-code">Code</label>
-          <div class="pp-offer-code-row">
+          <div class="pp-input-row">
             <input id="offer-code" class="pp-input pp-offer-code-input" type="text" formControlName="code" placeholder="DIWALI20" autocapitalize="characters"
               aria-describedby="offer-code-hint" [class.is-invalid]="form.controls.code.invalid && form.controls.code.touched">
             @if (canEdit()) { <button class="pp-btn" type="button" (click)="generateCode()">Generate</button> }
@@ -65,7 +65,7 @@
           </span>
         </div>
 
-        <fieldset class="pp-field pp-span pp-offer-scope">
+        <fieldset class="pp-field pp-span pp-radio-row">
           <legend class="pp-label">Applies to</legend>
           @for (s of scopes; track s.value) {
             <label class="pp-check"><input type="radio" formControlName="appliesTo" [value]="s.value"><span>{{ s.label }}</span></label>

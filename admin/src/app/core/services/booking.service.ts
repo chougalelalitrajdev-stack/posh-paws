@@ -4,8 +4,8 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
-import { AmountType, Booking, BookingDetails, BookingFilters, CallOutcome, StageCounts } from '../models/booking.model';
-import { CalendarData, DayAvailability, NewTimeBlock, TimeBlock } from '../models/calendar.model';
+import { AmountType, Booking, BookingBill, BookingDetails, BookingFilters, CallOutcome, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
+import { CalendarData, DayAvailability, NewTimeBlock, SlotBoard, TimeBlock } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 
 /**
@@ -60,6 +60,21 @@ export class BookingService {
     return this.refreshAfter(request);
   }
 
+  /** The bill a phone booking would have (member session or discount, or an offer). Shows an offer code's problem inline. */
+  quote(request: QuoteRequest): Observable<BookingBill> {
+    return this.http.post<BookingBill>(`${API.bookings}/quote`, request, { context: withoutErrorAlert() });
+  }
+
+  /** A phone booking: confirmed now, paid at the shop. */
+  confirm(id: string): Observable<Booking> {
+    return this.action(id, 'confirm', {}, true);
+  }
+
+  /** Money taken at the shop (shop QR, cash or card). The dialog shows errors itself. */
+  recordPayment(id: string, payment: NewShopPayment): Observable<Booking> {
+    return this.action(id, 'payments', payment, true);
+  }
+
   sendPaymentLink(id: string, amountType: AmountType): Observable<Booking> {
     return this.action(id, 'payment-link', { amountType }, true);
   }
@@ -68,9 +83,6 @@ export class BookingService {
     return this.action(id, 'call-outcome', { outcome });
   }
 
-  markPaid(id: string): Observable<Booking> {
-    return this.action(id, 'mark-paid');
-  }
 
   /** Mock backend only: pretends the customer paid through the link. */
   simulateOnlinePayment(id: string): Observable<Booking> {
@@ -104,6 +116,16 @@ export class BookingService {
 
   removeBlock(id: string): Observable<void> {
     return this.http.delete<void>(`${API.blocks}/${id}`);
+  }
+
+  /** One day's start times: usual, closed by staff, or extra. */
+  slotBoard(date: string): Observable<SlotBoard> {
+    return this.http.get<SlotBoard>(API.slotBoard, { params: { date } });
+  }
+
+  /** Open or close one start time; opening a time outside the usual ones adds it as an extra time. */
+  setSlot(date: string, time: string, open: boolean): Observable<SlotBoard> {
+    return this.http.put<SlotBoard>(`${API.slotBoard}/${date}`, { time, open }, { context: withoutErrorAlert() });
   }
 
   /** POST /bookings/{id}/{name}. `inline` = the screen shows errors itself (e.g. 409 slot taken). */

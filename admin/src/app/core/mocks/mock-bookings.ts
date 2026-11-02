@@ -1,13 +1,14 @@
-import { STAGES } from '../constants/status.constants';
-import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, CallOutcome, StageCounts } from '../models/booking.model';
-import { CalendarData, DayAvailability, NewTimeBlock, TimeBlock } from '../models/calendar.model';
+import { PAYMENT_METHODS, STAGES } from '../constants/status.constants';
+import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, CallOutcome, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
+import { BoardSlot, CalendarData, DayAvailability, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 import { addDays, dateRange, minutesOfDay, shortDate, slotStart, timeFromMinutes, today } from '../utils/date.utils';
-import { discounted } from '../utils/money.utils';
+import { formatInr } from '../utils/money.utils';
 import { STATIONS } from './mock-data';
 import { closureOn, dayHours, openingSpan } from './mock-settings';
 import { MockError, MockRequest, NO_ROUTE, db, requireStaff, route, save } from './mock-db';
-import { planOf } from './mock-subscriptions';
+import { settleMoney } from './mock-money';
+import { addPayment, quoteBill, refundAdvanceOnCancel, release, reserve } from './mock-pricing';
 
 /** Stages that hold a slot on the calendar. */
 const HOLDS_SLOT: BookingStage[] = ['awaiting_payment', 'confirmed', 'completed'];
@@ -19,9 +20,12 @@ export function handleBookings(r: MockRequest): unknown {
   if ((m = route(r, 'GET', /^\/bookings\/counts$/))) return counts();
   if ((m = route(r, 'GET', /^\/calendar$/))) return calendar(r.param('from') || today(), Number(r.param('days') || 1));
   if ((m = route(r, 'GET', /^\/slots$/))) return slots(r.param('serviceId'), r.param('from') || today(), Number(r.param('days') || 7), r.param('excludeBookingId'));
+  if ((m = route(r, 'GET', /^\/slot-board$/))) return slotBoard(r.param('date') || today());
+  if ((m = route(r, 'PUT', /^\/slot-board\/(\d{4}-\d{2}-\d{2})$/))) return setSlot(m[0], r.body);
   if ((m = route(r, 'POST', /^\/blocks$/))) return addBlock(r.body);
   if ((m = route(r, 'DELETE', /^\/blocks\/([^/]+)$/))) return removeBlock(m[0]);
 
+  if ((m = route(r, 'POST', /^\/bookings\/quote$/))) return quote(r.body);
   if ((m = route(r, 'GET', /^\/bookings\/([^/]+)$/))) return find(m[0]);
   if ((m = route(r, 'POST', /^\/bookings$/))) return saveDetails(r, null, r.body);
   if ((m = route(r, 'PUT', /^\/bookings\/([^/]+)$/))) return saveDetails(r, m[0], r.body);
@@ -33,9 +37,10 @@ export function handleBookings(r: MockRequest): unknown {
     const by = requireStaff(r).name;
     switch (name) {
       case 'call-outcome': return callOutcome(b, r.body.outcome, by);
+      case 'confirm': return confirm(b, by);
       case 'payment-link': return paymentLink(b, r.body.amountType, by);
-      case 'mark-paid': return markPaid(b, 'desk', by);
-      case 'demo-pay': return markPaid(b, 'online', by);
+      case 'payments': return recordPayment(b, r.body, by);
+      case 'demo-pay': return payLink(b);
       case 'reschedule': return reschedule(b, r.body.date, r.body.time, by);
       case 'cancel': return cancel(b, r.body.reason, by);
       case 'complete': return setStage(b, ['confirmed'], 'completed', 'Marked completed', by);
@@ -47,6 +52,12 @@ export function handleBookings(r: MockRequest): unknown {
 }
 
 // ── Reading ───────────────────────────────────────────────────
+
+/** The bill a phone booking would have (no advance), without saving anything. */
+function quote(body: QuoteRequest) {
+  if (!db().customers.some(c => c.id === body.customerId)) throw new MockError(404, 'Customer not found.');
+  return quoteBill(body.customerId, body.serviceId, body.offerCode, false);
+}
 
 export function find(id: string): Booking {
   const b = db().bookings.find(x => x.id === id);
@@ -114,13 +125,13 @@ function blocksOn(date: string): TimeBlock[] {
   return [...blocks, ...db().blocks.filter(b => b.date === date)];
 }
 
-/** Busy [start, end) minutes on one station; bookings keep a cleaning buffer after them. */
-function busy(date: string, stationId: string, excludeId?: string): [number, number][] {
+/** Busy [start, end) minutes on one station; bookings keep a cleaning buffer after them. `ignoreFixed` skips breaks and closures. */
+function busy(date: string, stationId: string, excludeId?: string, ignoreFixed = false): [number, number][] {
   const booked = db().bookings
     .filter(b => b.id !== excludeId && b.date === date && b.stationId === stationId && b.time && b.service && HOLDS_SLOT.includes(b.stage))
     .map(b => [minutesOfDay(b.time!), minutesOfDay(b.time!) + b.service!.durationMinutes + rules().bufferMinutes] as [number, number]);
   const blocked = blocksOn(date)
-    .filter(b => b.stationId === stationId)
+    .filter(b => b.stationId === stationId && !(ignoreFixed && b.fixed))
     .map(b => [minutesOfDay(b.time), minutesOfDay(b.time) + b.durationMinutes] as [number, number]);
   return [...booked, ...blocked];
 }
@@ -128,33 +139,102 @@ function busy(date: string, stationId: string, excludeId?: string): [number, num
 const rules = () => db().settings.booking;
 
 /**
- * The first station free for the whole appointment, or null. Follows Settings › Booking & availability:
- * opening hours, breaks, closures, buffer, minimum notice and how far ahead bookings can be made.
+ * The first station free for the whole appointment, or null. Follows Settings › Booking & availability
+ * (opening hours, breaks, closures, buffer, minimum notice, how far ahead) and the slot board.
  */
 export function freeStation(date: string, time: string, durationMinutes: number, excludeId?: string): string | null {
+  const { closed, extra } = changesOn(date);
+  if (closed.includes(time)) return null;
+  // Staff opened extra times on purpose, so opening hours, breaks and closures don't apply to them.
+  const isExtra = extra.includes(time);
   const hours = dayHours(date);
   const start = minutesOfDay(time);
   const end = start + durationMinutes;
-  if (!hours.open || start < minutesOfDay(hours.opens) || end > minutesOfDay(hours.closes)) return null;
+  if (!isExtra && (!hours.open || start < minutesOfDay(hours.opens) || end > minutesOfDay(hours.closes))) return null;
   if (slotStart(date, time).getTime() - Date.now() < rules().minNoticeMinutes * 60_000) return null;
   if (date > addDays(today(), rules().bookAheadDays)) return null;
-  const buffer = rules().bufferMinutes;
-  const station = STATIONS.find(st => busy(date, st.id, excludeId).every(([from, to]) => end + buffer <= from || start >= to));
-  return station?.id ?? null;
+  return freeStations(date, start, end, isExtra, excludeId)[0] ?? null;
 }
 
-/** Start times every slotStepMinutes inside each day's hours (none on closed days). */
+/** Stations with [start, end) and the cleaning buffer free. */
+function freeStations(date: string, start: number, end: number, ignoreFixed: boolean, excludeId?: string): string[] {
+  const buffer = rules().bufferMinutes;
+  return STATIONS.filter(st => busy(date, st.id, excludeId, ignoreFixed).every(([from, to]) => end + buffer <= from || start >= to)).map(st => st.id);
+}
+
+/** Every slot step inside the day's hours where a visit this long fits (none when closed all day). */
+function usualStarts(date: string, durationMinutes: number): string[] {
+  const hours = dayHours(date);
+  const closure = closureOn(date);
+  const starts: string[] = [];
+  if (!hours.open || (closure && !closure.closesAt)) return starts;
+  for (let t = minutesOfDay(hours.opens); t + durationMinutes <= minutesOfDay(hours.closes); t += rules().slotStepMinutes) starts.push(timeFromMinutes(t));
+  return starts;
+}
+
+/** The usual start times minus the ones staff closed, plus the extra ones they opened. */
 function slots(serviceId: string, from: string, days: number, excludeId?: string): DayAvailability[] {
   const service = db().services.find(s => s.id === serviceId);
   if (!service) throw new MockError(404, 'Service not found.');
   return dateRange(from, Math.min(days, 14)).map(date => {
-    const hours = dayHours(date);
-    const starts: string[] = [];
-    if (hours.open) {
-      for (let t = minutesOfDay(hours.opens); t + service.durationMinutes <= minutesOfDay(hours.closes); t += rules().slotStepMinutes) starts.push(timeFromMinutes(t));
-    }
+    const { closed, extra } = changesOn(date);
+    const starts = [...new Set([...usualStarts(date, service.durationMinutes).filter(t => !closed.includes(t)), ...extra])].sort();
     return { date, slots: starts.map(time => ({ time, available: freeStation(date, time, service.durationMinutes, excludeId) !== null })) };
   });
+}
+
+// ── Slot board: staff close usual start times or open extra ones ──
+
+function changesOn(date: string): SlotChanges {
+  return db().slotChanges.find(c => c.date === date) ?? { date, closed: [], extra: [] };
+}
+
+function slotBoard(date: string): SlotBoard {
+  const { closed, extra } = changesOn(date);
+  const { day, ...hours } = dayHours(date);
+  const closure = closureOn(date);
+  const step = rules().slotStepMinutes;
+  const fixedBlocks = blocksOn(date).filter(b => b.fixed && b.stationId === STATIONS[0].id);
+  const times = [...new Set([...usualStarts(date, step), ...extra])].sort();
+  const slot = (time: string): BoardSlot => {
+    const isExtra = extra.includes(time);
+    const start = minutesOfDay(time);
+    const fixed = isExtra ? undefined : fixedBlocks.find(b => minutesOfDay(b.time) <= start && start < minutesOfDay(b.time) + b.durationMinutes);
+    const past = slotStart(date, time).getTime() < Date.now();
+    return {
+      time, state: isExtra ? 'extra' : closed.includes(time) ? 'closed' : 'open',
+      freeStations: past || fixed ? 0 : freeStations(date, start, start + step, isExtra).length,
+      blockedBy: past ? 'Past' : fixed?.reason ?? null,
+    };
+  };
+  return {
+    date, hours, closure: closure ? { name: closure.name, closesAt: closure.closesAt } : null,
+    stepMinutes: step, stations: STATIONS.length, slots: times.map(slot),
+  };
+}
+
+/** Open or close one start time. Closing stops new bookings starting then; bookings already made stay. */
+function setSlot(date: string, body: { time?: string; open?: boolean }): SlotBoard {
+  const time = body?.time ?? '';
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new MockError(400, 'Enter a time like 18:30.');
+  if (date > addDays(today(), rules().bookAheadDays)) throw new MockError(400, `Bookings open ${rules().bookAheadDays} days ahead; change this day nearer the time.`);
+  if (slotStart(date, time).getTime() < Date.now()) throw new MockError(400, 'That time has passed.');
+  const changes = changesOn(date);
+  // A usual time in the break or after an early closing can't be booked, so opening it makes it an extra time.
+  const usual = usualStarts(date, rules().slotStepMinutes).includes(time) && !slotBoard(date).slots.some(s => s.time === time && s.blockedBy);
+  if (body.open) {
+    changes.closed = changes.closed.filter(t => t !== time);
+    if (!usual && !changes.extra.includes(time)) changes.extra = [...changes.extra, time].sort();
+  } else if (changes.extra.includes(time)) {
+    changes.extra = changes.extra.filter(t => t !== time);
+  } else if (usual) {
+    if (!changes.closed.includes(time)) changes.closed = [...changes.closed, time].sort();
+  } else {
+    throw new MockError(404, 'That isn’t a start time customers can book on this day.');
+  }
+  db().slotChanges = [...db().slotChanges.filter(c => c.date !== date), ...(changes.closed.length || changes.extra.length ? [changes] : [])];
+  save();
+  return slotBoard(date);
 }
 
 function addBlock(body: NewTimeBlock): TimeBlock {
@@ -199,6 +279,7 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   if (!service) throw new MockError(400, 'Pick a service.');
   if (service.archived) throw new MockError(400, `${service.name} is archived. Pick another service.`);
   if (service.petType !== pet.type) throw new MockError(400, `${service.name} is for ${service.petType}s.`);
+  if (d.date && d.time && changesOn(d.date).closed.includes(d.time)) throw new MockError(409, 'That start time is closed on the slot board. Pick another time.');
   if (d.date && d.time && !freeStation(d.date, d.time, service.durationMinutes, id ?? undefined)) {
     throw new MockError(409, 'That slot was just taken. Pick another time.');
   }
@@ -209,9 +290,9 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
     if (b.stage !== 'request' && b.stage !== 'draft') throw new MockError(409, 'Only requests and drafts can be edited here. Use Reschedule instead.');
   } else {
     b = {
-      id: `PP-${db().nextId++}`, createdAt: new Date().toISOString(), source: 'phone', stage: 'draft', paymentStatus: 'not_requested',
+      id: `PP-${db().nextId++}`, createdAt: new Date().toISOString(), source: 'phone', stage: 'draft', paymentStatus: 'unpaid',
       customer: { id: customer.id, name: customer.name, phone: customer.phone }, pet: null, service: null,
-      date: null, time: null, stationId: null, pricePaise: null, payment: null, bookedBy: by, activity: [],
+      date: null, time: null, stationId: null, bill: null, payments: [], paymentLink: null, bookedBy: by, activity: [],
     };
     db().bookings.push(b);
     log(b, { kind: 'request', title: 'Booking started by staff', by });
@@ -221,7 +302,10 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   b.customer = { id: customer.id, name: customer.name, phone: customer.phone };
   b.pet = { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed };
   b.service = { id: service.id, name: service.name, durationMinutes: service.durationMinutes };
-  b.pricePaise = discounted(service.pricePaise, planOf(customer.id)?.discountPercent ?? 0);
+  // Staff bookings (phone, or a callback request) take no advance.
+  b.bill = quoteBill(customer.id, service.id, d.offerCode, false, b.id);
+  b.offerCode = d.offerCode?.trim().toUpperCase() || null;
+  settleMoney(b);
   b.date = d.date;
   b.time = d.time;
   b.bookedBy ??= by;
@@ -236,38 +320,95 @@ function callOutcome(b: Booking, outcome: CallOutcome, by: string): Booking {
   return commit(b);
 }
 
-/** Sends (or re-sends) the payment link. The slot is held from now until the link expires. */
-function paymentLink(b: Booking, amountType: AmountType, by: string): Booking {
-  if (!['draft', 'request', 'awaiting_payment'].includes(b.stage)) throw new MockError(409, 'This booking doesn’t need a payment link.');
-  if (!b.service || !b.date || !b.time || b.pricePaise === null) throw new MockError(400, 'Pick a service and a slot first.');
-  const resend = b.stage === 'awaiting_payment';
+/** A booking made by phone: confirmed straight away, nothing paid yet (the customer pays at the shop). */
+function confirm(b: Booking, by: string): Booking {
+  if (b.stage !== 'draft' && b.stage !== 'request') throw new MockError(409, 'Only requests and drafts can be confirmed.');
+  if (!b.service || !b.date || !b.time) throw new MockError(400, 'Pick a service and a slot first.');
   const station = freeStation(b.date, b.time, b.service.durationMinutes, b.id);
   if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
-
-  const type = resend ? b.payment!.amountType : amountType === 'hold' ? 'hold' : 'full';
-  const sentAt = new Date();
+  // Prices are fixed now (a plan session or an offer may have changed since the draft).
+  b.bill = quoteBill(b.customer.id, b.service.id, b.offerCode, false, b.id);
   b.stationId = station;
-  b.stage = 'awaiting_payment';
-  b.paymentStatus = 'link_sent';
-  b.payment = {
-    amountType: type,
-    amountPaise: type === 'hold' ? Math.min(db().settings.payments.slotHoldPaise, b.pricePaise) : b.pricePaise,
-    link: `https://pay.poshpaws.in/l/${b.id}${resend ? `-${sentAt.getTime().toString(36)}` : ''}`,
-    sentAt: sentAt.toISOString(),
-    expiresAt: new Date(sentAt.getTime() + db().settings.payments.linkExpiryHours * 3_600_000).toISOString(),
-  };
-  log(b, { kind: 'payment', title: resend ? 'New payment link sent' : 'Payment link sent on WhatsApp', by });
+  b.stage = 'confirmed';
+  b.paymentLink = null;
+  reserve(b);
+  settleMoney(b);
+  const due = b.bill.totalPaise ? `${formatInr(b.bill.totalPaise)} to pay at the shop.` : 'Covered by the plan session; nothing to pay.';
+  log(b, { kind: 'status', title: 'Booking confirmed', detail: due, by });
   return commit(b);
 }
 
-function markPaid(b: Booking, method: 'desk' | 'online', by: string): Booking {
-  if (b.stage !== 'awaiting_payment' || !b.payment) throw new MockError(409, 'Only bookings awaiting payment can be marked paid.');
-  b.stage = 'confirmed';
-  b.paymentStatus = 'paid';
-  b.payment = { ...b.payment, paidAt: new Date().toISOString(), method };
-  log(b, method === 'desk'
-    ? { kind: 'payment', title: 'Marked paid at the desk', detail: 'Booking confirmed.', by }
-    : { kind: 'payment', title: 'Paid online', detail: 'Booking confirmed automatically.' });
+/**
+ * Sends (or re-sends) a payment link. Before the booking is confirmed it asks for the advance (hold) or the
+ * full amount, and holds the slot until it expires. After, it asks for the balance.
+ */
+function paymentLink(b: Booking, amountType: AmountType, by: string): Booking {
+  if (!['draft', 'request', 'awaiting_payment', 'confirmed', 'completed'].includes(b.stage)) throw new MockError(409, 'This booking doesn’t need a payment link.');
+  if (!b.service || !b.date || !b.time || !b.bill) throw new MockError(400, 'Pick a service and a slot first.');
+  const before = ['draft', 'request', 'awaiting_payment'].includes(b.stage);
+  let amountPaise: number;
+  let type: AmountType = 'full';
+  if (before) {
+    const station = freeStation(b.date, b.time, b.service.durationMinutes, b.id);
+    if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
+    if (b.stage !== 'awaiting_payment') b.bill = quoteBill(b.customer.id, b.service.id, b.offerCode, false, b.id);
+    if (!b.bill.totalPaise) throw new MockError(409, 'Nothing to pay: the plan session covers it. Confirm the booking instead.');
+    type = b.stage === 'awaiting_payment' && b.paymentLink ? b.paymentLink.amountType : amountType === 'hold' ? 'hold' : 'full';
+    amountPaise = type === 'hold' ? Math.min(db().settings.payments.slotHoldPaise, b.bill.totalPaise) : b.bill.totalPaise;
+    b.stationId = station;
+    b.stage = 'awaiting_payment';
+  } else {
+    amountPaise = b.bill.balancePaise;
+    if (!amountPaise) throw new MockError(409, 'Nothing left to pay on this booking.');
+  }
+  const resend = !!b.paymentLink;
+  const sentAt = new Date();
+  b.paymentLink = {
+    amountType: type, amountPaise,
+    url: `https://pay.poshpaws.in/l/${b.id}${resend ? `-${sentAt.getTime().toString(36)}` : ''}`,
+    sentAt: sentAt.toISOString(),
+    expiresAt: new Date(sentAt.getTime() + db().settings.payments.linkExpiryHours * 3_600_000).toISOString(),
+  };
+  settleMoney(b);
+  log(b, { kind: 'payment', title: resend ? 'New payment link sent' : before ? 'Payment link sent on WhatsApp' : 'Balance link sent on WhatsApp', detail: formatInr(amountPaise), by });
+  return commit(b);
+}
+
+/** Mock only: the customer pays the open link. Paying before the visit confirms the booking. */
+function payLink(b: Booking): Booking {
+  const link = b.paymentLink;
+  if (!link) throw new MockError(409, 'There’s no open payment link.');
+  const confirming = b.stage === 'awaiting_payment';
+  b.paymentLink = null;
+  addPayment(b, confirming ? 'advance' : 'balance', link.amountPaise, 'online');
+  if (confirming) {
+    b.stage = 'confirmed';
+    reserve(b);
+    settleMoney(b);
+  }
+  log(b, { kind: 'payment', title: 'Paid online', detail: `${formatInr(link.amountPaise)}${confirming ? ' · booking confirmed automatically' : ''}` });
+  return commit(b);
+}
+
+/** Money taken at the shop (shop UPI QR, cash or card), up to the balance. Taking it before the visit confirms the booking. */
+function recordPayment(b: Booking, body: NewShopPayment, by: string): Booking {
+  if (!['awaiting_payment', 'confirmed', 'completed'].includes(b.stage) || !b.bill) throw new MockError(409, 'Only booked or completed bookings take payments.');
+  if (!['upi_qr', 'cash', 'card'].includes(body.method)) throw new MockError(400, 'Pick how they paid: shop QR, cash or card.');
+  const due = b.bill.balancePaise;
+  if (!Number.isInteger(body.amountPaise) || body.amountPaise <= 0) throw new MockError(400, 'Enter the amount received.');
+  if (body.amountPaise > due) throw new MockError(400, `The balance is ${formatInr(due)}. Enter that or less.`);
+  const confirming = b.stage === 'awaiting_payment';
+  addPayment(b, confirming ? 'advance' : 'balance', body.amountPaise, body.method, by);
+  if (confirming) {
+    b.stage = 'confirmed';
+    b.paymentLink = null;
+    reserve(b);
+  } else if (b.paymentLink && !b.bill.balancePaise) {
+    b.paymentLink = null; // the balance link isn't needed any more
+  }
+  settleMoney(b);
+  const left = b.bill.balancePaise ? ` · ${formatInr(b.bill.balancePaise)} still due` : ' · paid in full';
+  log(b, { kind: 'payment', title: 'Payment taken at the shop', detail: `${formatInr(body.amountPaise)} by ${PAYMENT_METHODS[body.method]}${left}`, by });
   return commit(b);
 }
 
@@ -283,19 +424,25 @@ function reschedule(b: Booking, date: string, time: string, by: string): Booking
   return commit(b);
 }
 
+/** Frees the slot and gives back the plan session and offer use. The advance follows the refund rule; other payments are refunded from Payments. */
 function cancel(b: Booking, reason: string | undefined, by: string): Booking {
   if (!['request', 'draft', 'awaiting_payment', 'confirmed'].includes(b.stage)) throw new MockError(409, 'This booking can’t be cancelled.');
-  const paid = b.paymentStatus === 'paid';
+  if (b.stage === 'confirmed') release(b);
   b.stage = 'cancelled';
-  if (b.paymentStatus === 'link_sent' || b.paymentStatus === 'failed') b.paymentStatus = 'not_requested';
-  log(b, { kind: 'status', title: 'Booking cancelled', detail: [reason?.trim(), paid ? 'Refund from Payments.' : ''].filter(Boolean).join(' '), by });
+  b.paymentLink = null;
+  const advance = refundAdvanceOnCancel(b);
+  settleMoney(b);
+  const other = b.payments.some(p => p.kind === 'balance' && !b.payments.some(r => r.refundOf === p.id)) ? 'Other payments can be refunded from Payments.' : '';
+  log(b, { kind: 'status', title: 'Booking cancelled', detail: [reason?.trim(), advance, other].filter(Boolean).join(' '), by });
   return commit(b);
 }
 
 function setStage(b: Booking, from: BookingStage[], to: BookingStage, title: string, by: string): Booking {
   if (!from.includes(b.stage)) throw new MockError(409, `Only ${from.map(s => STAGES[s].label.toLowerCase()).join(' or ')} bookings can be changed this way.`);
   b.stage = to;
-  log(b, { kind: 'status', title, by });
+  settleMoney(b); // a no-show owes nothing more; a kept advance stays paid
+  const due = to === 'completed' && b.bill?.balancePaise ? `${formatInr(b.bill.balancePaise)} still to pay.` : undefined;
+  log(b, { kind: 'status', title, ...(due && { detail: due }), by });
   return commit(b);
 }
 

@@ -31,8 +31,12 @@ export interface CustomerPlan {
   /** null = unlimited sessions. */
   sessionsLeft: number | null;
   sessionsTotal: number | null;
+  /** Services a plan session covers in full (when sessions are left). */
+  eligibleServiceIds: string[];
   /** YYYY-MM-DD */
   renewsOn: string | null;
+  /** A downgrade that starts at `renewsOn`. */
+  nextPlanName: string | null;
 }
 
 export interface StaffNote {

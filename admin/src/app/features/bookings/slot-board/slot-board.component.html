@@ -1,0 +1,45 @@
+<section class="pp-card pp-board">
+  <div class="pp-card-head">
+    <h2 class="pp-card-title">Start times customers can book</h2>
+    @if (board()) { <span class="pp-muted pp-small">{{ counts().open }} open · {{ counts().closed }} closed · {{ counts().extra }} extra</span> }
+  </div>
+  <p class="pp-muted pp-small pp-board-hours">{{ hoursText() }}</p>
+  <p class="pp-hint">Tap a time to close it or open it again. Closing a time stops new bookings from starting then, in the app and here; bookings already made stay. Tapping a break time opens it as an extra time.</p>
+
+  @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+  @if (board(); as b) {
+    @if (b.slots.length) {
+      <div class="pp-board-grid" role="group" aria-label="Start times">
+        @for (s of b.slots; track s.time) {
+          <button class="pp-board-slot" type="button" [class.is-closed]="s.state === 'closed'" [class.is-extra]="s.state === 'extra'"
+            [class.is-blocked]="s.state === 'open' && s.blockedBy" [class.is-full]="isOpen(s) && !s.freeStations"
+            [attr.aria-pressed]="isOpen(s)" [attr.aria-label]="s.time + ', ' + label(s)"
+            [disabled]="s.blockedBy === 'Past' || busyTime() === s.time" (click)="toggle(s)">
+            <strong>{{ s.time }}</strong>
+            <span>{{ label(s) }}</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="pp-muted">No usual start times on this day. Open an extra time below if you're taking bookings.</p>
+    }
+
+    <form class="pp-field pp-board-extra" (submit)="$event.preventDefault(); addExtra()">
+      <label class="pp-label" for="extra-time">Open an extra start time</label>
+      <div class="pp-input-row">
+        <input id="extra-time" class="pp-input" type="time" step="300" [value]="extraTime()" (input)="onExtraInput($event)">
+        <button class="pp-btn" type="submit" [disabled]="!extraTime() || busyTime() !== null">Open time</button>
+      </div>
+      <p class="pp-hint">For a late slot after closing, or an off-the-hour time. Opening hours and breaks don't apply to it; bookings and blocked time still do.</p>
+    </form>
+  } @else {
+    <p class="pp-muted">Loading start times…</p>
+  }
+</section>
+
+<div class="pp-board-legend" aria-label="Legend">
+  <span><span class="pp-board-key"></span>Open</span>
+  <span><span class="pp-board-key is-extra"></span>Extra time</span>
+  <span><span class="pp-board-key is-closed"></span>Closed (by staff, a break or a holiday)</span>
+</div>

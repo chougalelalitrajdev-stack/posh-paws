@@ -1,0 +1,29 @@
+.pp-bill { display: flex; flex-direction: column; margin: 0; font-size: var(--fs-sm); }
+
+.pp-bill-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+
+  dt { font-weight: 400; color: var(--pp-text); span { display: block; font-size: var(--fs-xs); color: var(--pp-muted); } }
+  dd { margin: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  &.is-discount { color: var(--pp-primary-dark); dt { color: inherit; } }
+  &.is-total { border-top: 1px solid var(--pp-divider); font-weight: 700; dt { font-weight: 700; } }
+  &.is-payment dd { color: var(--pp-muted); }
+  &.is-refund dt, &.is-refund dd { color: var(--pp-info); }
+
+  &.is-balance {
+    margin-top: var(--space-1);
+    padding: var(--space-3);
+    border-radius: var(--radius-sm);
+    background: var(--pp-accent-light);
+    font-size: var(--fs-md);
+    font-weight: 700;
+
+    dt { font-weight: 700; color: var(--pp-accent-text); }
+    &.is-settled { background: var(--pp-primary-light); dt { color: var(--pp-primary-dark); } }
+  }
+}

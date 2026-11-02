@@ -6,6 +6,7 @@ import { NgbDropdownModule } from '@ng-bootstrap/ng-bootstrap';
 import { ActivityEntry, Booking } from '../../../core/models/booking.model';
 import { Customer, CustomerPet } from '../../../core/models/customer.model';
 import { Payment } from '../../../core/models/payment.model';
+import { PLAN_CHANGE_ROLES } from '../../../core/constants/app.constants';
 import { PAYMENT_STATES } from '../../../core/constants/status.constants';
 import { AlertService } from '../../../core/services/alert.service';
 import { BookingService } from '../../../core/services/booking.service';
@@ -19,8 +20,10 @@ import { FilterTabsComponent } from '../../../shared/components/filter-tabs/filt
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { StatComponent } from '../../../shared/components/stat/stat.component';
 import { StatusPillComponent } from '../../../shared/components/status-pill/status-pill.component';
+import { HasRoleDirective } from '../../../shared/directives/has-role.directive';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { PetDialogComponent } from '../../pets/pet-dialog/pet-dialog.component';
+import { ChangePlanComponent } from '../../subscriptions/change-plan/change-plan.component';
 import { CustomerDialogComponent } from '../customer-dialog/customer-dialog.component';
 
 type Tab = 'overview' | 'pets' | 'bookings' | 'payments' | 'activity';
@@ -30,7 +33,7 @@ type Tab = 'overview' | 'pets' | 'bookings' | 'payments' | 'activity';
   selector: 'pp-customer-detail',
   imports: [
     RouterLink, NgbDropdownModule, AvatarComponent, StatComponent, FilterTabsComponent, StatusPillComponent,
-    IconComponent, InrPipe, CustomerDialogComponent, PetDialogComponent, ActivityListComponent,
+    IconComponent, HasRoleDirective, InrPipe, CustomerDialogComponent, PetDialogComponent, ActivityListComponent, ChangePlanComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './customer-detail.component.html',
@@ -50,6 +53,7 @@ export class CustomerDetailComponent {
   protected readonly shortDate = shortDate;
   protected readonly monthYear = monthYear;
   protected readonly whenLabel = whenLabel;
+  protected readonly planChangers = PLAN_CHANGE_ROLES;
 
   protected customer = signal<Customer | null>(null);
   protected bookings = signal<Booking[]>([]);
@@ -62,6 +66,7 @@ export class CustomerDetailComponent {
   protected petDialog = signal<CustomerPet | null | undefined>(undefined);
   protected noteDraft = signal<string | null>(null);
   protected savingNote = signal(false);
+  protected changingPlan = signal(false);
 
   protected owner = computed(() => {
     const c = this.customer();
@@ -164,6 +169,14 @@ export class CustomerDetailComponent {
       this.customer.set(c);
       this.alert.success(wasEditing ? 'Pet saved.' : 'Pet added.');
     });
+  }
+
+  onPlanChanged(): void {
+    this.changingPlan.set(false);
+    // Plan, payments and activity all change; Payments and Activity load again when opened.
+    this.payments.set(null);
+    this.activity.set(null);
+    this.customerService.get(this.id()).subscribe(c => this.customer.set(c));
   }
 
   saveNote(): void {

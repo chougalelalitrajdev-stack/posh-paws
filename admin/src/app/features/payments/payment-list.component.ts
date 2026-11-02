@@ -23,7 +23,8 @@ import { InrPipe } from '../../shared/pipes/inr.pipe';
 const PAGE_SIZE = 20;
 const TABS: FilterTab[] = [
   { key: 'all', label: 'All' },
-  { key: 'waiting', label: 'Waiting' },
+  { key: 'due', label: 'Balance due' },
+  { key: 'waiting', label: 'Links open' },
   { key: 'paid', label: 'Paid' },
   { key: 'failed', label: 'Failed' },
   { key: 'refunded', label: 'Refunded' },
@@ -81,7 +82,8 @@ export class PaymentListComponent {
     if (!s) return [];
     return [
       { label: 'Collected', value: formatInr(s.collectedPaise), sub: plural(s.collectedCount, 'payment') },
-      { label: 'Waiting to be paid', value: formatInr(s.waitingPaise), sub: `${plural(s.waitingCount, 'link')} open now` },
+      { label: 'Balance due', value: formatInr(s.duePaise), sub: `${plural(s.dueCount, 'booking')} to collect at the shop` },
+      { label: 'Links open', value: formatInr(s.waitingPaise), sub: `${plural(s.waitingCount, 'link')} waiting to be paid` },
       { label: 'Failed', value: s.failedCount, sub: s.failedCount ? 'Send a new link from the booking' : 'None this period' },
       { label: 'Refunded', value: formatInr(s.refundedPaise), sub: plural(s.refundedCount, 'refund') },
     ];
@@ -127,7 +129,7 @@ export class PaymentListComponent {
 
   protected actionLabel(p: Payment): string {
     if (p.kind === 'plan') return 'Customer';
-    return { link_sent: 'Resend', expired: 'New link', failed: 'New link', paid: 'Booking', refunded: 'Booking' }[p.status];
+    return { due: 'Take payment', link_sent: 'Resend', expired: 'New link', failed: 'New link', paid: 'Booking', refunded: 'Booking' }[p.status];
   }
 
   async refund(p: Payment): Promise<void> {
@@ -148,8 +150,8 @@ export class PaymentListComponent {
     const { from, to, label } = this.period();
     this.paymentService.list({ tab: this.tab(), from, to, page: 1, pageSize: 10_000 }).subscribe(all => downloadCsv(
       `payments-${label.toLowerCase().replace(/\s+/g, '-')}.csv`,
-      ['Payment', 'For', 'Item', 'Customer', 'Amount', 'Status', 'Updated'],
-      all.items.map(p => [p.id, p.reference, p.item, p.customer.name, formatInr(p.amountPaise), PAYMENT_STATES[p.status].label, p.at.slice(0, 16).replace('T', ' ')]),
+      ['Payment', 'For', 'Item', 'Type', 'Customer', 'Amount', 'Status', 'Updated'],
+      all.items.map(p => [p.id, p.reference, p.item, p.detail, p.customer.name, formatInr(p.amountPaise), PAYMENT_STATES[p.status].label, p.at.slice(0, 16).replace('T', ' ')]),
     ));
   }
 }

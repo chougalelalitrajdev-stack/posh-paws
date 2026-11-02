@@ -66,10 +66,15 @@
           <section class="pp-card">
             <div class="pp-card-head">
               <h2 class="pp-card-title">{{ c.plan ? c.plan.name + ' plan' : 'Membership' }}</h2>
-              <a class="pp-small pp-strong" routerLink="/subscriptions">Manage</a>
+              @if (c.plan) {
+                <button *ppHasRole="planChangers" class="pp-link pp-small" type="button" (click)="changingPlan.set(true)">Change plan</button>
+              } @else {
+                <a class="pp-small pp-strong" routerLink="/subscriptions">Manage</a>
+              }
             </div>
             @if (c.plan; as plan) {
               <span class="pp-muted pp-small">{{ plan.pricePaise | inr }} a month@if (plan.renewsOn) { · renews {{ shortDate(plan.renewsOn) }} }</span>
+              @if (plan.nextPlanName) { <span class="pp-small pp-plan-next">Moves to {{ plan.nextPlanName }} at renewal</span> }
               @if (planUsage(); as u) {
                 <div class="pp-usage"><span>Sessions this month</span><strong>{{ u.used }} of {{ u.total }} used</strong></div>
                 <div class="pp-meter"><div class="pp-meter-fill" [style.width]="u.width"></div></div>
@@ -179,6 +184,10 @@
 
   @if (editing()) {
     <pp-customer-dialog [customer]="c" (closed)="editing.set(false)" (saved)="onSaved($event)" />
+  }
+  @if (changingPlan() && c.plan; as plan) {
+    <pp-change-plan [subscriptionId]="plan.subscriptionId" [customerName]="c.name" [nextPlanName]="plan.nextPlanName"
+      (closed)="changingPlan.set(false)" (saved)="onPlanChanged()" />
   }
   @if (petDialog() !== undefined) {
     <pp-pet-dialog [pet]="petDialog() ?? null" [owner]="owner()" (closed)="petDialog.set(undefined)" (saved)="onPetSaved()" />

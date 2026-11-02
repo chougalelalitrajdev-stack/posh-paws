@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '../constants/api-endpoints';
 import { Booking } from '../models/booking.model';
-import { CalendarData, DayAvailability } from '../models/calendar.model';
+import { CalendarData, DayAvailability, SlotBoard } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 import { Payment, PaymentSummary } from '../models/payment.model';
 import { Settings } from '../models/settings.model';
@@ -76,13 +76,47 @@ describe('mock settings, templates, payments and team', () => {
     expect(await statusOf(send('POST', `${API.settings}/closures`, { date: day, name: 'Again', closesAt: null }))).toBe(409);
   });
 
+  it('lets any staff close usual start times and open extra ones on the slot board', async () => {
+    const day = addDays(today(), 3);
+    const setSlot = (time: string, open: boolean, date = day) => send<SlotBoard>('PUT', `${API.slotBoard}/${date}`, { time, open }, staff);
+    const board = await get<SlotBoard>(API.slotBoard, { date: day });
+    expect(board.slots[0]).toMatchObject({ time: '09:00', state: 'open', freeStations: 2, blockedBy: null });
+    expect(board.slots.find(s => s.time === '14:00')?.blockedBy).toBe('Break');
+
+    // A closed time leaves the customer's list and can't be booked.
+    await setSlot('10:00', false);
+    expect((await slotsOn(day)).some(s => s.time === '10:00')).toBe(false);
+    const arjun = { customerId: 'c7', petId: 'p9', serviceId: 'dog-signature-bath', date: day };
+    expect(await statusOf(send('POST', API.bookings, { ...arjun, time: '10:00' }))).toBe(409);
+
+    // Extra times ignore opening hours and the break: 19:30 is after closing, 14:00 is in the break.
+    const late = await setSlot('19:30', true);
+    expect(late.slots.at(-1)).toMatchObject({ time: '19:30', state: 'extra', freeStations: 2 });
+    expect((await setSlot('14:00', true)).slots.find(s => s.time === '14:00')).toMatchObject({ state: 'extra', blockedBy: null });
+    const open = await slotsOn(day);
+    expect(open.find(s => s.time === '19:30')?.available).toBe(true);
+    expect(open.find(s => s.time === '14:00')?.available).toBe(true);
+    expect((await send<Booking>('POST', API.bookings, { ...arjun, time: '19:30' })).time).toBe('19:30');
+
+    // Closing an extra time takes it back to how it was (14:00: break); opening a closed time brings it back.
+    await setSlot('14:00', false);
+    await setSlot('10:00', true);
+    const back = await slotsOn(day);
+    expect(back.find(s => s.time === '14:00')?.available).toBe(false);
+    expect(back.find(s => s.time === '10:00')?.available).toBe(true);
+
+    expect(await statusOf(setSlot('10:00', false, addDays(today(), -1)))).toBe(400); // past
+    expect(await statusOf(setSlot('25:00', true))).toBe(400);
+    expect(await statusOf(setSlot('11:10', false))).toBe(404); // not a start time
+  });
+
   it('uses the hold amount and link expiry from Settings › Payments', async () => {
     const s = await get<Settings>(API.settings);
     await send('PUT', `${API.settings}/payments`, { ...s.payments, slotHoldPaise: 20000, linkExpiryHours: 12 });
     await send('PUT', `${API.bookings}/PP-1051`, { customerId: 'c1', petId: 'p1', serviceId: 'dog-royal-package', date: addDays(today(), 1), time: '15:00' });
     const sent = await send<Booking>('POST', `${API.bookings}/PP-1051/payment-link`, { amountType: 'hold' });
-    expect(sent.payment?.amountPaise).toBe(20000);
-    expect(new Date(sent.payment!.expiresAt).getTime() - new Date(sent.payment!.sentAt).getTime()).toBe(12 * 3_600_000);
+    expect(sent.paymentLink?.amountPaise).toBe(20000);
+    expect(new Date(sent.paymentLink!.expiresAt).getTime() - new Date(sent.paymentLink!.sentAt).getTime()).toBe(12 * 3_600_000);
   });
 
   it('lets only Super Admin and Admin change settings, and validates them', async () => {
@@ -118,8 +152,8 @@ describe('mock settings, templates, payments and team', () => {
     expect(await statusOf(send('POST', `${API.payments}/${target.id}/refund`))).toBe(403);
     const before = await get<PaymentSummary>(API.paymentSummary, { from: '', to: '' });
     const refunded = await send<Payment>('POST', `${API.payments}/${target.id}/refund`, {}, owner);
-    expect(refunded.status).toBe('refunded');
-    expect((await get<Booking>(`${API.bookings}/${target.reference}`)).paymentStatus).toBe('refunded');
+    expect(refunded).toMatchObject({ status: 'refunded', amountPaise: target.amountPaise });
+    expect((await get<Booking>(`${API.bookings}/${target.reference}`)).payments.at(-1)).toMatchObject({ kind: 'refund', refundOf: target.id });
     const after = await get<PaymentSummary>(API.paymentSummary, { from: '', to: '' });
     expect(after.refundedCount).toBe(before.refundedCount + 1);
     expect(await statusOf(send('POST', `${API.payments}/${target.id}/refund`, {}, owner))).toBe(409);

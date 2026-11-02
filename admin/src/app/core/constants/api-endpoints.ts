@@ -13,6 +13,7 @@ export const API = {
   bookingCounts: `${api}/bookings/counts`,
   calendar: `${api}/calendar`,
   slots: `${api}/slots`,
+  slotBoard: `${api}/slot-board`,
   blocks: `${api}/blocks`,
   customers: `${api}/customers`,
   customerCounts: `${api}/customers/counts`,

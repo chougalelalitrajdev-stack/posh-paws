@@ -1,7 +1,7 @@
 <section class="pp-card pp-bs-card" aria-labelledby="hours-title">
   <div>
     <h2 id="hours-title" class="pp-card-title">Opening hours</h2>
-    <p class="pp-hint pp-bs-lead">Slots are only offered inside these hours. Breaks and closures are blocked on every station.</p>
+    <p class="pp-hint pp-bs-lead">Slots are only offered inside these hours. Breaks and closures are blocked on every station. To close or open single start times on one day, use <a routerLink="/bookings" [queryParams]="{ view: 'slots' }">Bookings › Slots</a>.</p>
   </div>
   @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
 

@@ -9,6 +9,7 @@ import { ConfirmService } from '../../core/services/confirm.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { errorMessage } from '../../core/utils/error.utils';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
+import { ImageUploadComponent } from '../../shared/components/image-upload/image-upload.component';
 import { SwitchComponent } from '../../shared/components/switch/switch.component';
 import { BookingSettingsComponent } from './booking-settings/booking-settings.component';
 import { TeamSettingsComponent } from './team-settings/team-settings.component';
@@ -27,11 +28,12 @@ const SECTIONS: { key: Section; label: string; hint: string; ownerOnly?: boolean
 
 export const LINK_HOURS = [6, 12, 24, 48, 72];
 export const NUDGE_HOURS = [2, 4, 6, 12, 24];
+export const CANCEL_HOURS = [6, 12, 24, 48];
 
 /** Business settings (design: "Settings"). Super Admin and Admin; Team & roles is Super Admin only. */
 @Component({
   selector: 'pp-settings',
-  imports: [ReactiveFormsModule, PageHeaderComponent, SwitchComponent, BookingSettingsComponent, TeamSettingsComponent],
+  imports: [ReactiveFormsModule, PageHeaderComponent, SwitchComponent, ImageUploadComponent, BookingSettingsComponent, TeamSettingsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
@@ -45,6 +47,7 @@ export class SettingsComponent {
 
   protected readonly linkHours = LINK_HOURS;
   protected readonly nudgeHours = NUDGE_HOURS;
+  protected readonly cancelHours = CANCEL_HOURS;
   protected sections = computed(() => SECTIONS.filter(s => !s.ownerOnly || this.auth.hasRole(...OWNER_ROLES)));
   protected section = signal<Section>('business');
   protected sectionLabel = computed(() => SECTIONS.find(s => s.key === this.section())!.label);
@@ -58,7 +61,10 @@ export class SettingsComponent {
     business: this.fb.group({
       name: ['', Validators.required], phone: [''], whatsapp: [''], email: ['', Validators.email], instagram: [''], mapsLink: [''], address: [''],
     }),
-    payments: this.fb.group({ linkExpiryHours: [24], slotHoldRupees: [100, [Validators.required, Validators.min(1)]] }),
+    payments: this.fb.group({
+      linkExpiryHours: [24], slotHoldRupees: [100, [Validators.required, Validators.min(1)]], freeCancellationHours: [24],
+      upiId: ['', Validators.pattern(/^[\w.-]{2,}@[\w.-]{2,}$/)], qrImageUrl: [null as string | null],
+    }),
     notifications: this.fb.group({ reminderTime: ['18:00', Validators.required], unpaidNudgeHours: [6], staffAlerts: ['admins' as 'admins' | 'everyone'] }),
     app: this.fb.group({ bookButtonText: ['', [Validators.required, Validators.maxLength(20)]], showPrices: [true] }),
   };
@@ -108,7 +114,10 @@ export class SettingsComponent {
       case 'business': return this.settingsService.save('business', this.forms.business.getRawValue());
       case 'payments': {
         const v = this.forms.payments.getRawValue();
-        return this.settingsService.save('payments', { ...current.payments, linkExpiryHours: Number(v.linkExpiryHours), slotHoldPaise: Math.round(Number(v.slotHoldRupees)) * 100 });
+        return this.settingsService.save('payments', {
+          ...current.payments, linkExpiryHours: Number(v.linkExpiryHours), slotHoldPaise: Math.round(Number(v.slotHoldRupees)) * 100,
+          freeCancellationHours: Number(v.freeCancellationHours), upiId: v.upiId.trim(), qrImageUrl: v.qrImageUrl,
+        });
       }
       case 'notifications': {
         const v = this.forms.notifications.getRawValue();
@@ -120,7 +129,10 @@ export class SettingsComponent {
 
   private fillAll(s: Settings): void {
     this.forms.business.reset(s.business);
-    this.forms.payments.reset({ linkExpiryHours: s.payments.linkExpiryHours, slotHoldRupees: s.payments.slotHoldPaise / 100 });
+    this.forms.payments.reset({
+      linkExpiryHours: s.payments.linkExpiryHours, slotHoldRupees: s.payments.slotHoldPaise / 100, freeCancellationHours: s.payments.freeCancellationHours,
+      upiId: s.payments.upiId, qrImageUrl: s.payments.qrImageUrl,
+    });
     this.forms.notifications.reset(s.notifications);
     this.forms.app.reset(s.app);
   }

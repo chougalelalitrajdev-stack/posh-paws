@@ -1,7 +1,8 @@
 import { Paise } from './catalog.model';
 
 /** A payment link and what happened to it. `expired` = the link ran out unpaid. */
-export type PaymentState = 'link_sent' | 'expired' | 'paid' | 'failed' | 'refunded';
+/** `due` = balance still to pay for a booking (usually at the shop). */
+export type PaymentState = 'due' | 'link_sent' | 'expired' | 'paid' | 'failed' | 'refunded';
 
 /** One payment: for a booking or a membership plan. */
 export interface Payment {
@@ -12,6 +13,8 @@ export interface Payment {
   reference: string;
   /** Service name, or "Plan renewal" / "First month". */
   item: string;
+  /** What the money was for and how it came in, e.g. "Advance · Online", "Balance · Shop QR". */
+  detail: string;
   customer: { id: string; name: string };
   amountPaise: Paise;
   status: PaymentState;
@@ -21,7 +24,7 @@ export interface Payment {
   refundable: boolean;
 }
 
-export type PaymentTab = 'all' | 'waiting' | 'paid' | 'failed' | 'refunded';
+export type PaymentTab = 'all' | 'due' | 'waiting' | 'paid' | 'failed' | 'refunded';
 
 export interface PaymentFilters {
   tab: PaymentTab;
@@ -39,6 +42,9 @@ export interface PaymentSummary {
   /** Links still open now (any period). */
   waitingPaise: Paise;
   waitingCount: number;
+  /** Balance still to pay on confirmed and completed bookings (any period). */
+  duePaise: Paise;
+  dueCount: number;
   failedCount: number;
   refundedPaise: Paise;
   refundedCount: number;

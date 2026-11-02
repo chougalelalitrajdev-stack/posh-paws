@@ -26,16 +26,17 @@ function summary(): DashboardSummary {
     .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
 
   const week = dateRange(addDays(t, -6), 7);
-  const paidOn = (b: Booking) => toIsoDate(new Date(b.payment!.paidAt!));
-  const paidThisWeek = all.filter(b => b.payment?.paidAt && week.includes(paidOn(b)));
+  const dayOf = (at: string) => toIsoDate(new Date(at));
+  const entries = all.flatMap(b => b.payments);
+  const paidThisWeek = entries.filter(p => p.kind !== 'refund' && week.includes(dayOf(p.at)));
 
   return {
     openStations: STATIONS.length,
     requests: { count: requests.length, oldestAt: requests.map(b => b.createdAt).sort()[0] ?? null },
     awaitingPayment: {
       count: awaiting.length,
-      outstandingPaise: awaiting.reduce((sum, b) => sum + (b.payment?.amountPaise ?? 0), 0),
-      failed: awaiting.filter(b => b.paymentStatus === 'failed').length,
+      outstandingPaise: awaiting.reduce((sum, b) => sum + (b.paymentLink?.amountPaise ?? 0), 0),
+      failed: awaiting.filter(b => b.paymentLink?.failed).length,
     },
     today: {
       count: todays.length,
@@ -46,14 +47,11 @@ function summary(): DashboardSummary {
     attention: attention(all),
     schedule: todays,
     payments: {
-      totalPaise: paidThisWeek.reduce((sum, b) => sum + (b.payment?.amountPaise ?? 0), 0),
+      totalPaise: paidThisWeek.reduce((sum, p) => sum + p.amountPaise, 0),
       count: paidThisWeek.length,
-      failed: all.filter(b => b.paymentStatus === 'failed').length,
-      refunds: all.filter(b => b.paymentStatus === 'refunded').length,
-      days: week.map(date => ({
-        date,
-        amountPaise: paidThisWeek.filter(b => paidOn(b) === date).reduce((sum, b) => sum + b.payment!.amountPaise, 0),
-      })),
+      failed: all.filter(b => b.paymentLink?.failed).length,
+      refunds: entries.filter(p => p.kind === 'refund').length,
+      days: week.map(date => ({ date, amountPaise: paidThisWeek.filter(p => dayOf(p.at) === date).reduce((sum, p) => sum + p.amountPaise, 0) })),
     },
     memberships: { active: subs.active, renewThisWeek: subs.renewingSoon, expired: subs.expiredThisMonth, plans: subs.byPlan },
     content: content(),
@@ -72,17 +70,17 @@ function attention(all: Booking[]): AttentionItem[] {
         title: `${b.customer.name} asked for a callback`,
         detail: `${pet(b)}${b.request?.interestedIn ? ` · interested in ${b.request.interestedIn}` : ''} · ${ageLabel(b.createdAt)} ago`,
       });
-    } else if (b.stage === 'awaiting_payment' && b.paymentStatus === 'failed') {
+    } else if (b.stage === 'awaiting_payment' && b.paymentLink?.failed) {
       items.push({
-        kind: 'failed', at: b.payment!.sentAt, action: 'Send new link', link: `/bookings/${b.id}`,
+        kind: 'failed', at: b.paymentLink.sentAt, action: 'Send new link', link: `/bookings/${b.id}`,
         title: `Payment failed for ${b.id}`,
-        detail: `${b.customer.name} · ${formatInr(b.payment!.amountPaise)}`,
+        detail: `${b.customer.name} · ${formatInr(b.paymentLink.amountPaise)}`,
       });
-    } else if (b.stage === 'awaiting_payment' && b.payment && minutesSince(b.payment.sentAt) > db().settings.notifications.unpaidNudgeHours * 60) {
+    } else if (b.stage === 'awaiting_payment' && b.paymentLink && minutesSince(b.paymentLink.sentAt) > db().settings.notifications.unpaidNudgeHours * 60) {
       items.push({
-        kind: 'unpaid', at: b.payment.sentAt, action: 'Resend', link: `/bookings/${b.id}`,
+        kind: 'unpaid', at: b.paymentLink.sentAt, action: 'Resend', link: `/bookings/${b.id}`,
         title: 'Payment link not paid yet',
-        detail: `${b.customer.name} · ${b.pet?.name} · sent ${ageLabel(b.payment.sentAt)} ago`,
+        detail: `${b.customer.name} · ${b.pet?.name} · sent ${ageLabel(b.paymentLink.sentAt)} ago`,
       });
     } else if (b.stage === 'draft') {
       items.push({
