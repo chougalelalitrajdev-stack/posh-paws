@@ -6,7 +6,7 @@ export interface FilterTab {
   count?: number | null;
 }
 
-/** Row of pill buttons with counts that filter a list (Bookings stages, Requests, ...). */
+/** Row of pill buttons with counts that filter a list (Bookings stages, Payments, ...). */
 @Component({
   selector: 'pp-filter-tabs',
   changeDetection: ChangeDetectionStrategy.OnPush,

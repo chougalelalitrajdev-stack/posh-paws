@@ -4,9 +4,8 @@ import { PlanItem } from '../models/catalog.model';
 export type SubscribeDialogStep = 'confirm' | 'payment' | 'success';
 
 /**
- * Drives the global "Subscribe to a plan" dialog — mirrors
- * BookingDialogService's split: this service only holds state and
- * step transitions, any simulated async work lives in the component.
+ * Drives the global "Subscribe to a plan" dialog: this service only holds state and
+ * step transitions; any async work lives in the component.
  */
 @Injectable({ providedIn: 'root' })
 export class SubscribeDialogService {

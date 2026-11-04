@@ -1,6 +1,5 @@
 export type TemplateKey =
   | 'payment_link' | 'booking_confirmed' | 'booking_reminder' | 'unpaid_nudge'
-  | 'callback_received' | 'missed_call'
   | 'plan_payment' | 'plan_renewal' | 'plan_welcome' | 'win_back';
 
 /** WhatsApp checks templates before they can be sent automatically; staff can always send them by hand. */
@@ -9,7 +8,7 @@ export type TemplateApproval = 'approved' | 'pending' | 'draft';
 /** A WhatsApp message with {fields} filled in for each customer (Business › Message templates). */
 export interface MessageTemplate {
   key: TemplateKey;
-  group: 'Bookings' | 'Requests' | 'Membership';
+  group: 'Bookings' | 'Membership';
   name: string;
   body: string;
   /** When it goes out, e.g. "At 18:00 the day before". */

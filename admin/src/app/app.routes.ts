@@ -28,11 +28,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/today/today.component').then(m => m.TodayComponent),
       },
       {
-        path: 'requests',
-        title: 'Requests · Posh Paws Admin',
-        loadComponent: () => import('./features/requests/requests.component').then(m => m.RequestsComponent),
-      },
-      {
         path: 'bookings',
         title: 'Bookings · Posh Paws Admin',
         loadComponent: () => import('./features/bookings/booking-list/booking-list.component').then(m => m.BookingListComponent),

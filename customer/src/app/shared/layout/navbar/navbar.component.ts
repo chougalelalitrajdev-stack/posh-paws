@@ -7,8 +7,6 @@ import {
 } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../../core/services/booking-dialog.service';
 // import { ThemeSwitcherComponent } from '../theme-switcher/theme-switcher.component';
 
 @Component({
@@ -20,7 +18,6 @@ import { AuthService } from '../../../core/services/auth.service';
   styleUrl: './navbar.component.scss',
 })
 export class NavbarComponent {
-  // private bookingDialog = inject(BookingDialogService);
   private router = inject(Router);
   protected auth = inject(AuthService);
 
@@ -41,7 +38,6 @@ export class NavbarComponent {
   }
 
   startBooking(): void {
-    // this.bookingDialog.open();
     void this.router.navigate(['/book']);
     this.closeMenu();
   }

@@ -10,7 +10,6 @@
       </div>
       <div class="pp-identity-chips">
         @if (c.plan) { <pp-status-pill [label]="c.plan.name + ' member'" tone="success" /> }
-        @if (c.openRequests) { <pp-status-pill label="Open callback request" tone="info" /> }
         <pp-status-pill [label]="'Customer since ' + monthYear(c.customerSince)" tone="neutral" />
       </div>
     </div>
@@ -55,7 +54,7 @@
             <h2 class="pp-card-title">Recent bookings</h2>
             @for (b of bookings().slice(0, 3); track b.id) {
               <a class="pp-row-link" [routerLink]="['/bookings', b.id]">
-                <span class="pp-row-text"><strong>{{ b.service?.name ?? b.request?.interestedIn ?? 'Request' }} · {{ b.pet?.name }}</strong><span>{{ bookingWhen(b) }}</span></span>
+                <span class="pp-row-text"><strong>{{ b.service?.name ?? 'Draft' }} · {{ b.pet?.name }}</strong><span>{{ bookingWhen(b) }}</span></span>
                 <pp-status-pill [stage]="b.stage" />
               </a>
             } @empty { <p class="pp-muted pp-small">No bookings yet.</p> }
@@ -140,7 +139,7 @@
             @for (b of bookings(); track b.id) {
               <tr>
                 <td><a class="pp-strong" [routerLink]="['/bookings', b.id]">{{ b.id }}</a></td>
-                <td>{{ b.service?.name ?? b.request?.interestedIn ?? '—' }}</td>
+                <td>{{ b.service?.name ?? '—' }}</td>
                 <td>{{ b.pet?.name ?? '—' }}</td>
                 <td class="pp-nowrap">{{ bookingWhen(b) }}</td>
                 <td><pp-status-pill [stage]="b.stage" [dot]="true" /></td>

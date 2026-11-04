@@ -2,8 +2,6 @@ import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@a
 import { Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 import { LoginDialogService } from '../../core/services/login-dialog.service';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../core/services/booking-dialog.service';
 import { SubscribeDialogService } from '../../core/services/subscribe-dialog.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { PlanItem } from '../../core/models/catalog.model';
@@ -40,7 +38,6 @@ const GALLERY_ITEMS: GalleryItem[] = [
 })
 export class HomeComponent {
   private readonly catalog = inject(CatalogService);
-  // private readonly bookingDialog = inject(BookingDialogService);
   private readonly router = inject(Router);
   private readonly subscribeDialog = inject(SubscribeDialogService);
   private readonly login = inject(LoginDialogService);
@@ -57,7 +54,6 @@ export class HomeComponent {
   }
 
   startBooking(): void {
-    // this.bookingDialog.open({ petType: this.activePet() });
     void this.router.navigate(['/book'], { queryParams: { pet: this.activePet() } });
   }
 

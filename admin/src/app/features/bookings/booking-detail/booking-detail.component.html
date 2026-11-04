@@ -1,9 +1,9 @@
 @if (booking(); as b) {
   <pp-page-header [title]="title()">
-    @if (b.stage === 'request' || b.stage === 'draft') {
+    @if (b.stage === 'draft') {
       <ng-container ppActions>
-        <a class="pp-btn pp-btn-primary" routerLink="/bookings/new" [queryParams]="{ from: b.id }">{{ b.stage === 'request' ? 'Start booking' : 'Continue booking' }}</a>
-        <button class="pp-btn" type="button" [disabled]="busy()" (click)="cancel()">{{ b.stage === 'request' ? 'Cancel request' : 'Cancel booking' }}</button>
+        <a class="pp-btn pp-btn-primary" routerLink="/bookings/new" [queryParams]="{ from: b.id }">Continue booking</a>
+        <button class="pp-btn" type="button" [disabled]="busy()" (click)="cancel()">Cancel booking</button>
       </ng-container>
     }
     @if (b.stage === 'awaiting_payment') {
@@ -77,10 +77,10 @@
       <section class="pp-card" aria-labelledby="appt-title">
         <h2 id="appt-title" class="pp-card-title">Appointment</h2>
         <dl class="pp-facts">
-          <div><dt>Service</dt><dd>{{ b.service ? b.service.name + ' · ' + durationText() : (b.request?.interestedIn ?? '—') }}</dd></div>
+          <div><dt>Service</dt><dd>{{ b.service ? b.service.name + ' · ' + durationText() : '—' }}</dd></div>
           <div><dt>When</dt><dd>{{ whenText() }}</dd></div>
           <div><dt>Station</dt><dd>{{ catalog.stationName(b.stationId) || '—' }}</dd></div>
-          <div><dt>Booked by</dt><dd>{{ b.bookedBy ? b.bookedBy + (b.request ? ' from a callback' : '') : sources[b.source] }}</dd></div>
+          <div><dt>Booked by</dt><dd>{{ b.bookedBy ?? sources[b.source] }}</dd></div>
           @if (b.bill) { <div><dt>Total</dt><dd>{{ b.bill.totalPaise | inr }}@if (b.bill.discount) { <span class="pp-muted"> · {{ b.bill.discount.label }}</span> }</dd></div> }
         </dl>
       </section>

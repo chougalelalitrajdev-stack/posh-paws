@@ -72,7 +72,7 @@ export class BookingDetailComponent {
     const b = this.booking();
     if (!b) return 'Booking';
     if (b.pet && b.service) return `${b.pet.name}'s ${b.service.name}`;
-    return `Request from ${b.customer.name}`;
+    return `Booking for ${b.customer.name}`;
   });
 
   protected meta = computed(() => {
@@ -88,10 +88,10 @@ export class BookingDetailComponent {
     const b = this.booking();
     if (!b) return '';
     if (b.date && b.time && b.service) return `${shortDate(b.date)}, ${timeRange(b.time, b.service.durationMinutes)}`;
-    return b.request?.bestTime ? `Wants: ${b.request.bestTime}` : 'Not picked yet';
+    return 'Not picked yet';
   });
 
-  /** Request → Details → Link sent → Paid → Confirmed → Completed, with the time each happened. */
+  /** Booked → Details → (Link sent) → Confirmed → Completed → Paid in full, with the time each happened. */
   protected progress = computed<ProgressStep[]>(() => {
     const b = this.booking();
     if (!b) return [];
@@ -102,7 +102,7 @@ export class BookingDetailComponent {
       : undefined;
     const linkSent = first('payment', 'Payment link sent on WhatsApp');
     const steps = [
-      { label: b.request ? 'Request' : 'Booked', at: b.createdAt },
+      { label: 'Booked', at: b.createdAt },
       { label: 'Details', at: first('details') ?? (b.bill ? b.createdAt : undefined) },
       // Only bookings that went through a payment link show that step.
       ...(linkSent || b.paymentLink ? [{ label: 'Link sent', at: linkSent ?? b.paymentLink?.sentAt }] : []),
@@ -118,7 +118,7 @@ export class BookingDetailComponent {
     }));
   });
 
-  protected isOpen = computed(() => ['request', 'draft', 'awaiting_payment', 'confirmed'].includes(this.booking()?.stage ?? ''));
+  protected isOpen = computed(() => ['draft', 'awaiting_payment', 'confirmed'].includes(this.booking()?.stage ?? ''));
   protected hasStarted = computed(() => {
     const b = this.booking();
     return !!b?.date && !!b.time && slotStart(b.date, b.time) <= new Date();
@@ -214,9 +214,9 @@ export class BookingDetailComponent {
     const b = this.booking();
     if (!b) return;
     const ok = await this.confirm.ask({
-      title: b.stage === 'request' ? 'Cancel this request?' : 'Cancel this booking?',
+      title: 'Cancel this booking?',
       message: this.cancelMessage(b),
-      confirmLabel: b.stage === 'request' ? 'Cancel request' : 'Cancel booking',
+      confirmLabel: 'Cancel booking',
       cancelLabel: 'Keep it',
       tone: 'danger',
     });

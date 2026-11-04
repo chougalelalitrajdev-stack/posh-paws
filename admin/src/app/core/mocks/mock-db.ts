@@ -23,7 +23,7 @@ import {
 // It is reseeded each new day, so the demo's "today" always looks like today.
 
 const KEY = 'ppa_mock_db';
-const VERSION = 9;
+const VERSION = 10;
 
 /** Browsers keep about 5 million characters per site; uploads are refused past this, so the demo keeps saving. */
 export const STORAGE_LIMIT = 4_000_000;

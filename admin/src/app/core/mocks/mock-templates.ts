@@ -19,11 +19,9 @@ function trigger(key: TemplateKey): string {
   const n = db().settings.notifications;
   const triggers: Record<TemplateKey, string> = {
     payment_link: 'Sent by staff from a booking',
-    booking_confirmed: 'Right after payment',
+    booking_confirmed: 'When a booking is confirmed',
     booking_reminder: `At ${n.reminderTime} the day before`,
     unpaid_nudge: `${n.unpaidNudgeHours} hours after the link, if unpaid`,
-    callback_received: 'When a callback is requested',
-    missed_call: 'Sent by staff after no answer',
     plan_payment: 'Sent by staff from Subscriptions',
     plan_renewal: '3 days before renewal; staff can also send it from Subscriptions',
     plan_welcome: 'Right after the first plan payment',

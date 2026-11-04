@@ -1,7 +1,6 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
-import { BookingService } from '../../../core/services/booking.service';
 import { IconComponent } from '../../components/icon/icon.component';
 import { GlobalSearchComponent } from '../global-search/global-search.component';
 import { NavListComponent } from '../nav-list/nav-list.component';
@@ -22,12 +21,9 @@ import { MOBILE_TAB_PATHS, NAV_GROUPS, NavItem, SETTINGS_ITEM } from './nav.conf
 })
 export class ShellComponent {
   private auth = inject(AuthService);
-  private bookingService = inject(BookingService);
 
   protected moreOpen = signal(false);
 
-  /** Live counts for nav badges. */
-  protected badges = computed(() => ({ requests: this.bookingService.counts()?.request ?? 0 }));
 
   /** Nav groups with the items this user's role may see. */
   protected groups = computed(() =>
@@ -43,10 +39,6 @@ export class ShellComponent {
       .map(g => ({ ...g, items: g.items.filter(i => !MOBILE_TAB_PATHS.includes(i.path ?? '')) }))
       .filter(g => g.items.length),
   );
-
-  constructor() {
-    this.bookingService.refreshCounts();
-  }
 
   private canSee(item: NavItem): boolean {
     return !item.roles || this.auth.hasRole(...item.roles);

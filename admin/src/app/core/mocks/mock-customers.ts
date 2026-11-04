@@ -50,8 +50,7 @@ function stats(c: StoredCustomer) {
   // What they've actually paid: payments minus refunds, across all their bookings.
   const spent = bookings.reduce((sum, b) => sum + (b.bill?.paidPaise ?? 0), 0);
   return {
-    bookingsCount: bookings.filter(b => b.stage !== 'request' && b.stage !== 'draft').length,
-    openRequests: bookings.filter(b => b.stage === 'request').length,
+    bookingsCount: bookings.filter(b => b.stage !== 'draft').length,
     pastBookings: completed.length,
     spentPaise: spent,
     lastVisit: last ? { date: last.date!, serviceName: last.service?.name ?? '', petName: last.pet?.name ?? '' } : undefined,
@@ -71,7 +70,6 @@ function summaryOf(c: StoredCustomer): CustomerSummary {
     .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
   const next: CustomerSummary['next'] = upcoming
     ? { kind: 'booking', date: upcoming.date!, time: upcoming.time! }
-    : bookings.some(b => b.stage === 'request') ? { kind: 'request' }
     : bookings.some(b => b.stage === 'draft') ? { kind: 'draft' }
     : null;
   return {
@@ -188,6 +186,6 @@ function activity(c: StoredCustomer): ActivityEntry[] {
       ...s.changes.map(ch => ({ at: ch.at, kind: 'status' as const, ...planChangeText(ch, s.renewsOn), by: ch.by })),
       ...(s.endedOn ? [{ at: `${s.endedOn}T10:00:00`, kind: 'status' as const, title: `${s.planName} plan ${s.status === 'cancelled' ? 'cancelled' : 'expired'}` }] : []),
     ]);
-  const joined: ActivityEntry = { at: c.customerSince, kind: 'request', title: 'Became a customer' };
+  const joined: ActivityEntry = { at: c.customerSince, kind: 'created', title: 'Became a customer' };
   return [...fromBookings, ...fromPlans, joined].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 40);
 }

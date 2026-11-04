@@ -1,7 +1,5 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../core/services/booking-dialog.service';
 import { CtaBannerComponent } from '../../shared/components/cta-banner/cta-banner.component';
 import { PageHeroComponent } from '../../shared/components/page-hero/page-hero.component';
 
@@ -43,7 +41,6 @@ const STATS = [
   styleUrl:    './gallery.component.scss',
 })
 export class GalleryComponent {
-  // private bookingDialog = inject(BookingDialogService);
   private router = inject(Router);
 
   protected activeFilter = signal<GalleryFilter>('all');
@@ -62,7 +59,6 @@ export class GalleryComponent {
 
   startBooking(): void {
     const f = this.activeFilter();
-    // this.bookingDialog.open(f === 'all' ? undefined : { petType: f });
     void this.router.navigate(['/book'], { queryParams: { pet: f === 'all' ? undefined : f } });
   }
 }

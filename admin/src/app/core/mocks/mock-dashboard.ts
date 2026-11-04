@@ -19,7 +19,6 @@ function summary(): DashboardSummary {
   const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   const subs = subscriptionSummary();
-  const requests = all.filter(b => b.stage === 'request');
   const awaiting = all.filter(b => b.stage === 'awaiting_payment');
   const todays = all
     .filter(b => b.date === t && ['awaiting_payment', 'confirmed', 'completed'].includes(b.stage))
@@ -32,7 +31,6 @@ function summary(): DashboardSummary {
 
   return {
     openStations: STATIONS.length,
-    requests: { count: requests.length, oldestAt: requests.map(b => b.createdAt).sort()[0] ?? null },
     awaitingPayment: {
       count: awaiting.length,
       outstandingPaise: awaiting.reduce((sum, b) => sum + (b.paymentLink?.amountPaise ?? 0), 0),
@@ -42,6 +40,8 @@ function summary(): DashboardSummary {
       count: todays.length,
       done: todays.filter(b => b.stage === 'completed').length,
       nextTime: todays.find(b => b.stage !== 'completed' && (b.time ?? '') >= nowTime)?.time ?? null,
+      duePaise: todays.reduce((sum, b) => sum + (b.stage === 'awaiting_payment' ? 0 : b.bill?.balancePaise ?? 0), 0),
+      dueCount: todays.filter(b => b.stage !== 'awaiting_payment' && b.bill?.balancePaise).length,
     },
     renewalsThisWeek: subs.renewingSoon,
     attention: attention(all),
@@ -60,17 +60,10 @@ function summary(): DashboardSummary {
 
 /** What needs a person now, oldest first; content reminders last. */
 function attention(all: Booking[]): AttentionItem[] {
-  const pet = (b: Booking) => (b.pet ? `${b.pet.name}${b.pet.breed ? ` · ${b.pet.breed}` : ''}` : b.request?.petNote ?? 'Pet not on file');
   const items: AttentionItem[] = [];
 
   for (const b of all) {
-    if (b.stage === 'request' && b.request?.callOutcome !== 'no_answer') {
-      items.push({
-        kind: 'request', at: b.createdAt, action: 'Start booking', link: '/bookings/new', queryParams: { from: b.id },
-        title: `${b.customer.name} asked for a callback`,
-        detail: `${pet(b)}${b.request?.interestedIn ? ` · interested in ${b.request.interestedIn}` : ''} · ${ageLabel(b.createdAt)} ago`,
-      });
-    } else if (b.stage === 'awaiting_payment' && b.paymentLink?.failed) {
+    if (b.stage === 'awaiting_payment' && b.paymentLink?.failed) {
       items.push({
         kind: 'failed', at: b.paymentLink.sentAt, action: 'Send new link', link: `/bookings/${b.id}`,
         title: `Payment failed for ${b.id}`,

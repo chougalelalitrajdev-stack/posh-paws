@@ -227,13 +227,11 @@ export class BookingListComponent {
 
   protected slotText(b: Booking): string {
     if (b.date && b.time) return `${dayLabel(b.date)} · ${b.time}`;
-    if (b.stage === 'request') return `Wants: ${b.request?.bestTime ?? 'any time'}`;
     return 'Not picked';
   }
 
   /** The row's main action depends on where the booking is. */
   protected cta(b: Booking): { label: string; link: string[]; query: Record<string, string> | null; primary: boolean } {
-    if (b.stage === 'request') return { label: 'Start booking', link: ['/bookings/new'], query: { from: b.id }, primary: true };
     if (b.stage === 'draft') return { label: 'Continue', link: ['/bookings/new'], query: { from: b.id }, primary: true };
     if (b.stage === 'awaiting_payment' && b.paymentStatus === 'failed') return { label: 'New link', link: ['/bookings', b.id], query: null, primary: true };
     if (b.stage === 'awaiting_payment') return { label: 'Resend link', link: ['/bookings', b.id], query: null, primary: false };

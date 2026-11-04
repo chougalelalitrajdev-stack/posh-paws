@@ -4,8 +4,8 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { EMPTY, Observable, catchError, filter, finalize, map, of, switchMap, tap } from 'rxjs';
-import { CALL_OUTCOMES, SOURCES } from '../../../core/constants/status.constants';
-import { AmountType, Booking, BookingBill, BookingDetails, CallOutcome } from '../../../core/models/booking.model';
+import { SOURCES } from '../../../core/constants/status.constants';
+import { AmountType, Booking, BookingBill, BookingDetails } from '../../../core/models/booking.model';
 import { DayAvailability } from '../../../core/models/calendar.model';
 import { PetType, Service } from '../../../core/models/catalog.model';
 import { Customer, CustomerPet, CustomerPlan } from '../../../core/models/customer.model';
@@ -16,14 +16,13 @@ import { SettingsService } from '../../../core/services/settings.service';
 import { TemplateService } from '../../../core/services/template.service';
 import { CustomerService } from '../../../core/services/customer.service';
 import { PetService } from '../../../core/services/pet.service';
-import { formatPhone, telLink, whatsappLink } from '../../../core/utils/contact.utils';
-import { formatDuration, monthYear, shortDate, today, whenLabel } from '../../../core/utils/date.utils';
+import { formatPhone, whatsappLink } from '../../../core/utils/contact.utils';
+import { formatDuration, monthYear, shortDate, today } from '../../../core/utils/date.utils';
 import { errorMessage } from '../../../core/utils/error.utils';
 import { discounted, formatInr } from '../../../core/utils/money.utils';
 import { firstName } from '../../../core/utils/message.utils';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PageHeaderComponent } from '../../../shared/components/page-header/page-header.component';
-import { SegmentedComponent } from '../../../shared/components/segmented/segmented.component';
 import { SlotPickerComponent } from '../../../shared/components/slot-picker/slot-picker.component';
 import { StatusPillComponent } from '../../../shared/components/status-pill/status-pill.component';
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
@@ -34,13 +33,13 @@ import { BookingStepComponent } from './booking-step/booking-step.component';
 type Step = 1 | 2 | 3 | 4;
 
 /**
- * Callback → booking → payment link (design: "New booking").
- * Opened from a request or draft with ?from=PP-1051, or blank from "+ New booking".
+ * Staff book a customer who phoned or walked in (design: "New booking"): customer and pet → service → slot → bill and confirm.
+ * Opened blank from "+ New booking", for a customer with ?customer=, or to continue a draft with ?from=PP-1049.
  */
 @Component({
   selector: 'pp-new-booking',
   imports: [
-    RouterLink, ReactiveFormsModule, PageHeaderComponent, StatusPillComponent, SegmentedComponent,
+    RouterLink, ReactiveFormsModule, PageHeaderComponent, StatusPillComponent,
     SlotPickerComponent, BookingStepComponent, BillComponent, IconComponent, InrPipe, DurationPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,19 +56,16 @@ export class NewBookingComponent {
   private settings = inject(SettingsService);
   private templates = inject(TemplateService);
 
-  /** Query params: the request or draft to continue, or a customer (and pet) to start with. */
+  /** Query params: the draft to continue, or a customer (and pet) to start with. */
   readonly from = input<string>();
   readonly customerId = input<string>(undefined, { alias: 'customer' });
   readonly petIdParam = input<string>(undefined, { alias: 'pet' });
 
-  protected readonly callOutcomes = CALL_OUTCOMES;
   protected readonly sources = SOURCES;
   protected readonly holdPaise = this.settings.holdPaise;
   protected readonly linkHours = this.settings.linkHours;
   protected readonly rulesNote = this.settings.rulesNote;
   protected readonly formatPhone = formatPhone;
-  protected readonly telLink = telLink;
-  protected readonly whenLabel = whenLabel;
 
   protected step = signal<Step>(1);
   protected source = signal<Booking | null>(null);
@@ -161,7 +157,6 @@ export class NewBookingComponent {
   });
 
   protected title = computed(() => (this.pet() ? `Book ${this.pet()!.name} in` : 'New booking'));
-  protected requested = computed(() => this.source()?.request?.interestedIn ?? null);
   protected customerLine = computed(() => {
     const c = this.customer();
     if (!c) return '';
@@ -188,7 +183,7 @@ export class NewBookingComponent {
     this.settings.load().subscribe();
     this.templates.load().subscribe();
 
-    // Opening another request or customer cancels the previous load (switchMap), so details never mix.
+    // Opening another draft or customer cancels the previous load (switchMap), so details never mix.
     toObservable(this.start).pipe(
       tap(() => this.reset()),
       switchMap(({ from, customerId, petId }) => (from ? this.loadSource(from) : customerId ? this.loadCustomer(customerId, petId) : EMPTY)),
@@ -295,7 +290,7 @@ export class NewBookingComponent {
   continueFromPet(): void {
     const pet = this.pet();
     if (!pet) return;
-    if (this.service()?.petType !== pet.type) this.serviceId.set(this.matchRequestedService(pet.type));
+    if (this.service()?.petType !== pet.type) this.serviceId.set(null);
     this.goTo(2);
   }
 
@@ -349,12 +344,6 @@ export class NewBookingComponent {
     })));
   }
 
-  setOutcome(outcome: string): void {
-    const b = this.source();
-    if (!b) return;
-    this.bookingService.setCallOutcome(b.id, outcome as CallOutcome).subscribe(updated => this.source.set(updated));
-  }
-
   async copy(text: string, success: string): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
@@ -375,13 +364,7 @@ export class NewBookingComponent {
     this.addingPet.set(c.pets.length === 0);
   }
 
-  /** Preselect the service the customer asked for in the request, if it fits the pet. */
-  private matchRequestedService(type: PetType): string | null {
-    const wanted = this.requested()?.toLowerCase();
-    return this.catalog.servicesFor(type).find(s => s.name.toLowerCase() === wanted)?.id ?? null;
-  }
-
-  /** Continues a request or draft: the booking, then its customer (services must be loaded to match the request). */
+  /** Continues a draft: the booking, then its customer. */
   private loadSource(id: string): Observable<unknown> {
     this.loadingSource.set(true);
     return this.catalog.load().pipe(
@@ -396,7 +379,7 @@ export class NewBookingComponent {
           this.offerCode.set(b.offerCode);
         }
         if (b.pet) this.petId.set(b.pet.id);
-        this.serviceId.set(b.service?.id ?? (this.pet() ? this.matchRequestedService(this.pet()!.type) : null));
+        this.serviceId.set(b.service?.id ?? null);
         this.date.set(b.date);
         this.time.set(b.time);
       }),

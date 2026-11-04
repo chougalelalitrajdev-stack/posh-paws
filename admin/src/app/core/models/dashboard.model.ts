@@ -4,9 +4,9 @@ import { Paise } from './catalog.model';
 /** GET /admin/dashboard: everything the Today screen shows, in one call. */
 export interface DashboardSummary {
   openStations: number;
-  requests: { count: number; oldestAt: string | null };
   awaitingPayment: { count: number; outstandingPaise: Paise; failed: number };
-  today: { count: number; done: number; nextTime: string | null };
+  /** Today's appointments; `duePaise` is what's still to collect at the shop from them. */
+  today: { count: number; done: number; nextTime: string | null; duePaise: Paise; dueCount: number };
   renewalsThisWeek: number;
   attention: AttentionItem[];
   schedule: Booking[];
@@ -16,7 +16,7 @@ export interface DashboardSummary {
 }
 
 export interface AttentionItem {
-  kind: 'request' | 'failed' | 'unpaid' | 'draft' | 'content';
+  kind: 'failed' | 'unpaid' | 'draft' | 'content';
   title: string;
   detail: string;
   /** ISO timestamp used for "oldest first" and the age text. */

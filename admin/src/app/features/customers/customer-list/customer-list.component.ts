@@ -26,7 +26,7 @@ const SEGMENTS: { key: CustomerSegment; label: string }[] = [
   { key: 'no_plan', label: 'No plan' },
 ];
 
-/** Everyone who has booked, asked for a callback or joined a plan (design: "Customers"). */
+/** Everyone who has booked, in the app or by phone, or joined a plan (design: "Customers"). */
 @Component({
   selector: 'pp-customer-list',
   imports: [
@@ -86,7 +86,6 @@ export class CustomerListComponent {
 
   protected nextText(c: CustomerSummary): string {
     if (!c.next) return '—';
-    if (c.next.kind === 'request') return 'Request open';
     if (c.next.kind === 'draft') return 'Draft';
     return `${dayLabel(c.next.date!)} ${c.next.time}`;
   }

@@ -86,7 +86,7 @@ export class CustomerDetailComponent {
     if (!c) return [];
     const plan = c.plan;
     return [
-      { label: 'Bookings', value: c.bookingsCount, sub: c.openRequests ? `${c.openRequests} open request${c.openRequests > 1 ? 's' : ''}` : 'No open requests' },
+      { label: 'Bookings', value: c.bookingsCount, sub: `${c.pastBookings} past visit${c.pastBookings === 1 ? '' : 's'}` },
       { label: 'Spent', value: formatInr(c.spentPaise), sub: `Since ${monthYear(c.customerSince)}` },
       { label: 'Last visit', value: c.lastVisit ? shortDate(c.lastVisit.date) : '—', sub: c.lastVisit ? `${c.lastVisit.serviceName} · ${c.lastVisit.petName}` : 'No visits yet' },
       {
@@ -149,7 +149,7 @@ export class CustomerDetailComponent {
 
   protected bookingWhen(b: Booking): string {
     if (b.date && b.time) return `${shortDate(b.date)} · ${b.time}`;
-    return b.stage === 'request' ? `Requested ${whenLabel(b.createdAt).toLowerCase()}` : 'No slot yet';
+    return 'No slot yet';
   }
 
   setTab(key: string): void {

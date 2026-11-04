@@ -54,7 +54,7 @@ export interface Customer {
   email?: string;
   /** Neighbourhood, e.g. "Viman Nagar, Pune". */
   area?: string;
-  /** ISO timestamp of the first booking or request. */
+  /** ISO timestamp of the first booking. */
   customerSince: string;
   plan: CustomerPlan | null;
   pets: CustomerPet[];
@@ -62,7 +62,6 @@ export interface Customer {
   // Worked out by the server from bookings and payments:
   pastBookings: number;
   bookingsCount: number;
-  openRequests: number;
   spentPaise: Paise;
   /** Last completed visit. */
   lastVisit?: { date: string; serviceName: string; petName: string };
@@ -82,7 +81,7 @@ export interface CustomerSummary {
   /** Not seen in 90 days. */
   lapsed: boolean;
   /** The next thing coming up for this customer. */
-  next: { kind: 'booking' | 'request' | 'draft'; date?: string; time?: string } | null;
+  next: { kind: 'booking' | 'draft'; date?: string; time?: string } | null;
 }
 
 export type CustomerSegment = 'all' | 'members' | 'new' | 'lapsed' | 'no_plan';

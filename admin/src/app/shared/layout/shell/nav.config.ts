@@ -10,8 +10,6 @@ export interface NavItem {
   /** Only these roles see the item. Missing = everyone. */
   roles?: StaffRole[];
   soon?: boolean;
-  /** Shows a live count from the shell's badge map (e.g. new requests). */
-  badge?: 'requests';
 }
 
 export interface NavGroup {
@@ -25,7 +23,6 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Operations',
     items: [
-      { label: 'Requests', icon: 'phone', path: '/requests', badge: 'requests' },
       { label: 'Bookings', icon: 'calendar', path: '/bookings' },
       { label: 'Customers', icon: 'users', path: '/customers' },
       { label: 'Pets', icon: 'paw', path: '/pets' },
@@ -68,4 +65,4 @@ export const NAV_GROUPS: NavGroup[] = [
 export const SETTINGS_ITEM: NavItem = { label: 'Settings', icon: 'settings', path: '/settings', roles: SETTINGS_ROLES };
 
 /** Tabs on the phone tab bar, in order. Everything else sits under "More". */
-export const MOBILE_TAB_PATHS = ['/today', '/requests', '/bookings', '/customers'];
+export const MOBILE_TAB_PATHS = ['/today', '/bookings', '/customers', '/payments'];

@@ -1,7 +1,5 @@
 import { Component, ChangeDetectionStrategy, computed, inject, input } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../core/services/booking-dialog.service';
 import { PetDialogService } from '../../core/services/pet-dialog.service';
 import { PetService } from '../../core/services/pet.service';
 import { VaccinationStatus } from '../../core/models/pet.model';
@@ -26,7 +24,6 @@ const VACCINATION_ICON: Record<VaccinationStatus, string> = {
   styleUrl: './pet-details.component.scss',
 })
 export class PetDetailsComponent {
-  // private bookingDialog = inject(BookingDialogService);
   private router = inject(Router);
   private petDialog = inject(PetDialogService);
   protected petService = inject(PetService);
@@ -64,7 +61,6 @@ export class PetDetailsComponent {
 
   book(): void {
     const pet = this.pet();
-    // if (pet) this.bookingDialog.open({ petType: pet.type });
     if (pet) void this.router.navigate(['/book'], { queryParams: { pet: pet.type, petId: pet.id } });
   }
 

@@ -65,7 +65,7 @@ export interface NotificationSettings {
   reminderTime: string;
   /** Follow up an unpaid link, and flag it on Today, after this many hours. */
   unpaidNudgeHours: number;
-  /** Who hears about new callback requests. */
+  /** Who hears when a customer books in the app. */
   staffAlerts: 'admins' | 'everyone';
 }
 

@@ -37,11 +37,12 @@ describe('mock bookings API', () => {
 
   it('counts stages and filters the list', async () => {
     const counts = await get<StageCounts>(API.bookingCounts);
-    expect(counts.request).toBe(6);
-    const page = await get<Paged<Booking>>(API.bookings, { stage: 'request', pageSize: 3 });
-    expect(page.total).toBe(6);
+    expect(Object.keys(counts)).not.toContain('request'); // no callback requests: customers book in the app or staff book a call
+    expect(counts.draft).toBe(1);
+    const page = await get<Paged<Booking>>(API.bookings, { stage: 'confirmed', pageSize: 3 });
+    expect(page.total).toBe(counts.confirmed);
     expect(page.items).toHaveLength(3);
-    expect(page.items.every(b => b.stage === 'request')).toBe(true);
+    expect(page.items.every(b => b.stage === 'confirmed')).toBe(true);
   });
 
   it('keeps lunch blocked and leaves a buffer after appointments', async () => {
@@ -52,19 +53,20 @@ describe('mock bookings API', () => {
     expect(slots.find(s => s.time === '10:00')!.available).toBe(true);
   });
 
-  it('turns a request into a confirmed booking: details → payment link → advance taken at the shop', async () => {
+  it('takes a phone call to a confirmed booking: details → payment link → advance taken at the shop', async () => {
     const date = addDays(today(), 1);
-    const draft = await put<Booking>(`${API.bookings}/PP-1051`, { customerId: 'c1', petId: 'p1', serviceId: 'dog-royal-package', date, time: '15:00' });
-    expect(draft.stage).toBe('draft');
+    const draft = await post<Booking>(API.bookings, { customerId: 'c1', petId: 'p1', serviceId: 'dog-royal-package', date, time: '15:00' });
+    expect(draft).toMatchObject({ stage: 'draft', source: 'phone' });
+    expect(draft.activity.at(-1)?.kind).toBe('created');
     // ₹4,500 less the 10% Posh discount (Royal Package isn't on the Posh plan, so no session); staff bookings take no advance.
     expect(draft.bill).toMatchObject({ servicePricePaise: 450000, totalPaise: 405000, advancePaise: 0, discount: { kind: 'membership' } });
 
-    const sent = await post<Booking>(`${API.bookings}/PP-1051/payment-link`, { amountType: 'hold' });
+    const sent = await post<Booking>(`${API.bookings}/${draft.id}/payment-link`, { amountType: 'hold' });
     expect(sent).toMatchObject({ stage: 'awaiting_payment', paymentStatus: 'link_sent' });
     expect(sent.paymentLink!.amountPaise).toBe(10000);
     expect(sent.stationId).toBeTruthy();
 
-    const paid = await post<Booking>(`${API.bookings}/PP-1051/payments`, { amountPaise: 10000, method: 'upi_qr' });
+    const paid = await post<Booking>(`${API.bookings}/${draft.id}/payments`, { amountPaise: 10000, method: 'upi_qr' });
     expect(paid).toMatchObject({ stage: 'confirmed', paymentStatus: 'part_paid', paymentLink: null });
     expect(paid.bill).toMatchObject({ paidPaise: 10000, balancePaise: 395000 });
     expect(paid.activity[0].title).toBe('Payment taken at the shop');
@@ -73,15 +75,15 @@ describe('mock bookings API', () => {
 
   it('fills both stations, then answers 409 for a third booking at the same time', async () => {
     const date = addDays(today(), 5);
-    const book = (id: string, customerId: string, petId: string) =>
-      put<Booking>(`${API.bookings}/${id}`, { customerId, petId, serviceId: 'dog-signature-bath', date, time: '10:00' })
-        .then(() => post<Booking>(`${API.bookings}/${id}/confirm`));
+    const book = (customerId: string, petId: string) =>
+      post<Booking>(API.bookings, { customerId, petId, serviceId: 'dog-signature-bath', date, time: '10:00' })
+        .then(b => post<Booking>(`${API.bookings}/${b.id}/confirm`));
 
-    const first = await book('PP-1051', 'c1', 'p1');
-    const second = await book('PP-1050', 'c10', 'p12');
+    const first = await book('c1', 'p1');
+    const second = await book('c10', 'p12');
     expect(new Set([first.stationId, second.stationId]).size).toBe(2);
     expect((await slotsOn(date, 'dog-signature-bath')).find(s => s.time === '10:00')!.available).toBe(false);
-    expect(await statusOf(book('PP-1053', 'c12', 'p14'))).toBe(409);
+    expect(await statusOf(book('c12', 'p14'))).toBe(409);
   });
 
   it('reschedules into a free slot, and refuses a slot that is taken', async () => {

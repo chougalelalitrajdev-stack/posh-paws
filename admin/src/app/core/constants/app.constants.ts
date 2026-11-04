@@ -15,15 +15,13 @@ export const PLAN_CHANGE_ROLES: StaffRole[] = ['super_admin', 'admin'];
 /** Team & roles, and refunds. */
 export const OWNER_ROLES: StaffRole[] = ['super_admin'];
 
-/** Requests waiting longer than this are shown as urgent. */
-export const URGENT_REQUEST_MINUTES = 30;
 
 /** Roles that can change catalog and content (services, plans, offers, banners, gallery, pages). Staff see them read-only. */
 export const CATALOG_EDIT_ROLES: StaffRole[] = ['super_admin', 'admin'];
 
 /** What each role can do (Settings › Team & roles). Keep in step with nav roles, roleGuard and the server's checks. */
 export const ROLE_MATRIX: { area: string; super_admin: string; admin: string; staff: string }[] = [
-  { area: 'Requests, bookings, calendar', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
+  { area: 'Bookings, calendar, slots', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
   { area: 'Customers and pets', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },
   { area: 'Change a customer’s plan', super_admin: 'Yes', admin: 'Yes', staff: 'No' },
   { area: 'Payments: view', super_admin: 'Yes', admin: 'Yes', staff: 'Yes' },

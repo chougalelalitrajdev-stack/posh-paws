@@ -97,9 +97,8 @@
       <!-- 2 · Service -->
       <pp-booking-step [number]="2" title="Service" [state]="stepState(2)"
         [summary]="service() ? service()!.name + ' · ' + durationText(service()?.durationMinutes) : ''" (change)="goTo(2)">
-        @if (requested() || plan()) {
+        @if (plan()) {
           <p class="pp-step-note">
-            @if (requested()) { Asked for in the request: {{ requested() }}. }
             @if (plan(); as pl) {
               {{ pl.name }} member: services on the plan use a session ({{ pl.sessionsLeft === null ? 'unlimited' : pl.sessionsLeft + ' left' }})@if (discount()) {; others are {{ discount() }}% off}.
             }
@@ -217,7 +216,6 @@
               <a class="pp-btn pp-btn-primary" [href]="whatsappHref()" target="_blank" rel="noopener"><pp-icon name="message" [size]="16" />Open WhatsApp to send</a>
               <button class="pp-btn" type="button" (click)="copy(shareMessage(), 'Message copied.')">Copy message</button>
               <a class="pp-btn" [routerLink]="['/bookings', b.id]">Open booking</a>
-              <a class="pp-btn pp-btn-ghost" routerLink="/requests">Next request</a>
             </div>
           </div>
         } @else {
@@ -229,7 +227,6 @@
             <a class="pp-btn pp-btn-primary" [href]="whatsappHref()" target="_blank" rel="noopener"><pp-icon name="message" [size]="16" />Open WhatsApp to send</a>
             <button class="pp-btn" type="button" (click)="copy(message(), 'Message copied.')">Copy message</button>
             <a class="pp-btn" [routerLink]="['/bookings', b.id]">Open booking</a>
-            <a class="pp-btn pp-btn-ghost" routerLink="/requests">Next request</a>
           </div>
         </div>
         }
@@ -238,33 +235,6 @@
 
     <!-- Right rail -->
     <aside class="pp-nb-side">
-      @if (source()?.request; as req) {
-        <section class="pp-card pp-callback" aria-label="Callback request">
-          <div class="pp-callback-top">
-            <pp-status-pill label="Callback request" tone="info" />
-            <span class="pp-muted pp-small">{{ sources[source()!.source] }} · {{ whenLabel(source()!.createdAt) }}</span>
-          </div>
-          <div class="pp-callback-who">
-            <strong>{{ source()!.customer.name }}</strong>
-            <span>{{ formatPhone(source()!.customer.phone) }}</span>
-          </div>
-          <div class="pp-callback-actions">
-            <a class="pp-btn pp-btn-primary" [href]="telLink(source()!.customer.phone)"><pp-icon name="phone" [size]="16" />Call</a>
-            <a class="pp-btn" [href]="whatsappHref()" target="_blank" rel="noopener">WhatsApp</a>
-          </div>
-          <dl class="pp-rows">
-            <div><dt>Pet</dt><dd>{{ source()!.pet ? source()!.pet!.name + (source()!.pet!.breed ? ' · ' + source()!.pet!.breed : '') : (req.petNote ?? '—') }}</dd></div>
-            <div><dt>Interested in</dt><dd>{{ req.interestedIn ?? '—' }}</dd></div>
-            <div><dt>Best time</dt><dd>{{ req.bestTime ?? '—' }}</dd></div>
-          </dl>
-          @if (req.message) { <p class="pp-quote">“{{ req.message }}”</p> }
-          <div class="pp-field">
-            <span class="pp-label">Call outcome</span>
-            <pp-segmented label="Call outcome" [options]="callOutcomes" [value]="req.callOutcome ?? ''" (valueChange)="setOutcome($event)" />
-          </div>
-        </section>
-      }
-
       <section class="pp-card" aria-labelledby="summary-title">
         <div class="pp-summary-head">
           <h2 id="summary-title" class="pp-summary-title">Booking summary</h2>

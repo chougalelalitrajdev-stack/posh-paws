@@ -1,7 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Router } from '@angular/router';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../core/services/booking-dialog.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { Highlight } from '../../core/models/catalog.model';
 import { CtaBannerComponent } from '../../shared/components/cta-banner/cta-banner.component';
@@ -54,7 +52,6 @@ const STATS: Stat[] = [
   styleUrl: './about.component.scss',
 })
 export class AboutComponent {
-  // private readonly bookingDialog = inject(BookingDialogService);
   private readonly router = inject(Router);
   private readonly catalog = inject(CatalogService);
 
@@ -64,7 +61,6 @@ export class AboutComponent {
   protected readonly trustPills = this.catalog.trustPills;
 
   startBooking(): void {
-    // this.bookingDialog.open();
     void this.router.navigate(['/book']);
   }
 }

@@ -6,14 +6,13 @@ import { AttentionItem, DashboardSummary } from '../../core/models/dashboard.mod
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { DashboardService } from '../../core/services/dashboard.service';
-import { ageLabel, greeting, longDate, today, weekday } from '../../core/utils/date.utils';
+import { greeting, longDate, today, weekday } from '../../core/utils/date.utils';
 import { formatInr } from '../../core/utils/money.utils';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusPillComponent } from '../../shared/components/status-pill/status-pill.component';
 import { InrPipe } from '../../shared/pipes/inr.pipe';
 
 const ATTENTION_TAGS: Record<AttentionItem['kind'], { label: string; tone: Tone }> = {
-  request: { label: 'Request', tone: 'info' },
   failed: { label: 'Failed', tone: 'danger' },
   unpaid: { label: 'Unpaid', tone: 'warn' },
   draft: { label: 'Draft', tone: 'draft' },
@@ -48,8 +47,8 @@ export class TodayComponent {
     if (!d) return [];
     return [
       {
-        label: 'New callback requests', value: d.requests.count, tone: 'info' as Tone, link: '/requests', action: 'Call back',
-        sub: d.requests.oldestAt ? `Oldest waiting ${ageLabel(d.requests.oldestAt)}` : 'Nobody waiting',
+        label: 'To collect today', value: formatInr(d.today.duePaise), tone: 'info' as Tone, link: '/payments', query: { tab: 'due' }, action: 'Take payments',
+        sub: d.today.dueCount ? `${d.today.dueCount} booking${d.today.dueCount === 1 ? '' : 's'} pay at the shop` : 'Nothing left to collect',
       },
       {
         label: 'Awaiting payment', value: d.awaitingPayment.count, tone: 'warn' as Tone, link: '/bookings', query: { stage: 'awaiting_payment' }, action: 'Follow up',

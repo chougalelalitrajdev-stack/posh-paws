@@ -16,7 +16,7 @@ import { fillTemplate } from '../../core/utils/message.utils';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { StatusPillComponent } from '../../shared/components/status-pill/status-pill.component';
 
-const GROUPS: MessageTemplate['group'][] = ['Bookings', 'Requests', 'Membership'];
+const GROUPS: MessageTemplate['group'][] = ['Bookings', 'Membership'];
 const SAMPLE: TemplateValues = Object.fromEntries(TEMPLATE_FIELDS.map(f => [f.field, f.sample]));
 
 /** The words sent on WhatsApp, with {fields} filled in per customer (design: "Message templates"). */

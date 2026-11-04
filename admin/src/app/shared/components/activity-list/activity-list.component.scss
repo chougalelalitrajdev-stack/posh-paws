@@ -17,8 +17,8 @@
   border-radius: 50%;
   background: var(--pp-border-strong);
 
-  .is-request & { background: var(--pp-info); }
-  .is-call &, .is-details & { background: var(--pp-primary); }
+  .is-created & { background: var(--pp-info); }
+  .is-details & { background: var(--pp-primary); }
   .is-payment & { background: var(--pp-accent-dark); }
   .is-status & { background: var(--pp-neutral); }
 }

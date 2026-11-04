@@ -60,12 +60,12 @@ describe('booking money rules (mock backend)', () => {
     const bill = await quote('c1', 'dog-signature-bath');
     expect(bill).toMatchObject({ totalPaise: 0, discount: { kind: 'session' } });
 
-    const b = await book('PP-1051', 'c1', 'p1', 'dog-signature-bath');
+    const b = await book('PP-1049', 'c1', 'p1', 'dog-signature-bath');
     expect(b).toMatchObject({ stage: 'confirmed', paymentStatus: 'paid', bill: { totalPaise: 0 } });
     expect((await get<Customer>(`${API.customers}/c1`)).plan!.sessionsLeft).toBe(before.sessionsLeft! - 1);
-    expect(await statusOf(post(`${API.bookings}/PP-1051/payment-link`, { amountType: 'full' }))).toBe(409); // nothing to pay
+    expect(await statusOf(post(`${API.bookings}/PP-1049/payment-link`, { amountType: 'full' }))).toBe(409); // nothing to pay
 
-    await post(`${API.bookings}/PP-1051/cancel`);
+    await post(`${API.bookings}/PP-1049/cancel`);
     expect((await get<Customer>(`${API.customers}/c1`)).plan!.sessionsLeft).toBe(before.sessionsLeft);
   });
 
@@ -81,10 +81,10 @@ describe('booking money rules (mock backend)', () => {
     expect(await statusOf(quote('c1', 'dog-royal-package', 'MEOW10'))).toBe(400); // ended
 
     const usedBefore = (await get<Offer[]>(API.offers)).find(o => o.code === 'DIWALI20')!.used;
-    await book('PP-1051', 'c1', 'p1', 'dog-royal-package', 'DIWALI20');
+    await book('PP-1049', 'c1', 'p1', 'dog-royal-package', 'DIWALI20');
     expect((await get<Offer[]>(API.offers)).find(o => o.code === 'DIWALI20')!.used).toBe(usedBefore + 1);
     expect(await statusOf(quote('c1', 'dog-royal-package', 'DIWALI20'))).toBe(400); // one use per customer
-    await post(`${API.bookings}/PP-1051/cancel`);
+    await post(`${API.bookings}/PP-1049/cancel`);
     expect((await get<Offer[]>(API.offers)).find(o => o.code === 'DIWALI20')!.used).toBe(usedBefore);
   });
 

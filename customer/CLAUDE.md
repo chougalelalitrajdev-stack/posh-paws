@@ -38,7 +38,7 @@ src/
       mocks/           TEMPORARY fake backend (mock.interceptor.ts + mock-data.ts); delete when the API is live
     shared/            reusable UI, never calls the API
       components/      presentational building blocks (list below) + toast + loader
-      dialogs/         globally mounted dialogs: booking (parked), subscribe, login, pet
+      dialogs/         globally mounted dialogs: subscribe, login, pet
       layout/          navbar, footer, bottom-nav, theme-switcher
       pipes/           inr, duration
     features/          one folder per route (lazy-loaded): page component + page-only code
@@ -74,7 +74,8 @@ Rules:
 - **Loading:** the loading interceptor drives the top progress bar (`pp-loader`); components use their own `loading` signals for inline spinners.
 - **Money on a booking** follows "Booking & payment rules" in `../CLAUDE.md`, the same as the admin. The server works out the bill (`POST /bookings/quote` before booking; `bill`, `payments`, `paymentStatus` on every booking) and the app only shows it with `<pp-bill>`. The advance, the free-cancellation window and the shop's UPI details come from `GET /shop` (`CatalogService.shop`), never from constants. The customer's plan is `GET /subscriptions/current` (`MembershipService`); staff change plans in the admin, so the app only shows the plan, sessions left and any move at renewal.
 - **Login:** features needing login call `loginDialog.ensureLoggedIn().pipe(filter(Boolean)).subscribe(...)` (or use `authGuard`). They never touch login UI state.
-- **Global dialogs:** state lives in a small service in `core/services` (`providedIn: 'root'`); the component (mounted once in `app.html`) owns any async work. The call/callback `BookingDialogService` dialog is parked: its calls are commented out where "Book" buttons now `router.navigate(['/book'], { queryParams })`.
+- **Global dialogs:** state lives in a small service in `core/services` (`providedIn: 'root'`); the component (mounted once in `app.html`) owns any async work.
+- **Booking:** customers book and pay the advance themselves in `/book`; every "Book" button does `router.navigate(['/book'], { queryParams })`. There is no callback request: a customer who'd rather talk phones the shop, and staff book them in the admin.
 
 ## Shared components (`src/app/shared/components`)
 
@@ -91,7 +92,7 @@ Rules:
 - `src/styles/_components.scss` is only an index of partials in `layout/`, `components/`, `utilities/` (order = cascade order).
 - **Tokens only**: colours `var(--pp-*)` (incl. `--pp-card-bg`, `--pp-on-primary`, `--pp-on-dark-*`), type `var(--fs-*)` (xs..6xl, `--fs-title`, `--fs-display`), spacing `var(--space-*)`, plus radius/shadow/z-index/safe-area/tap-target tokens. Themes are `[data-theme]` blocks in `_tokens.scss` (`ThemeService`, currently switcher hidden).
 - Use `.on-dark` on a dark-surface section so eyebrow/headings/intro flip to light colours.
-- **`npm run lint:styles`** fails if colour literals, `!important`, raw font sizes, raw px spacing or duplicate component classes increase. Currently 0/0/0/59/0; lower is better, never higher.
+- **`npm run lint:styles`** fails if colour literals, `!important`, raw font sizes, raw px spacing or duplicate component classes increase. Currently 0/0/0/58/0; lower is better, never higher.
 - Page `.scss` files hold only page-specific rules. Anything used by two pages moves to `shared/components` or `src/styles`.
 
 ## Mobile-first layout rules

@@ -1,4 +1,4 @@
-<pp-page-header title="Bookings" subtitle="From first call to finished groom. Requests from the app land here too.">
+<pp-page-header title="Bookings" subtitle="Booked in the app or by staff on a call, through to the finished groom.">
   <pp-segmented ppActions label="View" [options]="viewOptions" [(value)]="mode" />
 </pp-page-header>
 
@@ -59,7 +59,7 @@
             <td class="pp-nowrap"><a class="pp-booking-id" [routerLink]="['/bookings', b.id]">{{ b.id }}</a><span class="pp-table-sub">{{ whenLabel(b.createdAt) }}</span></td>
             <td class="pp-nowrap"><strong>{{ b.customer.name }}</strong><span class="pp-table-sub">{{ formatPhone(b.customer.phone) }}</span></td>
             <td class="pp-nowrap">{{ b.pet ? b.pet.name + (b.pet.breed ? ' · ' + b.pet.breed : '') : '—' }}</td>
-            <td class="pp-col-wrap">{{ b.service?.name ?? b.request?.interestedIn ?? '—' }}</td>
+            <td class="pp-col-wrap">{{ b.service?.name ?? '—' }}</td>
             <td class="pp-col-wrap" [class.pp-muted]="!b.date">{{ slotText(b) }}</td>
             <td><pp-status-pill [stage]="b.stage" [dot]="true" /></td>
             <td><pp-status-pill [payment]="b.paymentStatus" /></td>

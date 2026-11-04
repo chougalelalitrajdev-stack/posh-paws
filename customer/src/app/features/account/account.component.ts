@@ -9,8 +9,6 @@ import { Pet } from '../../core/models/pet.model';
 import { BUSINESS_PHONE_TEL } from '../../core/constants/app.constants';
 import { PET_EMOJI } from '../../core/constants/pet.constants';
 import { petAgeLabel } from '../../core/utils/pet.utils';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../core/services/booking-dialog.service';
 import { BookingService } from '../../core/services/booking.service';
 import { Booking } from '../../core/models/booking.model';
 import { AlertService } from '../../core/services/alert.service';
@@ -39,7 +37,6 @@ interface QuickStat {
   styleUrl: './account.component.scss',
 })
 export class AccountComponent {
-  // private bookingDialog = inject(BookingDialogService);
   protected bookingService = inject(BookingService);
   private auth = inject(AuthService);
   private router = inject(Router);
@@ -148,7 +145,6 @@ export class AccountComponent {
   }
 
   startBooking(pet?: Pet): void {
-    // this.bookingDialog.open();
     void this.router.navigate(['/book'], { queryParams: { pet: pet?.type, petId: pet?.id } });
   }
 }

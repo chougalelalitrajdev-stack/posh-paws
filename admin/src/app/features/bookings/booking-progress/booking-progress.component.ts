@@ -7,7 +7,7 @@ export interface ProgressStep {
   time: string;
 }
 
-/** Request → Details → Link sent → Paid → Confirmed → Completed tracker on Booking detail. */
+/** Booked → Details → (Link sent) → Confirmed → Completed → Paid in full tracker on Booking detail. */
 @Component({
   selector: 'pp-booking-progress',
   changeDetection: ChangeDetectionStrategy.OnPush,

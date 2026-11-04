@@ -4,13 +4,13 @@ import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
-import { AmountType, Booking, BookingBill, BookingDetails, BookingFilters, CallOutcome, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
+import { AmountType, Booking, BookingBill, BookingDetails, BookingFilters, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
 import { CalendarData, DayAvailability, NewTimeBlock, SlotBoard, TimeBlock } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 
 /**
- * Bookings from first request to finished groom, plus the calendar and slot availability.
- * Every change refreshes `counts`, which drives the tab counts and the Requests badge.
+ * Bookings from first booked to finished groom, plus the calendar and slot availability.
+ * Every change refreshes `counts`, which drives the Bookings tab counts.
  */
 @Injectable({ providedIn: 'root' })
 export class BookingService {
@@ -36,7 +36,7 @@ export class BookingService {
     return this.http.get<Booking>(`${API.bookings}/${id}`);
   }
 
-  /** Reloads the stage counts in the background (tab counts, Requests badge). */
+  /** Reloads the stage counts in the background (Bookings tab counts). */
   refreshCounts(): void {
     this.http.get<StageCounts>(API.bookingCounts).subscribe({ next: c => this._counts.set(c), error: () => undefined });
   }
@@ -52,7 +52,7 @@ export class BookingService {
     return this.http.get<DayAvailability[]>(API.slots, { params });
   }
 
-  /** Creates a draft, or updates a request/draft. The New booking screen shows errors itself. */
+  /** Creates or updates a draft. The New booking screen shows errors itself. */
   saveDetails(details: BookingDetails, id?: string): Observable<Booking> {
     const request = id
       ? this.http.put<Booking>(`${API.bookings}/${id}`, details, { context: withoutErrorAlert() })
@@ -77,10 +77,6 @@ export class BookingService {
 
   sendPaymentLink(id: string, amountType: AmountType): Observable<Booking> {
     return this.action(id, 'payment-link', { amountType }, true);
-  }
-
-  setCallOutcome(id: string, outcome: CallOutcome): Observable<Booking> {
-    return this.action(id, 'call-outcome', { outcome });
   }
 
 

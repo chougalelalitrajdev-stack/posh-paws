@@ -32,7 +32,7 @@ One git repo, three independent apps. Each app has its own dependencies, lock fi
 
 Agreed with the business on 2 Nov 2026. The server computes every number below; the apps only show them.
 
-- **Two ways to book.** In the customer app the customer picks an open slot and pays an **advance** online, which confirms the booking. When a customer phones, staff book in the admin and the booking is **confirmed with no advance** (staff may still send a payment link if they want one).
+- **Two ways to book.** In the customer app the customer picks an open slot and pays an **advance** online, which confirms the booking. When a customer phones, staff book in the admin and the booking is **confirmed with no advance** (staff may still send a payment link if they want one). There is no third way: no callback requests or enquiry forms.
 - **The bill** (same in both apps): service price → at most one discount → total. Discounts don't stack; the best one wins:
   - **Plan session:** a member with sessions left on a service their plan covers pays ₹0 and uses one session (reserved when the booking is confirmed, given back if it's cancelled, kept on a no-show).
   - **Member discount:** the plan's discount % on any other service.

@@ -1,4 +1,4 @@
-import { ActivityEntry, AmountType, BillDiscount, Booking, BookingSource, BookingStage, PaymentEntry, PaymentMethod, PaymentStatus, RequestInfo } from '../models/booking.model';
+import { ActivityEntry, AmountType, BillDiscount, Booking, BookingSource, BookingStage, PaymentEntry, PaymentMethod, PaymentStatus } from '../models/booking.model';
 import { SlotChanges } from '../models/calendar.model';
 import { Station } from '../models/catalog.model';
 import { GalleryPhoto } from '../models/gallery.model';
@@ -193,20 +193,12 @@ interface SeedBooking {
   amountType?: AmountType;
   /** Payment link sent / paid this many minutes before now. */
   sentMinutesAgo?: number;
-  request?: RequestInfo;
 }
 
 const SEED_BOOKINGS: SeedBooking[] = [
-  // Requests: new (no call yet) and called
-  { id: 'PP-1053', customer: 'c12', pet: 'p14', stage: 'request', createdMinutesAgo: 4, request: { interestedIn: 'Not sure yet, wants advice', bestTime: 'Now' } },
-  { id: 'PP-1052', customer: 'c11', pet: 'p13', stage: 'request', createdMinutesAgo: 12, request: { interestedIn: 'Gentle Cat Bath', bestTime: 'Any weekday morning' } },
-  { id: 'PP-1051', customer: 'c1', pet: 'p1', stage: 'request', createdMinutesAgo: 42, request: { interestedIn: 'Royal Package', bestTime: 'Today after 5 pm', message: 'Coco needs a full groom before Diwali. Weekend is fine too.' } },
-  { id: 'PP-1050', customer: 'c10', pet: 'p12', stage: 'request', createdMinutesAgo: 70, request: { interestedIn: 'De-shedding Treatment', bestTime: 'This weekend' } },
-  { id: 'PP-1044', customer: 'c17', pet: 'p19', stage: 'request', createdMinutesAgo: 60 * 20, source: 'phone', request: { interestedIn: 'Full Groom & Style', bestTime: 'Evenings', callOutcome: 'no_answer' } },
-  { id: 'PP-1043', customer: 'c15', pet: 'p17', stage: 'request', createdMinutesAgo: 60 * 3, request: { interestedIn: 'Flea & Tick Spa', bestTime: 'After 6 pm', callOutcome: 'call_back_later' } },
-  // Draft and awaiting payment
-  { id: 'PP-1049', customer: 'c7', pet: 'p9', service: 'dog-signature-bath', stage: 'draft', createdMinutesAgo: 60 * 16, request: { interestedIn: 'Signature Bath', bestTime: 'Weekend', callOutcome: 'reached' } },
-  { id: 'PP-1048', customer: 'c3', pet: 'p4', service: 'cat-royale-cat-package', stage: 'awaiting_payment', payment: 'link_sent', createdMinutesAgo: 60 * 8, day: 2, time: '12:00', station: 'st2', amountType: 'full', sentMinutesAgo: 60 * 7, request: { interestedIn: 'Royale Cat Package', message: 'Luna is matted, any slot this week?', callOutcome: 'reached' } },
+  // Phone calls: one left unfinished, and links waiting to be paid
+  { id: 'PP-1049', customer: 'c7', pet: 'p9', service: 'dog-signature-bath', stage: 'draft', createdMinutesAgo: 60 * 16, source: 'phone' },
+  { id: 'PP-1048', customer: 'c3', pet: 'p4', service: 'cat-royale-cat-package', stage: 'awaiting_payment', payment: 'link_sent', createdMinutesAgo: 60 * 8, day: 2, time: '12:00', station: 'st2', amountType: 'full', sentMinutesAgo: 60 * 7, source: 'phone' },
   { id: 'PP-1047', customer: 'c4', pet: 'p5', service: 'dog-full-groom-style', stage: 'awaiting_payment', payment: 'failed', createdMinutesAgo: 90, day: 2, time: '15:00', station: 'st1', amountType: 'full', sentMinutesAgo: 60, source: 'phone' },
   { id: 'PP-1046', customer: 'c14', pet: 'p16', service: 'dog-nail-trim-filing', stage: 'awaiting_payment', payment: 'link_sent', createdMinutesAgo: 60 * 26, day: 0, time: '12:00', station: 'st2', amountType: 'full', sentMinutesAgo: 60 * 25, source: 'phone' },
   // Today
@@ -250,18 +242,13 @@ export function seedBookings(customers: StoredCustomer[], now = new Date()): Boo
     const pet = customer.pets.find(p => p.id === s.pet)!;
     const service = SERVICES.find(sv => sv.id === s.service);
     // App bookings pay the advance online; staff bookings don't.
-    const bill = service ? newBill(service.pricePaise, seedMemberDiscount(customer.id, service.pricePaise), (s.source ?? 'app') === 'app' && !s.request ? SETTINGS.payments.slotHoldPaise : null) : null;
+    const bill = service ? newBill(service.pricePaise, seedMemberDiscount(customer.id, service.pricePaise), (s.source ?? 'app') === 'app' ? SETTINGS.payments.slotHoldPaise : null) : null;
     const date = s.day === undefined ? null : addDays(today(), s.day);
     const createdAt = minutesAgo(s.createdMinutesAgo);
     const source = s.source ?? 'app';
     const activity: ActivityEntry[] = [];
 
-    if (s.request) {
-      activity.push({ at: createdAt, kind: 'request', title: source === 'app' ? 'Callback requested in the app' : 'Request taken by phone', detail: s.request.message });
-      if (s.request.callOutcome) activity.push({ at: minutesAgo(s.createdMinutesAgo - 10), kind: 'call', title: `Call outcome: ${s.request.callOutcome.replace(/_/g, ' ')}`, by: 'Meera K.' });
-    } else {
-      activity.push({ at: createdAt, kind: 'request', title: source === 'app' ? 'Booked in the app' : 'Booking started by phone', by: source === 'app' ? undefined : 'Meera K.' });
-    }
+    activity.push({ at: createdAt, kind: 'created', title: source === 'app' ? 'Booked in the app' : 'Booking started by phone', by: source === 'app' ? undefined : 'Meera K.' });
 
     const payments: PaymentEntry[] = [];
     const pay = (kind: PaymentEntry['kind'], amountPaise: number, method: PaymentMethod, at: string, by?: string, refundOf?: string) =>
@@ -270,8 +257,8 @@ export function seedBookings(customers: StoredCustomer[], now = new Date()): Boo
     if (s.sentMinutesAgo !== undefined && bill && date && s.time) {
       const sentAt = minutesAgo(s.sentMinutesAgo);
       activity.push({ at: minutesAgo(s.sentMinutesAgo + 2), kind: 'details', title: 'Booking details saved', detail: `${service!.name} · ${date} ${s.time}` });
-      if (source === 'app' && !s.request) {
-        // Booked in the app: the advance was paid online straight away. (Callback requests go through staff.)
+      if (source === 'app') {
+        // Booked in the app: the advance was paid online straight away.
         pay('advance', bill.advancePaise, 'online', sentAt);
         activity.push({ at: sentAt, kind: 'payment', title: 'Advance paid in the app', detail: `₹${bill.advancePaise / 100}` });
       } else if (s.payment === 'paid' || s.payment === 'refunded') {
@@ -318,8 +305,7 @@ export function seedBookings(customers: StoredCustomer[], now = new Date()): Boo
       bill,
       payments,
       paymentLink,
-      request: s.request,
-      bookedBy: source === 'app' && !s.request ? undefined : 'Meera K.',
+      bookedBy: source === 'app' ? undefined : 'Meera K.',
       activity: activity.sort((a, b) => b.at.localeCompare(a.at)),
     };
     settleMoney(booking);
@@ -564,8 +550,6 @@ export function seedTemplates(): Omit<MessageTemplate, 'trigger'>[] {
     t('booking_confirmed', 'Bookings', 'Booking confirmed', 'Thank you, {customer_name}! {pet_name} is booked for {service} on {date_time}. We\'ll remind you the evening before. Reply here to reschedule.', true),
     t('booking_reminder', 'Bookings', 'Reminder the day before', 'See you tomorrow, {customer_name}! {pet_name}\'s {service} is at {date_time}. Please arrive 10 minutes early.', true),
     t('unpaid_nudge', 'Bookings', 'Unpaid link nudge', 'Hi {customer_name}, we\'re still holding {date_time} for {pet_name}. Pay {amount} to keep it: {payment_link}', true, 'pending'),
-    t('callback_received', 'Requests', 'Callback received', 'Hi {customer_name}, thanks for reaching out to Posh Paws! We\'ll call you back shortly about {pet_name}.', true),
-    t('missed_call', 'Requests', 'Missed call follow-up', 'Hi {customer_name}, we tried calling about {pet_name}\'s grooming. Reply with a good time and we\'ll call back.', false),
     t('plan_payment', 'Membership', 'First plan payment', 'Hi {customer_name}, welcome to the {plan} plan at Posh Paws!\nPay {amount} here to start your membership: {payment_link}\nReply here if you have any questions.', false),
     t('plan_renewal', 'Membership', 'Renewal reminder', 'Hi {customer_name}, your {plan} plan at Posh Paws renews on {renewal_date}.\nPay {amount} here to keep your sessions and member prices: {payment_link}\nReply here if you have any questions.', true),
     t('plan_welcome', 'Membership', 'Welcome to a plan', 'Welcome to the {plan} plan, {customer_name}! Your sessions are ready to book.', true, 'draft'),

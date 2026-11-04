@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, linkedSignal, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
@@ -62,6 +62,9 @@ export class PaymentListComponent {
   private alert = inject(AlertService);
   private auth = inject(AuthService);
 
+  /** Query param, so Today can open a tab (?tab=due). */
+  readonly tabParam = input<string>(undefined, { alias: 'tab' });
+
   protected readonly tabs = TABS;
   protected readonly states = PAYMENT_STATES;
   protected readonly periods = periods();
@@ -69,7 +72,7 @@ export class PaymentListComponent {
   protected canRefund = computed(() => this.auth.hasRole(...OWNER_ROLES));
 
   protected periodKey = signal(this.periods[0].key);
-  protected tab = signal<PaymentTab>('all');
+  protected tab = linkedSignal(() => (TABS.some(t => t.key === this.tabParam()) ? this.tabParam() as PaymentTab : 'all'));
   protected page = signal(1);
   protected result = signal<Paged<Payment> | null>(null);
   protected summary = signal<PaymentSummary | null>(null);

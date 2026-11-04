@@ -113,8 +113,8 @@ describe('mock settings, templates, payments and team', () => {
   it('uses the hold amount and link expiry from Settings › Payments', async () => {
     const s = await get<Settings>(API.settings);
     await send('PUT', `${API.settings}/payments`, { ...s.payments, slotHoldPaise: 20000, linkExpiryHours: 12 });
-    await send('PUT', `${API.bookings}/PP-1051`, { customerId: 'c1', petId: 'p1', serviceId: 'dog-royal-package', date: addDays(today(), 1), time: '15:00' });
-    const sent = await send<Booking>('POST', `${API.bookings}/PP-1051/payment-link`, { amountType: 'hold' });
+    await send('PUT', `${API.bookings}/PP-1049`, { customerId: 'c1', petId: 'p1', serviceId: 'dog-royal-package', date: addDays(today(), 1), time: '15:00' });
+    const sent = await send<Booking>('POST', `${API.bookings}/PP-1049/payment-link`, { amountType: 'hold' });
     expect(sent.paymentLink?.amountPaise).toBe(20000);
     expect(new Date(sent.paymentLink!.expiresAt).getTime() - new Date(sent.paymentLink!.sentAt).getTime()).toBe(12 * 3_600_000);
   });

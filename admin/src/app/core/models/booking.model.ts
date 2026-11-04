@@ -1,25 +1,14 @@
 import { Paise, PetType } from './catalog.model';
 
 /** Where the booking is in its life (design: "two simple tracks"). */
-export type BookingStage = 'request' | 'draft' | 'awaiting_payment' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type BookingStage = 'draft' | 'awaiting_payment' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 /** Worked out by the server from the bill, the payments and any open link (see "Booking & payment rules" in the root CLAUDE.md). */
 export type PaymentStatus = 'unpaid' | 'link_sent' | 'failed' | 'part_paid' | 'paid' | 'refunded';
 export type BookingSource = 'app' | 'phone' | 'walk_in';
-export type CallOutcome = 'reached' | 'no_answer' | 'call_back_later';
 /** What a payment link asks for: the advance (slot hold) or everything still due. */
 export type AmountType = 'full' | 'hold';
 /** `online` = through a payment link or the app; the rest are taken at the shop. */
 export type PaymentMethod = 'online' | 'upi_qr' | 'cash' | 'card';
-
-/** What the customer asked for in a callback request. */
-export interface RequestInfo {
-  /** Free text from the request form when the pet isn't on file. */
-  petNote?: string;
-  interestedIn?: string;
-  bestTime?: string;
-  message?: string;
-  callOutcome?: CallOutcome;
-}
 
 /** An open payment link. Cleared once it's paid. */
 export interface PaymentLink {
@@ -77,10 +66,10 @@ export interface ActivityEntry {
   detail?: string;
   /** Staff name, when a person did it. */
   by?: string;
-  kind: 'request' | 'call' | 'details' | 'payment' | 'status' | 'note';
+  kind: 'created' | 'details' | 'payment' | 'status' | 'note';
 }
 
-/** One booking from first request to finished groom. Customer, pet and service are snapshots. */
+/** One booking from first booked (in the app, or by staff on a phone call) to finished groom. Customer, pet and service are snapshots. */
 export interface Booking {
   /** e.g. PP-1051 */
   id: string;
@@ -101,12 +90,11 @@ export interface Booking {
   paymentLink: PaymentLink | null;
   /** Offer code typed for this booking, if any. */
   offerCode?: string | null;
-  request?: RequestInfo;
   bookedBy?: string;
   activity: ActivityEntry[];
 }
 
-/** Body of POST /admin/bookings (new) and PUT /admin/bookings/{id} (request or draft). Saves a draft. */
+/** Body of POST /admin/bookings (new) and PUT /admin/bookings/{id} (a draft). Saves a draft. */
 export interface BookingDetails {
   customerId: string;
   petId: string;

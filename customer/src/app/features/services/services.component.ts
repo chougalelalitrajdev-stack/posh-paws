@@ -1,8 +1,6 @@
 import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
-// Call/callback dialog parked for later use; Book buttons now open the slot-booking flow.
-// import { BookingDialogService } from '../../core/services/booking-dialog.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { ServiceItem } from '../../core/models/catalog.model';
 import { PetType } from '../../core/models/pet.model';
@@ -23,7 +21,6 @@ import { ServiceCardComponent } from '../../shared/components/service-card/servi
   styleUrl: './services.component.scss',
 })
 export class ServicesComponent {
-  // private readonly bookingDialog = inject(BookingDialogService);
   private readonly router = inject(Router);
   private readonly catalog = inject(CatalogService);
 
@@ -35,12 +32,10 @@ export class ServicesComponent {
   }
 
   startBooking(): void {
-    // this.bookingDialog.open({ petType: this.activePet() });
     void this.router.navigate(['/book'], { queryParams: { pet: this.activePet() } });
   }
 
   bookService(service: ServiceItem): void {
-    // this.bookingDialog.open({ petType: this.activePet(), serviceName: service.name });
     void this.router.navigate(['/book'], { queryParams: { pet: service.petType, service: service.id } });
   }
 }

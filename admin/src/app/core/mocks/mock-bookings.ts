@@ -1,5 +1,5 @@
 import { PAYMENT_METHODS, STAGES } from '../constants/status.constants';
-import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, CallOutcome, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
+import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
 import { BoardSlot, CalendarData, DayAvailability, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 import { addDays, dateRange, minutesOfDay, shortDate, slotStart, timeFromMinutes, today } from '../utils/date.utils';
@@ -36,7 +36,6 @@ export function handleBookings(r: MockRequest): unknown {
     const b = find(id);
     const by = requireStaff(r).name;
     switch (name) {
-      case 'call-outcome': return callOutcome(b, r.body.outcome, by);
       case 'confirm': return confirm(b, by);
       case 'payment-link': return paymentLink(b, r.body.amountType, by);
       case 'payments': return recordPayment(b, r.body, by);
@@ -72,7 +71,7 @@ function list(r: MockRequest): Paged<Booking> {
   const pageSize = Number(r.param('pageSize') || 10);
   const t = today();
   const inRange = (b: Booking) => {
-    if (!b.date || range === 'any') return true; // requests and drafts have no date yet
+    if (!b.date || range === 'any') return true; // drafts may have no date yet
     if (range === 'today') return b.date === t;
     if (range === 'next7') return b.date >= t && b.date <= addDays(t, 6);
     return b.date >= addDays(t, -30) && b.date <= t; // last30
@@ -268,7 +267,7 @@ function commit(b: Booking): Booking {
   return b;
 }
 
-/** Create a draft (id null) or update a request/draft with customer, pet, service and slot. */
+/** Create a draft (id null) or update one with customer, pet, service and slot. */
 function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Booking {
   const by = requireStaff(r).name;
   const customer = db().customers.find(c => c.id === d.customerId);
@@ -287,7 +286,7 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   let b: Booking;
   if (id) {
     b = find(id);
-    if (b.stage !== 'request' && b.stage !== 'draft') throw new MockError(409, 'Only requests and drafts can be edited here. Use Reschedule instead.');
+    if (b.stage !== 'draft') throw new MockError(409, 'Only drafts can be edited here. Use Reschedule instead.');
   } else {
     b = {
       id: `PP-${db().nextId++}`, createdAt: new Date().toISOString(), source: 'phone', stage: 'draft', paymentStatus: 'unpaid',
@@ -295,14 +294,14 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
       date: null, time: null, stationId: null, bill: null, payments: [], paymentLink: null, bookedBy: by, activity: [],
     };
     db().bookings.push(b);
-    log(b, { kind: 'request', title: 'Booking started by staff', by });
+    log(b, { kind: 'created', title: 'Booking started by staff', by });
   }
 
   b.stage = 'draft';
   b.customer = { id: customer.id, name: customer.name, phone: customer.phone };
   b.pet = { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed };
   b.service = { id: service.id, name: service.name, durationMinutes: service.durationMinutes };
-  // Staff bookings (phone, or a callback request) take no advance.
+  // Staff bookings (phone calls) take no advance.
   b.bill = quoteBill(customer.id, service.id, d.offerCode, false, b.id);
   b.offerCode = d.offerCode?.trim().toUpperCase() || null;
   settleMoney(b);
@@ -313,16 +312,9 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   return commit(b);
 }
 
-function callOutcome(b: Booking, outcome: CallOutcome, by: string): Booking {
-  if (!['reached', 'no_answer', 'call_back_later'].includes(outcome)) throw new MockError(400, 'Pick a call outcome.');
-  b.request = { ...b.request, callOutcome: outcome };
-  log(b, { kind: 'call', title: `Call outcome: ${outcome.replace(/_/g, ' ')}`, by });
-  return commit(b);
-}
-
 /** A booking made by phone: confirmed straight away, nothing paid yet (the customer pays at the shop). */
 function confirm(b: Booking, by: string): Booking {
-  if (b.stage !== 'draft' && b.stage !== 'request') throw new MockError(409, 'Only requests and drafts can be confirmed.');
+  if (b.stage !== 'draft') throw new MockError(409, 'Only drafts can be confirmed.');
   if (!b.service || !b.date || !b.time) throw new MockError(400, 'Pick a service and a slot first.');
   const station = freeStation(b.date, b.time, b.service.durationMinutes, b.id);
   if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
@@ -343,9 +335,9 @@ function confirm(b: Booking, by: string): Booking {
  * full amount, and holds the slot until it expires. After, it asks for the balance.
  */
 function paymentLink(b: Booking, amountType: AmountType, by: string): Booking {
-  if (!['draft', 'request', 'awaiting_payment', 'confirmed', 'completed'].includes(b.stage)) throw new MockError(409, 'This booking doesn’t need a payment link.');
+  if (!['draft', 'awaiting_payment', 'confirmed', 'completed'].includes(b.stage)) throw new MockError(409, 'This booking doesn’t need a payment link.');
   if (!b.service || !b.date || !b.time || !b.bill) throw new MockError(400, 'Pick a service and a slot first.');
-  const before = ['draft', 'request', 'awaiting_payment'].includes(b.stage);
+  const before = ['draft', 'awaiting_payment'].includes(b.stage);
   let amountPaise: number;
   let type: AmountType = 'full';
   if (before) {
@@ -426,7 +418,7 @@ function reschedule(b: Booking, date: string, time: string, by: string): Booking
 
 /** Frees the slot and gives back the plan session and offer use. The advance follows the refund rule; other payments are refunded from Payments. */
 function cancel(b: Booking, reason: string | undefined, by: string): Booking {
-  if (!['request', 'draft', 'awaiting_payment', 'confirmed'].includes(b.stage)) throw new MockError(409, 'This booking can’t be cancelled.');
+  if (!['draft', 'awaiting_payment', 'confirmed'].includes(b.stage)) throw new MockError(409, 'This booking can’t be cancelled.');
   if (b.stage === 'confirmed') release(b);
   b.stage = 'cancelled';
   b.paymentLink = null;

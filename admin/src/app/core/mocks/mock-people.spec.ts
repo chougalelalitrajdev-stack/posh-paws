@@ -59,8 +59,9 @@ describe('mock customers, pets, subscriptions and search', () => {
     await send('PUT', `${API.pets}/p1`, { name: 'Coco Bean', type: 'dog', breed: 'Shih Tzu', vaccination: 'due_soon' });
     const record = await get<PetRecord>(`${API.pets}/p1`);
     expect(record.pet).toMatchObject({ name: 'Coco Bean', vaccination: 'due_soon' });
-    const booking = await get<Booking>(`${API.bookings}/PP-1051`);
-    expect(booking.pet?.name).toBe('Coco Bean');
+    const coco = (await get<Paged<Booking>>(API.bookings, { customerId: 'c1', pageSize: 50 })).items.filter(b => b.pet?.id === 'p1');
+    expect(coco.length).toBeGreaterThan(0);
+    expect(coco.every(b => b.pet?.name === 'Coco Bean')).toBe(true);
   });
 
   it('sends a renewal link and counts subscriptions by tab', async () => {
@@ -78,8 +79,8 @@ describe('mock customers, pets, subscriptions and search', () => {
     const byName = await get<SearchResults>(API.search, { q: 'bruno' });
     expect(byName.pets.map(p => p.name)).toContain('Bruno');
     expect(byName.customers.map(c => c.name)).toContain('Priya Sharma');
-    const byId = await get<SearchResults>(API.search, { q: '1051' });
-    expect(byId.bookings[0].id).toBe('PP-1051');
+    const byId = await get<SearchResults>(API.search, { q: '1049' });
+    expect(byId.bookings[0].id).toBe('PP-1049');
     expect((await get<SearchResults>(API.search, { q: 'b' })).customers).toEqual([]);
   });
 });

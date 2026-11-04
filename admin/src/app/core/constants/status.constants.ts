@@ -1,4 +1,4 @@
-import { BookingSource, BookingStage, CallOutcome, PaymentMethod, PaymentStatus } from '../models/booking.model';
+import { BookingSource, BookingStage, PaymentMethod, PaymentStatus } from '../models/booking.model';
 import { BannerStatus } from '../models/banner.model';
 import { OfferStatus } from '../models/offer.model';
 import { PaymentState } from '../models/payment.model';
@@ -8,7 +8,6 @@ import { TemplateApproval } from '../models/template.model';
 export type Tone = 'info' | 'draft' | 'warn' | 'success' | 'neutral' | 'danger';
 
 export const STAGES: Record<BookingStage, { label: string; tone: Tone }> = {
-  request: { label: 'Request', tone: 'info' },
   draft: { label: 'Draft', tone: 'draft' },
   awaiting_payment: { label: 'Awaiting payment', tone: 'warn' },
   confirmed: { label: 'Confirmed', tone: 'success' },
@@ -39,16 +38,9 @@ export const SOURCES: Record<BookingSource, string> = {
   walk_in: 'Walk-in',
 };
 
-export const CALL_OUTCOMES: { value: CallOutcome; label: string }[] = [
-  { value: 'reached', label: 'Reached' },
-  { value: 'no_answer', label: 'No answer' },
-  { value: 'call_back_later', label: 'Call back later' },
-];
-
 /** Tabs on the Bookings list, in order. Each tab shows one or more stages. */
 export const BOOKING_TABS: { key: string; label: string; stages: BookingStage[] }[] = [
   { key: 'all', label: 'All', stages: [] },
-  { key: 'request', label: 'Requests', stages: ['request'] },
   { key: 'draft', label: 'Drafts', stages: ['draft'] },
   { key: 'awaiting_payment', label: 'Awaiting payment', stages: ['awaiting_payment'] },
   { key: 'confirmed', label: 'Confirmed', stages: ['confirmed'] },
