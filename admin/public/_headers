@@ -1,0 +1,3 @@
+# A staff panel: keep it out of search results.
+/*
+  X-Robots-Tag: noindex, nofollow
