@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '../constants/api-endpoints';
 import { Booking, StageCounts } from '../models/booking.model';
 import { DayAvailability } from '../models/calendar.model';
+import { DashboardSummary } from '../models/dashboard.model';
 import { Paged } from '../models/paged.model';
 import { addDays, today } from '../utils/date.utils';
 import { resetDb } from './mock-db';
@@ -93,5 +94,27 @@ describe('mock bookings API', () => {
     expect(moved.activity[0].title).toBe('Rescheduled');
     // A 2-hour groom at 13:00 runs into lunch on both stations.
     expect(await statusOf(post(`${API.bookings}/PP-1048/reschedule`, { date: day, time: '13:00' }))).toBe(409);
+  });
+
+  it('closes a visit only once it has started; checkout takes the balance and completes it', async () => {
+    // PP-1045: Bruno's Royal Package today 11:30–14:00; the ₹100 advance was paid in the app. It's 8 am.
+    const visit = `${API.bookings}/PP-1045`;
+    expect(await statusOf(post(`${visit}/complete`))).toBe(409);
+    expect(await statusOf(post(`${visit}/no-show`))).toBe(409);
+    expect(await statusOf(post(`${visit}/payments`, { amountPaise: 10000, method: 'cash', complete: true }))).toBe(409);
+    expect((await get<DashboardSummary>(API.dashboard)).attention.some(a => a.bookingId === 'PP-1045')).toBe(false);
+
+    // 3 pm: the groom is over and nobody closed it, so Today asks.
+    vi.setSystemTime(new Date(2026, 9, 27, 15, 0));
+    const asked = (await get<DashboardSummary>(API.dashboard)).attention.find(a => a.bookingId === 'PP-1045');
+    expect(asked).toMatchObject({ kind: 'visit', title: 'Did Bruno come in?' });
+    expect(asked!.balancePaise).toBeGreaterThan(0);
+
+    // Checkout: the balance by the shop QR, and the visit is done in the same step.
+    const due = (await get<Booking>(visit)).bill!.balancePaise;
+    const done = await post<Booking>(`${visit}/payments`, { amountPaise: due, method: 'upi_qr', complete: true });
+    expect(done).toMatchObject({ stage: 'completed', paymentStatus: 'paid', bill: { balancePaise: 0 } });
+    expect(done.activity.slice(0, 2).map(a => a.title)).toEqual(['Marked completed', 'Payment taken at the shop']);
+    expect((await get<DashboardSummary>(API.dashboard)).attention.some(a => a.bookingId === 'PP-1045')).toBe(false);
   });
 });

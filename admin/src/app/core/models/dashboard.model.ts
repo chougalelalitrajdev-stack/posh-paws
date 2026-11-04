@@ -16,7 +16,8 @@ export interface DashboardSummary {
 }
 
 export interface AttentionItem {
-  kind: 'failed' | 'unpaid' | 'draft' | 'content';
+  /** visit: the appointment is over but nobody marked it completed or a no-show. */
+  kind: 'visit' | 'failed' | 'unpaid' | 'draft' | 'content';
   title: string;
   detail: string;
   /** ISO timestamp used for "oldest first" and the age text. */
@@ -25,4 +26,8 @@ export interface AttentionItem {
   link: string;
   queryParams?: Record<string, string>;
   action: string;
+  /** visit items: the booking Today can close in place. */
+  bookingId?: string;
+  /** visit items: still to pay at the shop (checkout goes through the booking). */
+  balancePaise?: Paise;
 }

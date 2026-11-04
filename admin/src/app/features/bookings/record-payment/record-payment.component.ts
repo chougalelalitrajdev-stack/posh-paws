@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit, inject, input, output, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { PAYMENT_METHODS } from '../../../core/constants/status.constants';
@@ -12,7 +12,7 @@ import { InrPipe } from '../../../shared/pipes/inr.pipe';
 type ShopMethod = NewShopPayment['method'];
 const METHODS: ShopMethod[] = ['upi_qr', 'cash', 'card'];
 
-/** Money taken at the shop: by the shop's UPI QR, cash or card, up to the balance. */
+/** Money taken at the shop: by the shop's UPI QR, cash or card, up to the balance. With `complete`, it's checkout: the visit is marked completed too. */
 @Component({
   selector: 'pp-record-payment',
   imports: [ReactiveFormsModule, ModalComponent, InrPipe],
@@ -25,6 +25,8 @@ export class RecordPaymentComponent implements OnInit {
   protected settings = inject(SettingsService);
 
   readonly booking = input.required<Booking>();
+  /** Checkout: the pet is going home, so mark the visit completed as well. */
+  readonly complete = input(false);
   readonly closed = output<void>();
   readonly saved = output<Booking>();
 
@@ -34,6 +36,7 @@ export class RecordPaymentComponent implements OnInit {
     method: ['upi_qr' as ShopMethod],
   });
   protected saving = signal(false);
+  protected title = computed(() => (this.complete() ? 'Take payment & complete' : 'Record payment'));
   protected error = signal<string | null>(null);
 
   ngOnInit(): void {
@@ -49,7 +52,7 @@ export class RecordPaymentComponent implements OnInit {
     const v = this.form.getRawValue();
     this.saving.set(true);
     this.error.set(null);
-    this.bookingService.recordPayment(this.booking().id, { amountPaise: Math.round(Number(v.amountRupees) * 100), method: v.method })
+    this.bookingService.recordPayment(this.booking().id, { amountPaise: Math.round(Number(v.amountRupees) * 100), method: v.method, ...(this.complete() && { complete: true }) })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({ next: b => this.saved.emit(b), error: e => this.error.set(errorMessage(e)) });
   }

@@ -116,6 +116,8 @@ export interface QuoteRequest {
 export interface NewShopPayment {
   amountPaise: Paise;
   method: Exclude<PaymentMethod, 'online'>;
+  /** Checkout: also mark the visit completed (only once the appointment has started). */
+  complete?: boolean;
 }
 
 /** GET /admin/bookings filters. Empty fields mean "any". */

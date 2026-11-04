@@ -1,10 +1,14 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { finalize, switchMap } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { Tone } from '../../core/constants/status.constants';
 import { Booking } from '../../core/models/booking.model';
 import { AttentionItem, DashboardSummary } from '../../core/models/dashboard.model';
+import { AlertService } from '../../core/services/alert.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BookingService } from '../../core/services/booking.service';
 import { CatalogService } from '../../core/services/catalog.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { greeting, longDate, today, weekday } from '../../core/utils/date.utils';
 import { formatInr } from '../../core/utils/money.utils';
@@ -13,6 +17,7 @@ import { StatusPillComponent } from '../../shared/components/status-pill/status-
 import { InrPipe } from '../../shared/pipes/inr.pipe';
 
 const ATTENTION_TAGS: Record<AttentionItem['kind'], { label: string; tone: Tone }> = {
+  visit: { label: 'Visit', tone: 'success' },
   failed: { label: 'Failed', tone: 'danger' },
   unpaid: { label: 'Unpaid', tone: 'warn' },
   draft: { label: 'Draft', tone: 'draft' },
@@ -31,9 +36,14 @@ export class TodayComponent {
   private dashboard = inject(DashboardService);
   private auth = inject(AuthService);
   protected catalog = inject(CatalogService);
+  private bookingService = inject(BookingService);
+  private confirm = inject(ConfirmService);
+  private alert = inject(AlertService);
 
   protected data = signal<DashboardSummary | null>(null);
   protected readonly attentionTags = ATTENTION_TAGS;
+  /** Booking being closed from the attention list. */
+  protected busyId = signal<string | null>(null);
 
   protected title = computed(() => `${greeting()}, ${(this.auth.user()?.name ?? '').split(/\s+/)[0]}`);
   protected subtitle = computed(() => {
@@ -88,6 +98,26 @@ export class TodayComponent {
   constructor() {
     this.catalog.load().subscribe();
     this.dashboard.summary().subscribe(d => this.data.set(d));
+  }
+
+  /** Closes a visit nobody marked: the pet came (nothing left to pay), or it was a no-show. Reloads Today after. */
+  async closeVisit(id: string, outcome: 'completed' | 'no_show'): Promise<void> {
+    if (outcome === 'no_show') {
+      const ok = await this.confirm.ask({
+        title: 'Mark as no-show?',
+        message: 'Use this when the pet didn’t come. The advance and any plan session are kept, and nothing more is owed.',
+        confirmLabel: 'Mark no-show', tone: 'danger',
+      });
+      if (!ok) return;
+    }
+    this.busyId.set(id);
+    (outcome === 'completed' ? this.bookingService.complete(id) : this.bookingService.markNoShow(id)).pipe(
+      switchMap(() => this.dashboard.summary()),
+      finalize(() => this.busyId.set(null)),
+    ).subscribe(d => {
+      this.data.set(d);
+      this.alert.success(outcome === 'completed' ? 'Marked completed.' : 'Marked as no-show.');
+    });
   }
 
   protected scheduleStatus(b: Booking): { label: string; tone: Tone } {

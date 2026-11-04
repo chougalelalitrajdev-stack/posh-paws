@@ -1,4 +1,4 @@
-<pp-modal title="Record payment" (closed)="closed.emit()">
+<pp-modal [title]="title()" (closed)="closed.emit()">
   <form class="pp-form-grid" id="record-payment-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
     @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
     <p class="pp-span pp-rp-due">Balance due <strong>{{ booking().bill?.balancePaise ?? 0 | inr }}</strong> from {{ booking().customer.name }}</p>
@@ -16,9 +16,12 @@
     @if (form.controls.method.value === 'upi_qr' && settings.settings()?.payments; as pay) {
       <p class="pp-hint pp-span">Ask them to scan the shop QR{{ pay.upiId ? ' (' + pay.upiId + ')' : '' }}, then check the money arrived before saving.</p>
     }
+    @if (complete()) {
+      <p class="pp-hint pp-span">The visit is marked completed. Anything not paid now stays under Balance due.</p>
+    }
   </form>
   <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
   <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="record-payment-form" [disabled]="saving()">
-    @if (saving()) { Saving… } @else { Record payment }
+    @if (saving()) { Saving… } @else { {{ title() }} }
   </button>
 </pp-modal>

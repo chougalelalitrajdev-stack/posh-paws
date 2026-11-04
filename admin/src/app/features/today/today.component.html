@@ -22,7 +22,19 @@
         <div class="pp-attention-row">
           <pp-status-pill [label]="attentionTags[a.kind].label" [tone]="attentionTags[a.kind].tone" [dot]="true" />
           <span class="pp-attention-text"><strong>{{ a.title }}</strong><span>{{ a.detail }}</span></span>
-          <a class="pp-btn pp-btn-sm" [routerLink]="a.link" [queryParams]="a.queryParams ?? null">{{ a.action }}</a>
+          @if (a.kind === 'visit' && a.bookingId; as id) {
+            <!-- Did the pet come? Money still due goes through checkout on the booking. -->
+            <span class="pp-attention-actions">
+              @if (a.balancePaise) {
+                <a class="pp-btn pp-btn-sm pp-btn-primary" [routerLink]="a.link">Check out</a>
+              } @else {
+                <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busyId() === id" (click)="closeVisit(id, 'completed')">Completed</button>
+              }
+              <button class="pp-btn pp-btn-sm" type="button" [disabled]="busyId() === id" (click)="closeVisit(id, 'no_show')">No-show</button>
+            </span>
+          } @else {
+            <a class="pp-btn pp-btn-sm" [routerLink]="a.link" [queryParams]="a.queryParams ?? null">{{ a.action }}</a>
+          }
         </div>
       } @empty {
         <p class="pp-muted pp-small">Nothing waiting. Nice work.</p>

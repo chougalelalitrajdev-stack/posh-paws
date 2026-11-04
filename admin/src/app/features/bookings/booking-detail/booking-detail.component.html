@@ -21,8 +21,13 @@
         <button class="pp-btn" type="button" [disabled]="busy()" (click)="cancel()">Cancel booking</button>
         @if (hasStarted()) {
           <button class="pp-btn" type="button" [disabled]="busy()" (click)="noShow()">No-show</button>
+          <!-- Checkout: staff close the visit when the pet goes home, taking any balance in the same step. -->
+          @if (b.bill?.balancePaise) {
+            <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="recording.set('checkout')">Take payment &amp; complete</button>
+          } @else {
+            <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="complete()">Mark completed</button>
+          }
         }
-        <button class="pp-btn pp-btn-primary" type="button" [disabled]="busy()" (click)="complete()">Mark completed</button>
       </ng-container>
     }
   </pp-page-header>
@@ -45,7 +50,7 @@
               @if (!b.paymentLink && b.stage !== 'awaiting_payment') {
                 <button class="pp-btn pp-btn-sm" type="button" [disabled]="busy()" (click)="sendBalanceLink()">Send balance link</button>
               }
-              <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busy()" (click)="recording.set(true)">Record payment</button>
+              <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" [disabled]="busy()" (click)="recording.set('payment')">Record payment</button>
             </span>
           }
         </div>
@@ -134,7 +139,7 @@
 
   @if (recording()) {
 
-    <pp-record-payment [booking]="b" (closed)="recording.set(false)" (saved)="onPaymentRecorded($event)" />
+    <pp-record-payment [booking]="b" [complete]="recording() === 'checkout'" (closed)="recording.set(null)" (saved)="onPaymentRecorded($event)" />
 
   }
 

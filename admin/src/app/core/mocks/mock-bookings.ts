@@ -390,6 +390,7 @@ function recordPayment(b: Booking, body: NewShopPayment, by: string): Booking {
   if (!Number.isInteger(body.amountPaise) || body.amountPaise <= 0) throw new MockError(400, 'Enter the amount received.');
   if (body.amountPaise > due) throw new MockError(400, `The balance is ${formatInr(due)}. Enter that or less.`);
   const confirming = b.stage === 'awaiting_payment';
+  if (body.complete) mustHaveStarted(b);
   addPayment(b, confirming ? 'advance' : 'balance', body.amountPaise, body.method, by);
   if (confirming) {
     b.stage = 'confirmed';
@@ -401,6 +402,8 @@ function recordPayment(b: Booking, body: NewShopPayment, by: string): Booking {
   settleMoney(b);
   const left = b.bill.balancePaise ? ` · ${formatInr(b.bill.balancePaise)} still due` : ' · paid in full';
   log(b, { kind: 'payment', title: 'Payment taken at the shop', detail: `${formatInr(body.amountPaise)} by ${PAYMENT_METHODS[body.method]}${left}`, by });
+  // Checkout: the pet came and is going home, so the visit is done too.
+  if (body.complete && b.stage === 'confirmed') return setStage(b, ['confirmed'], 'completed', 'Marked completed', by);
   return commit(b);
 }
 
@@ -429,8 +432,16 @@ function cancel(b: Booking, reason: string | undefined, by: string): Booking {
   return commit(b);
 }
 
+/** Completed and no-show are decided by staff once the appointment has started; nothing closes a visit by itself. */
+function mustHaveStarted(b: Booking): void {
+  if (!b.date || !b.time || slotStart(b.date, b.time).getTime() > Date.now()) {
+    throw new MockError(409, 'This appointment hasn’t started yet. Mark it completed or a no-show once it has.');
+  }
+}
+
 function setStage(b: Booking, from: BookingStage[], to: BookingStage, title: string, by: string): Booking {
   if (!from.includes(b.stage)) throw new MockError(409, `Only ${from.map(s => STAGES[s].label.toLowerCase()).join(' or ')} bookings can be changed this way.`);
+  if (to === 'completed' || to === 'no_show') mustHaveStarted(b);
   b.stage = to;
   settleMoney(b); // a no-show owes nothing more; a kept advance stays paid
   const due = to === 'completed' && b.bill?.balancePaise ? `${formatInr(b.bill.balancePaise)} still to pay.` : undefined;

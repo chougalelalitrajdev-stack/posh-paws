@@ -146,6 +146,7 @@ function serviceById(id: string): ServiceItem {
   return service;
 }
 
+/** Stand-in for the shop: staff mark visits completed at checkout; this demo has no staff, so past visits read as completed. */
 function listBookings(user: User): Booking[] {
   const now = new Date();
   return storedBookings()

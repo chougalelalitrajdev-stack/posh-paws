@@ -73,6 +73,8 @@
   border-top: 1px solid var(--pp-divider);
 }
 
+.pp-attention-actions { display: inline-flex; gap: var(--space-2); }
+
 .pp-attention-text {
   flex: 1 1 220px;
   min-width: 0;

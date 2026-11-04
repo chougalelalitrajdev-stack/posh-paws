@@ -1,7 +1,7 @@
 import { Booking } from '../models/booking.model';
 import { BANNER_PLACEMENTS } from '../constants/content.constants';
 import { AttentionItem, DashboardSummary } from '../models/dashboard.model';
-import { addDays, ageLabel, agoLabel, dateRange, minutesSince, parseIsoDate, toIsoDate, today } from '../utils/date.utils';
+import { addDays, ageLabel, agoLabel, dateRange, minutesSince, parseIsoDate, shortDate, slotStart, toIsoDate, today } from '../utils/date.utils';
 import { formatInr } from '../utils/money.utils';
 import { STATIONS } from './mock-data';
 import { bannerStatus } from './mock-banners';
@@ -63,7 +63,15 @@ function attention(all: Booking[]): AttentionItem[] {
   const items: AttentionItem[] = [];
 
   for (const b of all) {
-    if (b.stage === 'awaiting_payment' && b.paymentLink?.failed) {
+    const ends = b.date && b.time && b.service ? new Date(slotStart(b.date, b.time).getTime() + b.service.durationMinutes * 60_000) : null;
+    if (b.stage === 'confirmed' && ends && ends.getTime() < Date.now()) {
+      // The appointment is over and nobody closed it: staff say whether the pet came.
+      items.push({
+        kind: 'visit', at: ends.toISOString(), action: 'Open', link: `/bookings/${b.id}`, bookingId: b.id, balancePaise: b.bill?.balancePaise ?? 0,
+        title: `Did ${b.pet?.name ?? b.customer.name} come in?`,
+        detail: `${b.date === today() ? b.time : `${shortDate(b.date!)} ${b.time}`} · ${b.service!.name} · ${b.customer.name}${b.bill?.balancePaise ? ` · ${formatInr(b.bill.balancePaise)} to pay` : ''}`,
+      });
+    } else if (b.stage === 'awaiting_payment' && b.paymentLink?.failed) {
       items.push({
         kind: 'failed', at: b.paymentLink.sentAt, action: 'Send new link', link: `/bookings/${b.id}`,
         title: `Payment failed for ${b.id}`,

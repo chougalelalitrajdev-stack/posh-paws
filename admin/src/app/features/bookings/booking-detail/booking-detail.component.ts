@@ -65,7 +65,8 @@ export class BookingDetailComponent {
   protected customer = signal<Customer | null>(null);
   protected busy = signal(false);
   protected rescheduling = signal(false);
-  protected recording = signal(false);
+  /** Record payment dialog: a payment only, or checkout (payment + completed). */
+  protected recording = signal<'payment' | 'checkout' | null>(null);
   protected note = signal('');
 
   protected title = computed(() => {
@@ -190,9 +191,11 @@ export class BookingDetailComponent {
   }
 
   onPaymentRecorded(b: Booking): void {
+    const checkedOut = b.stage === 'completed' && this.booking()?.stage !== 'completed';
     this.booking.set(b);
-    this.recording.set(false);
-    this.alert.success(b.bill?.balancePaise ? `Payment recorded. ${formatInr(b.bill.balancePaise)} still due.` : 'Payment recorded. Paid in full.');
+    this.recording.set(null);
+    const due = b.bill?.balancePaise ? `${formatInr(b.bill.balancePaise)} still due.` : '';
+    this.alert.success(checkedOut ? `Payment recorded and visit completed.${due ? ` ${due}` : ''}` : `Payment recorded. ${due || 'Paid in full.'}`);
   }
 
   async copyLink(): Promise<void> {
@@ -243,7 +246,11 @@ export class BookingDetailComponent {
   }
 
   async noShow(): Promise<void> {
-    const ok = await this.confirm.ask({ title: 'Mark as no-show?', message: 'Use this when the customer didn’t come.', confirmLabel: 'Mark no-show', tone: 'danger' });
+    const ok = await this.confirm.ask({
+      title: 'Mark as no-show?',
+      message: 'Use this when the pet didn’t come. The advance and any plan session are kept, and nothing more is owed.',
+      confirmLabel: 'Mark no-show', tone: 'danger',
+    });
     if (ok) this.run(x => this.bookingService.markNoShow(x.id), 'Marked as no-show.');
   }
 
