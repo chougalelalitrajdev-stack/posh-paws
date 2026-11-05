@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health
+from app.core import health
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name)
@@ -14,5 +14,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Every route lives under /api. Add one line per routes file.
+# Every route lives under /api. Add one line per topic's routes.py (e.g. app.grooming.bookings.routes).
 app.include_router(health.router, prefix="/api")
