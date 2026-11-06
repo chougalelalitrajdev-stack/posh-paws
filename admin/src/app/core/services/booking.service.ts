@@ -5,7 +5,7 @@ import { environment } from '../../../environments/environment';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
 import { AmountType, Booking, BookingBill, BookingDetails, BookingFilters, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
-import { CalendarData, DayAvailability, NewTimeBlock, SlotBoard, TimeBlock } from '../models/calendar.model';
+import { CalendarData, DayAvailability, NewTimeBlock, SlotBoard, TimeBlock, WeekBoard } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 
 /**
@@ -119,9 +119,19 @@ export class BookingService {
     return this.http.get<SlotBoard>(API.slotBoard, { params: { date } });
   }
 
-  /** Open or close one start time; opening a time outside the usual ones adds it as an extra time. */
+  /** Open or close one start time on one date; opening a time outside the usual ones adds it as an extra time. */
   setSlot(date: string, time: string, open: boolean): Observable<SlotBoard> {
     return this.http.put<SlotBoard>(`${API.slotBoard}/${date}`, { time, open }, { context: withoutErrorAlert() });
+  }
+
+  /** The usual week's start times (Availability › Week). */
+  weekBoard(): Observable<WeekBoard> {
+    return this.http.get<WeekBoard>(API.weekBoard);
+  }
+
+  /** Close or open a start time every week on one weekday (0 = Monday). Admin and Super Admin. */
+  setWeeklySlot(weekday: number, time: string, open: boolean): Observable<WeekBoard> {
+    return this.http.put<WeekBoard>(`${API.weekBoard}/${weekday}`, { time, open }, { context: withoutErrorAlert() });
   }
 
   /** POST /bookings/{id}/{name}. `inline` = the screen shows errors itself (e.g. 409 slot taken). */

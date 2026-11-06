@@ -1,0 +1,49 @@
+// Start-time chips on Availability (Week and Day): a grid of tappable times, their states and a legend.
+.pp-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--space-2);
+
+  &.is-compact { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+}
+
+.pp-slot-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-px2);
+  min-height: var(--tap-target-min);
+  padding: var(--space-2);
+  border: 1px solid var(--pp-border-strong);
+  border-radius: var(--radius);
+  background: var(--pp-card-bg);
+  color: var(--pp-text);
+  font: inherit;
+  cursor: pointer;
+
+  span { color: var(--pp-primary-dark); font-size: var(--fs-xs); font-weight: 600; }
+  &:hover:not(:disabled) { border-color: var(--pp-primary); }
+  &:disabled { cursor: default; opacity: 0.5; }
+  &.is-full span { color: var(--pp-muted); }
+}
+
+.pp-slot-key { width: 14px; height: 14px; border: 1px solid var(--pp-border-strong); border-radius: 3px; background: var(--pp-card-bg); }
+
+// States, shared by the chips and the legend keys (after them, so they win).
+.pp-slot-chip, .pp-slot-key {
+  &.is-extra { border: 1px dashed var(--pp-primary); background: var(--pp-primary-tint); }
+  &.is-closed, &.is-blocked { border-color: var(--pp-border); background: repeating-linear-gradient(45deg, var(--pp-chip-bg) 0, var(--pp-chip-bg) 3px, var(--pp-card-bg) 3px, var(--pp-card-bg) 6px); }
+}
+.pp-slot-chip.is-closed, .pp-slot-chip.is-blocked { color: var(--pp-muted); span { color: var(--pp-muted); } }
+.pp-slot-chip.is-closed strong { text-decoration: line-through; }
+
+.pp-slot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--pp-neutral);
+
+  > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+}

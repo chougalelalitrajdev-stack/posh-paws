@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '../constants/api-endpoints';
 import { Booking } from '../models/booking.model';
-import { CalendarData, DayAvailability, SlotBoard } from '../models/calendar.model';
+import { CalendarData, DayAvailability, SlotBoard, WeekBoard } from '../models/calendar.model';
 import { Paged } from '../models/paged.model';
 import { Payment, PaymentSummary } from '../models/payment.model';
 import { Settings } from '../models/settings.model';
@@ -108,6 +108,37 @@ describe('mock settings, templates, payments and team', () => {
     expect(await statusOf(setSlot('10:00', false, addDays(today(), -1)))).toBe(400); // past
     expect(await statusOf(setSlot('25:00', true))).toBe(400);
     expect(await statusOf(setSlot('11:10', false))).toBe(404); // not a start time
+  });
+
+  it('repeats start-time changes every week, lets one day override them, and a holiday beats both', async () => {
+    const monday = addDays(today(), 6);
+    const nextMonday = addDays(today(), 13);
+    const saturday = addDays(today(), 4);
+    // Seeded: 9:00 closed every Monday, an extra 19:00 every Saturday.
+    const week = await get<WeekBoard>(API.weekBoard);
+    expect(week.days[0].slots.find(s => s.time === '09:00')?.state).toBe('closed');
+    expect(week.days[5].slots.find(s => s.time === '19:00')?.state).toBe('extra');
+    expect(week.days[1].slots.find(s => s.time === '14:00')?.state).toBe('break');
+    expect((await slotsOn(monday)).some(s => s.time === '09:00')).toBe(false);
+    expect((await slotsOn(nextMonday)).some(s => s.time === '09:00')).toBe(false);
+    expect((await slotsOn(saturday)).find(s => s.time === '19:00')?.available).toBe(true);
+
+    // Only Admins change the usual week.
+    expect(await statusOf(send('PUT', `${API.weekBoard}/1`, { time: '10:00', open: false }, staff))).toBe(403);
+    await send('PUT', `${API.weekBoard}/1`, { time: '10:00', open: false });
+    expect((await slotsOn(addDays(today(), 7))).some(s => s.time === '10:00')).toBe(false); // next Tuesday
+
+    // One day wins over the week: staff reopen 9:00 on this Monday only.
+    const reopened = await send<SlotBoard>('PUT', `${API.slotBoard}/${monday}`, { time: '09:00', open: true }, staff);
+    expect(reopened.slots.find(s => s.time === '09:00')).toMatchObject({ state: 'open', weekly: 'closed' });
+    expect((await slotsOn(monday)).some(s => s.time === '09:00')).toBe(true);
+    expect((await slotsOn(nextMonday)).some(s => s.time === '09:00')).toBe(false);
+
+    // A holiday beats the weekly extra time and the day's own openings; any staff member can add one.
+    await send('POST', `${API.settings}/closures`, { date: monday, name: 'Staff training', closesAt: null }, staff);
+    expect(await slotsOn(monday)).toEqual([]);
+    await send('POST', `${API.settings}/closures`, { date: saturday, name: 'Diwali', closesAt: null }, staff);
+    expect(await slotsOn(saturday)).toEqual([]);
   });
 
   it('uses the hold amount and link expiry from Settings › Payments', async () => {

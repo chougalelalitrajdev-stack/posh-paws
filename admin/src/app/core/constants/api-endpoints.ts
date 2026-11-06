@@ -14,6 +14,7 @@ export const API = {
   calendar: `${api}/calendar`,
   slots: `${api}/slots`,
   slotBoard: `${api}/slot-board`,
+  weekBoard: `${api}/slot-board/week`,
   blocks: `${api}/blocks`,
   customers: `${api}/customers`,
   customerCounts: `${api}/customers/counts`,

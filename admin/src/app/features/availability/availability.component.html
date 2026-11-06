@@ -1,0 +1,9 @@
+<pp-page-header title="Availability" subtitle="When customers can book: the usual week, single days and holidays.">
+  <pp-segmented ppActions label="Show" [options]="views" [value]="picked()" (valueChange)="picked.set($event); show($event)" />
+</pp-page-header>
+
+@switch (current()) {
+  @case ('week') { <pp-week /> }
+  @case ('day') { <pp-day [(date)]="day" /> }
+  @case ('holidays') { <pp-holidays (openDay)="openDay($event)" /> }
+}

@@ -14,7 +14,6 @@
       <p class="pp-muted">Loading settings…</p>
     } @else {
       @switch (section()) {
-        @case ('booking') { <pp-booking-settings /> }
         @case ('team') { <pp-team-settings /> }
         @default {
           <section class="pp-card pp-settings-card" aria-labelledby="settings-title">

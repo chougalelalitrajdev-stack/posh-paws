@@ -4,13 +4,14 @@ import { StaffRole, TeamMember } from '../models/staff-user.model';
 import { minutesOfDay, today } from '../utils/date.utils';
 import { MockError, MockRequest, NO_ROUTE, StoredClosure, db, requireRole, requireStaff, route, save } from './mock-db';
 
-/** Settings (Super Admin + Admin) and Team & roles (Super Admin). Every signed-in user can read the settings. */
+/** Settings (Super Admin + Admin) and Team & roles (Super Admin). Every signed-in user can read the settings and add or remove holidays. */
 export function handleSettings(r: MockRequest): unknown {
   let m: string[] | null;
   if ((m = route(r, 'GET', /^\/settings$/))) return settingsData();
-  if (r.method !== 'GET' && /^\/settings\b/.test(r.path)) requireRole(r, SETTINGS_ROLES);
+  // Holidays are day-to-day running (Availability › Holidays), so any staff member may change them.
   if ((m = route(r, 'POST', /^\/settings\/closures$/))) return addClosure(r.body);
   if ((m = route(r, 'DELETE', /^\/settings\/closures\/([^/]+)$/))) return removeClosure(m[0]);
+  if (r.method !== 'GET' && /^\/settings\b/.test(r.path)) requireRole(r, SETTINGS_ROLES);
   if ((m = route(r, 'PUT', /^\/settings\/([^/]+)$/))) return saveSection(m[0] as SettingsSection, r.body);
   if (/^\/team\b/.test(r.path)) requireRole(r, OWNER_ROLES);
   if ((m = route(r, 'GET', /^\/team$/))) return db().staff;
@@ -108,13 +109,17 @@ function cleanBooking(body: Settings['booking']): Omit<Settings['booking'], 'clo
   if (!Array.isArray(body.hours) || body.hours.length !== 7) throw new MockError(400, 'Send hours for all seven days.');
   const hours = body.hours.map((h, day): DayHours => {
     const name = DAY_NAMES[day];
-    if (!h.open) return { day, open: false, opens: h.opens || '09:00', closes: h.closes || '19:00', breakFrom: null, breakTo: null };
+    // Weekly closed and extra start times are changed on Availability › Week; keep them unless sent.
+    const before = db().settings.booking.hours[day];
+    const starts = (list: unknown, kept: string[] = []) => (Array.isArray(list) ? [...new Set(list.filter(t => typeof t === 'string' && TIME.test(t)))].sort() : kept);
+    const weekly = { closedStarts: starts(h.closedStarts, before?.closedStarts), extraStarts: starts(h.extraStarts, before?.extraStarts) };
+    if (!h.open) return { day, open: false, opens: h.opens || '09:00', closes: h.closes || '19:00', breakFrom: null, breakTo: null, ...weekly };
     if (!TIME.test(h.opens) || !TIME.test(h.closes) || h.opens >= h.closes) throw new MockError(400, `${name}: closing time must be after opening time.`);
     const hasBreak = !!(h.breakFrom || h.breakTo);
     if (hasBreak && (!TIME.test(h.breakFrom ?? '') || !TIME.test(h.breakTo ?? '') || h.breakFrom! >= h.breakTo! || h.breakFrom! <= h.opens || h.breakTo! >= h.closes)) {
       throw new MockError(400, `${name}: the break must be inside opening hours.`);
     }
-    return { day, open: true, opens: h.opens, closes: h.closes, breakFrom: hasBreak ? h.breakFrom : null, breakTo: hasBreak ? h.breakTo : null };
+    return { day, open: true, opens: h.opens, closes: h.closes, breakFrom: hasBreak ? h.breakFrom : null, breakTo: hasBreak ? h.breakTo : null, ...weekly };
   });
   if (!hours.some(h => h.open)) throw new MockError(400, 'Open at least one day a week.');
   return {
@@ -135,6 +140,9 @@ function addClosure(body: Omit<Closure, 'id' | 'affectedBookings'>): Closure {
   if (closureOn(body.date)) throw new MockError(409, 'There is already a closure on that day.');
   const closure: StoredClosure = { id: `cl-${Date.now().toString(36)}`, date: body.date, name, closesAt: body.closesAt || null };
   db().settings.booking.closures.push(closure);
+  // A holiday beats that day's own changes: times opened for the day go (staff can still open one afterwards on purpose).
+  db().slotChanges = db().slotChanges.flatMap(c =>
+    c.date !== closure.date ? [c] : closure.closesAt ? [{ ...c, extra: c.extra.filter(t => t < closure.closesAt!) }] : []);
   save();
   return withAffected(closure);
 }

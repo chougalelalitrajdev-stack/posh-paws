@@ -24,6 +24,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Operations',
     items: [
       { label: 'Bookings', icon: 'calendar', path: '/bookings' },
+      { label: 'Availability', icon: 'clock', path: '/availability' },
       { label: 'Customers', icon: 'users', path: '/customers' },
       { label: 'Pets', icon: 'paw', path: '/pets' },
       { label: 'Subscriptions', icon: 'repeat', path: '/subscriptions' },

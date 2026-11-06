@@ -21,6 +21,10 @@ export interface DayHours {
   /** Break blocked on every station; null = no break. */
   breakFrom: string | null;
   breakTo: string | null;
+  /** Start times closed every week on this day (Availability › Week), HH:mm. */
+  closedStarts: string[];
+  /** Extra start times opened every week on this day, HH:mm. */
+  extraStarts: string[];
 }
 
 export interface Closure {

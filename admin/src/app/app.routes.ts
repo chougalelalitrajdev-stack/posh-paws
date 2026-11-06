@@ -33,6 +33,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/bookings/booking-list/booking-list.component').then(m => m.BookingListComponent),
       },
       {
+        path: 'availability',
+        title: 'Availability · Posh Paws Admin',
+        loadComponent: () => import('./features/availability/availability.component').then(m => m.AvailabilityComponent),
+      },
+      {
         path: 'bookings/new',
         title: 'New booking · Posh Paws Admin',
         loadComponent: () => import('./features/bookings/new-booking/new-booking.component').then(m => m.NewBookingComponent),

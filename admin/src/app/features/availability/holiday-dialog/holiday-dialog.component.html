@@ -1,0 +1,22 @@
+<pp-modal [title]="date() ? 'Close ' + longDate(date()!) : 'Add holiday'" (closed)="closed.emit()">
+  <form class="pp-form-grid" id="holiday-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+    @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+    @if (!date()) {
+      <div class="pp-field"><label class="pp-label" for="hd-date">Date</label>
+        <input id="hd-date" class="pp-input" type="date" [min]="today" formControlName="date"
+          [class.is-invalid]="form.controls.date.invalid && form.controls.date.touched"></div>
+    }
+    <div class="pp-field" [class.pp-span]="!!date()"><label class="pp-label" for="hd-name">Reason</label>
+      <input id="hd-name" class="pp-input" placeholder="e.g. Diwali, staff training" formControlName="name"
+        [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched"></div>
+    <label class="pp-check pp-span"><input type="checkbox" formControlName="allDay"><span>Closed all day</span></label>
+    @if (!form.controls.allDay.value) {
+      <div class="pp-field"><label class="pp-label" for="hd-time">Closing at</label><input id="hd-time" class="pp-input" type="time" formControlName="closesAt"></div>
+    }
+    <p class="pp-hint pp-span">Customers can't book then. Bookings already made on that day stay; you'll see how many need moving.</p>
+  </form>
+  <button ppModalActions class="pp-btn" type="button" (click)="closed.emit()">Cancel</button>
+  <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="holiday-form" [disabled]="saving()">
+    @if (saving()) { Saving… } @else { {{ date() ? 'Close this day' : 'Add holiday' }} }
+  </button>
+</pp-modal>

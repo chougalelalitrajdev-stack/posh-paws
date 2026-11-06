@@ -1,0 +1,25 @@
+<section class="pp-card pp-hol-card" aria-labelledby="holidays-title">
+  <div class="pp-card-head">
+    <h2 id="holidays-title" class="pp-card-title">Holidays and early closing</h2>
+    <button class="pp-btn pp-btn-sm pp-btn-primary" type="button" (click)="adding.set(true)">Add holiday</button>
+  </div>
+  <p class="pp-hint">A holiday beats everything else: no start times that day (or after the early closing), even weekly extra ones.</p>
+  <div class="pp-hol-list">
+    @for (c of holidays(); track c.id) {
+      <div class="pp-hol-row">
+        <button class="pp-link pp-nowrap" type="button" (click)="openDay.emit(c.date)">{{ longDate(c.date) }}</button>
+        <span class="pp-hol-name">{{ c.name }} <span class="pp-muted">· {{ kind(c) }}</span></span>
+        <span class="pp-small" [class.pp-danger-text]="c.affectedBookings > 0" [class.pp-muted]="!c.affectedBookings">
+          {{ c.affectedBookings ? c.affectedBookings + ' booking' + (c.affectedBookings === 1 ? '' : 's') + ' to move' : 'No bookings' }}
+        </span>
+        <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" [attr.aria-label]="'Remove ' + c.name" (click)="remove(c)">Remove</button>
+      </div>
+    } @empty {
+      <p class="pp-muted pp-small">No holidays planned.</p>
+    }
+  </div>
+</section>
+
+@if (adding()) {
+  <pp-holiday-dialog (closed)="adding.set(false)" (saved)="adding.set(false)" />
+}

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Observable, finalize } from 'rxjs';
 import { OWNER_ROLES } from '../../core/constants/app.constants';
@@ -11,15 +11,13 @@ import { errorMessage } from '../../core/utils/error.utils';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { ImageUploadComponent } from '../../shared/components/image-upload/image-upload.component';
 import { SwitchComponent } from '../../shared/components/switch/switch.component';
-import { BookingSettingsComponent } from './booking-settings/booking-settings.component';
 import { TeamSettingsComponent } from './team-settings/team-settings.component';
 
-type Section = 'business' | 'booking' | 'payments' | 'notifications' | 'app' | 'team';
-type SimpleSection = Exclude<Section, 'booking' | 'team'>;
+type Section = 'business' | 'payments' | 'notifications' | 'app' | 'team';
+type SimpleSection = Exclude<Section, 'team'>;
 
 const SECTIONS: { key: Section; label: string; hint: string; ownerOnly?: boolean }[] = [
   { key: 'business', label: 'Business', hint: 'Name, phones, address' },
-  { key: 'booking', label: 'Booking & availability', hint: 'Hours, slots, closures' },
   { key: 'payments', label: 'Payments', hint: 'Link expiry, slot hold' },
   { key: 'notifications', label: 'Notifications', hint: 'Reminders and alerts' },
   { key: 'app', label: 'Customer app', hint: 'Book button, prices' },
@@ -33,7 +31,7 @@ export const CANCEL_HOURS = [6, 12, 24, 48];
 /** Business settings (design: "Settings"). Super Admin and Admin; Team & roles is Super Admin only. */
 @Component({
   selector: 'pp-settings',
-  imports: [ReactiveFormsModule, PageHeaderComponent, SwitchComponent, ImageUploadComponent, BookingSettingsComponent, TeamSettingsComponent],
+  imports: [ReactiveFormsModule, PageHeaderComponent, SwitchComponent, ImageUploadComponent, TeamSettingsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
@@ -55,7 +53,6 @@ export class SettingsComponent {
   protected saving = signal(false);
   protected error = signal<string | null>(null);
 
-  private bookingSection = viewChild(BookingSettingsComponent);
 
   protected forms = {
     business: this.fb.group({
@@ -75,7 +72,7 @@ export class SettingsComponent {
 
   protected simple(): SimpleSection | null {
     const s = this.section();
-    return s === 'booking' || s === 'team' ? null : s;
+    return s === 'team' ? null : s;
   }
 
   async show(key: Section): Promise<void> {
@@ -139,7 +136,7 @@ export class SettingsComponent {
 
   private dirty(): boolean {
     const key = this.simple();
-    return key ? this.forms[key].dirty : this.section() === 'booking' && !!this.bookingSection()?.dirty();
+    return !!key && this.forms[key].dirty;
   }
 
   private async okToLeave(): Promise<boolean> {

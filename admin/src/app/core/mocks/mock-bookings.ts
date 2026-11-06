@@ -1,12 +1,14 @@
+import { SETTINGS_ROLES } from '../constants/app.constants';
 import { PAYMENT_METHODS, STAGES } from '../constants/status.constants';
 import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
-import { BoardSlot, CalendarData, DayAvailability, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock } from '../models/calendar.model';
+import { BoardSlot, CalendarData, DayAvailability, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock, WeekBoard, WeekSlot } from '../models/calendar.model';
+import { DayHours } from '../models/settings.model';
 import { Paged } from '../models/paged.model';
 import { addDays, dateRange, minutesOfDay, shortDate, slotStart, timeFromMinutes, today } from '../utils/date.utils';
 import { formatInr } from '../utils/money.utils';
 import { STATIONS } from './mock-data';
 import { closureOn, dayHours, openingSpan } from './mock-settings';
-import { MockError, MockRequest, NO_ROUTE, db, requireStaff, route, save } from './mock-db';
+import { MockError, MockRequest, NO_ROUTE, db, requireRole, requireStaff, route, save } from './mock-db';
 import { settleMoney } from './mock-money';
 import { addPayment, quoteBill, refundAdvanceOnCancel, release, reserve } from './mock-pricing';
 
@@ -20,6 +22,11 @@ export function handleBookings(r: MockRequest): unknown {
   if ((m = route(r, 'GET', /^\/bookings\/counts$/))) return counts();
   if ((m = route(r, 'GET', /^\/calendar$/))) return calendar(r.param('from') || today(), Number(r.param('days') || 1));
   if ((m = route(r, 'GET', /^\/slots$/))) return slots(r.param('serviceId'), r.param('from') || today(), Number(r.param('days') || 7), r.param('excludeBookingId'));
+  if ((m = route(r, 'GET', /^\/slot-board\/week$/))) return weekBoard();
+  if ((m = route(r, 'PUT', /^\/slot-board\/week\/([0-6])$/))) {
+    requireRole(r, SETTINGS_ROLES); // the usual week is the business's hours: Admin and Super Admin
+    return setWeekSlot(Number(m[0]), r.body);
+  }
   if ((m = route(r, 'GET', /^\/slot-board$/))) return slotBoard(r.param('date') || today());
   if ((m = route(r, 'PUT', /^\/slot-board\/(\d{4}-\d{2}-\d{2})$/))) return setSlot(m[0], r.body);
   if ((m = route(r, 'POST', /^\/blocks$/))) return addBlock(r.body);
@@ -161,14 +168,23 @@ function freeStations(date: string, start: number, end: number, ignoreFixed: boo
   return STATIONS.filter(st => busy(date, st.id, excludeId, ignoreFixed).every(([from, to]) => end + buffer <= from || start >= to)).map(st => st.id);
 }
 
-/** Every slot step inside the day's hours where a visit this long fits (none when closed all day). */
-function usualStarts(date: string, durationMinutes: number): string[] {
-  const hours = dayHours(date);
-  const closure = closureOn(date);
+const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const DAY_NAMES = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'];
+const add = (list: string[], t: string) => (list.includes(t) ? list : [...list, t].sort());
+const without = (list: string[], t: string) => list.filter(x => x !== t);
+
+/** Every slot step inside these hours where a visit this long fits. */
+function startsIn(hours: DayHours, durationMinutes: number): string[] {
   const starts: string[] = [];
-  if (!hours.open || (closure && !closure.closesAt)) return starts;
+  if (!hours.open) return starts;
   for (let t = minutesOfDay(hours.opens); t + durationMinutes <= minutesOfDay(hours.closes); t += rules().slotStepMinutes) starts.push(timeFromMinutes(t));
   return starts;
+}
+
+/** The usual start times on a date (none when closed all day). */
+function usualStarts(date: string, durationMinutes: number): string[] {
+  const closure = closureOn(date);
+  return closure && !closure.closesAt ? [] : startsIn(dayHours(date), durationMinutes);
 }
 
 /** The usual start times minus the ones staff closed, plus the extra ones they opened. */
@@ -182,28 +198,55 @@ function slots(serviceId: string, from: string, days: number, excludeId?: string
   });
 }
 
-// ── Slot board: staff close usual start times or open extra ones ──
+// ── Start times staff change: every week (Availability › Week) and on one day (› Day) ──
+// Strongest first: a holiday, that day's changes, the weekly pattern, the opening hours.
 
-function changesOn(date: string): SlotChanges {
+function dayChanges(date: string): SlotChanges {
   return db().slotChanges.find(c => c.date === date) ?? { date, closed: [], extra: [] };
 }
 
+function keepDayChanges(c: SlotChanges): void {
+  db().slotChanges = [...db().slotChanges.filter(x => x.date !== c.date), ...(c.closed.length || c.extra.length ? [c] : [])];
+}
+
+/**
+ * Start times closed and opened on a date. A day's "extra" also reopens a time closed every week;
+ * a holiday silences the weekly extra times after it closes (all of them when closed all day).
+ */
+function changesOn(date: string): { closed: string[]; extra: string[]; weeklyExtra: string[] } {
+  const week = dayHours(date);
+  const day = dayChanges(date);
+  const closure = closureOn(date);
+  const weeklyExtra = week.open ? week.extraStarts.filter(t => !closure || (!!closure.closesAt && t < closure.closesAt)) : [];
+  return {
+    closed: [...new Set([...week.closedStarts, ...day.closed])].filter(t => !day.extra.includes(t)),
+    extra: [...new Set([...weeklyExtra, ...day.extra])].filter(t => !day.closed.includes(t)),
+    weeklyExtra,
+  };
+}
+
 function slotBoard(date: string): SlotBoard {
-  const { closed, extra } = changesOn(date);
+  const { closed, extra, weeklyExtra } = changesOn(date);
   const { day, ...hours } = dayHours(date);
   const closure = closureOn(date);
   const step = rules().slotStepMinutes;
+  const usual = usualStarts(date, step);
   const fixedBlocks = blocksOn(date).filter(b => b.fixed && b.stationId === STATIONS[0].id);
-  const times = [...new Set([...usualStarts(date, step), ...extra])].sort();
+  // Weekly extra times stay listed when closed for the day, so they can be opened again.
+  const times = [...new Set([...usual, ...extra, ...weeklyExtra])].sort();
   const slot = (time: string): BoardSlot => {
-    const isExtra = extra.includes(time);
     const start = minutesOfDay(time);
-    const fixed = isExtra ? undefined : fixedBlocks.find(b => minutesOfDay(b.time) <= start && start < minutesOfDay(b.time) + b.durationMinutes);
+    const fixed = fixedBlocks.find(b => minutesOfDay(b.time) <= start && start < minutesOfDay(b.time) + b.durationMinutes);
+    const opened = extra.includes(time);
+    // A usual time that's bookable is just "open", even when reopened for the day after a weekly close.
+    const isExtra = opened && !(usual.includes(time) && !fixed);
+    const blocked = isExtra ? undefined : fixed;
     const past = slotStart(date, time).getTime() < Date.now();
     return {
-      time, state: isExtra ? 'extra' : closed.includes(time) ? 'closed' : 'open',
-      freeStations: past || fixed ? 0 : freeStations(date, start, start + step, isExtra).length,
-      blockedBy: past ? 'Past' : fixed?.reason ?? null,
+      time, state: closed.includes(time) ? 'closed' : isExtra ? 'extra' : 'open',
+      freeStations: past || blocked ? 0 : freeStations(date, start, start + step, opened).length,
+      blockedBy: past ? 'Past' : blocked?.reason ?? null,
+      weekly: hours.closedStarts.includes(time) ? 'closed' : hours.extraStarts.includes(time) ? 'extra' : null,
     };
   };
   return {
@@ -212,28 +255,65 @@ function slotBoard(date: string): SlotBoard {
   };
 }
 
-/** Open or close one start time. Closing stops new bookings starting then; bookings already made stay. */
+/** Open or close one start time on one day. Closing stops new bookings starting then; bookings already made stay. */
 function setSlot(date: string, body: { time?: string; open?: boolean }): SlotBoard {
   const time = body?.time ?? '';
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new MockError(400, 'Enter a time like 18:30.');
+  if (!TIME.test(time)) throw new MockError(400, 'Enter a time like 18:30.');
   if (date > addDays(today(), rules().bookAheadDays)) throw new MockError(400, `Bookings open ${rules().bookAheadDays} days ahead; change this day nearer the time.`);
   if (slotStart(date, time).getTime() < Date.now()) throw new MockError(400, 'That time has passed.');
-  const changes = changesOn(date);
-  // A usual time in the break or after an early closing can't be booked, so opening it makes it an extra time.
-  const usual = usualStarts(date, rules().slotStepMinutes).includes(time) && !slotBoard(date).slots.some(s => s.time === time && s.blockedBy);
+  const isOpen = () => slotBoard(date).slots.some(s => s.time === time && s.state !== 'closed' && !s.blockedBy);
+  const changes = dayChanges(date);
   if (body.open) {
-    changes.closed = changes.closed.filter(t => t !== time);
-    if (!usual && !changes.extra.includes(time)) changes.extra = [...changes.extra, time].sort();
-  } else if (changes.extra.includes(time)) {
-    changes.extra = changes.extra.filter(t => t !== time);
-  } else if (usual) {
-    if (!changes.closed.includes(time)) changes.closed = [...changes.closed, time].sort();
+    // Undo a close for the day; if it's still shut (closed every week, in the break, after hours), open it for the day.
+    changes.closed = without(changes.closed, time);
+    keepDayChanges(changes);
+    if (!isOpen()) keepDayChanges({ ...changes, extra: add(changes.extra, time) });
   } else {
-    throw new MockError(404, 'That isn’t a start time customers can book on this day.');
+    if (!isOpen()) throw new MockError(404, 'That isn’t an open start time on this day.');
+    changes.extra = without(changes.extra, time);
+    keepDayChanges(changes);
+    if (isOpen()) keepDayChanges({ ...changes, closed: add(changes.closed, time) });
   }
-  db().slotChanges = [...db().slotChanges.filter(c => c.date !== date), ...(changes.closed.length || changes.extra.length ? [changes] : [])];
   save();
   return slotBoard(date);
+}
+
+/** The usual week: each weekday's start times with what's closed or extra every week. */
+function weekBoard(): WeekBoard {
+  const step = rules().slotStepMinutes;
+  return {
+    stepMinutes: step,
+    days: db().settings.booking.hours.map(h => {
+      const extras = h.open ? h.extraStarts : [];
+      const inBreak = (t: string) => !!h.breakFrom && !!h.breakTo && t >= h.breakFrom && t < h.breakTo;
+      const slot = (time: string): WeekSlot => ({
+        time, state: extras.includes(time) ? 'extra' : h.closedStarts.includes(time) ? 'closed' : inBreak(time) ? 'break' : 'open',
+      });
+      return { ...h, slots: [...new Set([...startsIn(h, step), ...extras])].sort().map(slot) };
+    }),
+  };
+}
+
+/** Close or open a start time every week on one weekday (0 = Monday). Opening a break or after-hours time makes it a weekly extra. */
+function setWeekSlot(weekday: number, body: { time?: string; open?: boolean }): WeekBoard {
+  const time = body?.time ?? '';
+  if (!TIME.test(time)) throw new MockError(400, 'Enter a time like 18:30.');
+  const h = db().settings.booking.hours[weekday];
+  if (!h.open) throw new MockError(409, `${DAY_NAMES[weekday]} are closed. Open the day in the hours below first.`);
+  const inBreak = !!h.breakFrom && !!h.breakTo && time >= h.breakFrom && time < h.breakTo;
+  const usual = startsIn(h, rules().slotStepMinutes).includes(time) && !inBreak;
+  if (body.open) {
+    h.closedStarts = without(h.closedStarts, time);
+    if (!usual) h.extraStarts = add(h.extraStarts, time);
+  } else if (h.extraStarts.includes(time)) {
+    h.extraStarts = without(h.extraStarts, time);
+  } else if (usual) {
+    h.closedStarts = add(h.closedStarts, time);
+  } else {
+    throw new MockError(404, `That isn’t a start time on ${DAY_NAMES[weekday]}.`);
+  }
+  save();
+  return weekBoard();
 }
 
 function addBlock(body: NewTimeBlock): TimeBlock {
@@ -278,7 +358,7 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   if (!service) throw new MockError(400, 'Pick a service.');
   if (service.archived) throw new MockError(400, `${service.name} is archived. Pick another service.`);
   if (service.petType !== pet.type) throw new MockError(400, `${service.name} is for ${service.petType}s.`);
-  if (d.date && d.time && changesOn(d.date).closed.includes(d.time)) throw new MockError(409, 'That start time is closed on the slot board. Pick another time.');
+  if (d.date && d.time && changesOn(d.date).closed.includes(d.time)) throw new MockError(409, 'That start time is closed. Pick another time.');
   if (d.date && d.time && !freeStation(d.date, d.time, service.durationMinutes, id ?? undefined)) {
     throw new MockError(409, 'That slot was just taken. Pick another time.');
   }

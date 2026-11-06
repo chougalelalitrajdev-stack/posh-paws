@@ -2,7 +2,7 @@
 
 How we build the backend, one module at a time, learning as we go. Tick a module off when it's done.
 
-- **Phase 1:** the backend for the grooming app we have today. Admin side first, then the customer side.
+- **Phase 1:** the backend for the grooming app we have today. Admin side first, then the customer side. **It goes live as soon as it's complete** (see "Going live" below; the outside approvals take longer than the code, so start them now).
 - **Phase 2** (about two months later, not now): new modules, a **store** and **doctor appointments**. Phase 1 is shaped so they plug in without rework.
 
 ---
@@ -94,19 +94,34 @@ Every request goes **route → service → database**: the route receives it, th
 - [ ] **10. Public data:** services, plans, open slots, shop info, content.
 - [ ] **11. Customer bookings, pets, membership:** book, cancel, My bookings, the plan card.
 - [ ] **12. Payment gateway (Razorpay):** real advance payments, payment links, refunds, webhooks (Razorpay telling us a payment went through). Until then, payment links stay demo links.
-- [ ] **13. WhatsApp sending** (optional): messages go out automatically instead of through "Open WhatsApp".
+- [ ] **13. WhatsApp sending** (after launch is fine): messages go out automatically instead of through "Open WhatsApp".
 
 ### Phase 2 (about two months later)
 - [ ] **Store:** products, stock, cart, orders, delivery.
 - [ ] **Doctor appointments:** doctors, consultations, medical records; reuses the slot rules.
 
-## 7. Before Module 0
+## 7. Going live
+
+**Start now, in parallel with the code** (approvals take days to weeks):
+- [ ] **Razorpay account** + KYC (PAN, business bank account, business details): about 2–7 days. Needed for the app's ₹100 advance (Module 12).
+- [ ] **Login codes:** either SMS through a provider like MSG91, which needs **DLT registration** (business entity, sender name, approved message wording, about 1–2 weeks), or codes on WhatsApp through a provider (Meta business verification, some days). Needed for customer login (Module 9).
+- [ ] **Domain name** (optional but nicer): e.g. `poshpaws.in` for the app, `admin.poshpaws.in`, `api.poshpaws.in`.
+
+**Needed on launch day:** Modules 0–12 and the first deploy. Module 13 (automatic WhatsApp) can follow; staff keep using "Open WhatsApp" until then. If time is short, content (Module 8) can also follow, since the customer app's pages work without it.
+
+**At launch, switch hosting to paid plans:** free plans sleep and have no backups, which isn't acceptable with real customers. Roughly $7/month (Render) + $25/month (Supabase, includes daily backups). Then:
+- [ ] Both apps: `useMocks: false` and the real `apiUrl`; rebuild and upload to Netlify.
+- [ ] Real staff accounts created; the demo sign-in buttons gone.
+- [ ] Razorpay switched from test mode to live mode.
+- [ ] Settings checked: hours, breaks, closures, advance amount, UPI ID and QR, message templates.
+
+## 8. Before Module 0
 
 1. Install **Python 3.12 or newer** from python.org.
 2. Install **Postgres.app** and press Initialize.
 3. Optional: install **TablePlus**, to watch the tables fill up as we build.
 
-## 8. Decisions
+## 9. Decisions
 
 - Decided: backend organised by module (`core/`, `shared/`, `grooming/`, later `shop/` and `vet/`).
 - Recommended, confirm at first deploy: Render (API) + Supabase (database and photos).

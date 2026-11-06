@@ -1,0 +1,72 @@
+<div class="pp-day-bar">
+  <button class="pp-icon-btn" type="button" aria-label="Previous day" (click)="move(-1)">‹</button>
+  <strong class="pp-day-title">{{ title() }}</strong>
+  <button class="pp-icon-btn" type="button" aria-label="Next day" (click)="move(1)">›</button>
+  <input class="pp-input pp-day-pick" type="date" aria-label="Pick a date" [value]="date()" (change)="onDateInput($event)">
+  @if (!isToday()) { <button class="pp-btn pp-btn-sm" type="button" (click)="goToday()">Today</button> }
+</div>
+
+<section class="pp-card pp-day-card">
+  <div class="pp-card-head">
+    <h2 class="pp-card-title">Start times customers can book</h2>
+    @if (board()) { <span class="pp-muted pp-small">{{ counts().open }} open · {{ counts().closed }} closed · {{ counts().extra }} extra</span> }
+  </div>
+
+  @if (holiday(); as h) {
+    <div class="pp-alert pp-alert-info pp-day-holiday" role="status">
+      <span><strong>{{ h.name }}</strong> · {{ h.closesAt ? 'closing at ' + h.closesAt : 'closed all day' }}</span>
+      @if (!isPast()) { <button class="pp-btn pp-btn-sm" type="button" (click)="reopenDay()">Reopen this day</button> }
+    </div>
+  } @else {
+    <div class="pp-day-hours">
+      <span class="pp-muted pp-small">{{ hoursText() }}</span>
+      @if (!isPast() && board()?.hours?.open) {
+        <button class="pp-btn pp-btn-sm" type="button" (click)="closingDay.set(true)">Close this whole day</button>
+      }
+    </div>
+  }
+  <p class="pp-hint">Tap a time to close it or open it again for this date only. Times closed or added every week come from the Week tab. Closing a time stops new bookings starting then; bookings already made stay.</p>
+
+  @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+  @if (board(); as b) {
+    @if (b.slots.length) {
+      <div class="pp-slot-grid" role="group" aria-label="Start times">
+        @for (s of b.slots; track s.time) {
+          <button class="pp-slot-chip" type="button" [class.is-closed]="s.state === 'closed'" [class.is-extra]="s.state === 'extra'"
+            [class.is-blocked]="s.state === 'open' && s.blockedBy" [class.is-full]="isOpen(s) && !s.freeStations"
+            [attr.aria-pressed]="isOpen(s)" [attr.aria-label]="s.time + ', ' + label(s)"
+            [disabled]="s.blockedBy === 'Past' || busyTime() === s.time" (click)="toggle(s)">
+            <strong>{{ s.time }}</strong>
+            <span>{{ label(s) }}</span>
+          </button>
+        }
+      </div>
+    } @else {
+      <p class="pp-muted">No start times on this day. Open an extra time below if you're taking bookings.</p>
+    }
+
+    @if (!isPast()) {
+      <form class="pp-field pp-day-extra" (submit)="$event.preventDefault(); addExtra()">
+        <label class="pp-label" for="extra-time">Open an extra start time on this date</label>
+        <div class="pp-input-row">
+          <input id="extra-time" class="pp-input" type="time" step="300" [value]="extraTime()" (input)="onExtraInput($event)">
+          <button class="pp-btn" type="submit" [disabled]="!extraTime() || busyTime() !== null">Open time</button>
+        </div>
+        <p class="pp-hint">For a late slot after closing, or an off-the-hour time. Opening hours and breaks don't apply to it; bookings and blocked time still do.</p>
+      </form>
+    }
+  } @else {
+    <p class="pp-muted">Loading start times…</p>
+  }
+</section>
+
+<div class="pp-slot-legend" aria-label="Legend">
+  <span><span class="pp-slot-key"></span>Open</span>
+  <span><span class="pp-slot-key is-extra"></span>Extra time</span>
+  <span><span class="pp-slot-key is-closed"></span>Closed (by staff, a break or a holiday)</span>
+</div>
+
+@if (closingDay()) {
+  <pp-holiday-dialog [date]="date()" (closed)="closingDay.set(false)" (saved)="onDayClosed()" />
+}

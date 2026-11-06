@@ -87,32 +87,26 @@
       <button class="pp-icon-btn" type="button" [attr.aria-label]="oneDay() ? 'Next day' : 'Next week'" (click)="moveCalendar(1)">›</button>
       @if (!isToday()) { <button class="pp-btn pp-btn-sm" type="button" (click)="goToday()">Today</button> }
     </div>
-    @if (mode() === 'calendar') {
-      <div class="pp-cal-tools">
-        <pp-segmented label="Calendar range" [options]="calOptions" [(value)]="calView" />
-        <button class="pp-btn pp-btn-sm" type="button" (click)="blockOpen.set(true)"><pp-icon name="clock" [size]="16" />Block time</button>
-      </div>
-    }
+    <div class="pp-cal-tools">
+      <pp-segmented label="Calendar range" [options]="calOptions" [(value)]="calView" />
+      <button class="pp-btn pp-btn-sm" type="button" (click)="blockOpen.set(true)"><pp-icon name="clock" [size]="16" />Block time</button>
+    </div>
   </div>
 
-  @if (mode() === 'slots') {
-    <pp-slot-board [date]="calDate()" />
+  @if (calendar(); as cal) {
+    <pp-schedule-grid [columns]="columns()" [opens]="cal.opens" [closes]="cal.closes" [minColumnWidth]="calView() === 'day' ? 140 : 120" [compact]="calView() === 'week'" (select)="onSelect($event)" />
   } @else {
-    @if (calendar(); as cal) {
-      <pp-schedule-grid [columns]="columns()" [opens]="cal.opens" [closes]="cal.closes" [minColumnWidth]="calView() === 'day' ? 140 : 120" [compact]="calView() === 'week'" (select)="onSelect($event)" />
-    } @else {
-      <p class="pp-muted">Loading calendar…</p>
-    }
+    <p class="pp-muted">Loading calendar…</p>
+  }
 
-    <div class="pp-legend" aria-label="Legend">
-      <span><span class="pp-swatch pp-tone-success"></span>Confirmed</span>
-      <span><span class="pp-swatch pp-tone-warn"></span>Awaiting payment</span>
-      <span><span class="pp-swatch pp-tone-neutral"></span>Completed</span>
-      <span><span class="pp-swatch pp-swatch-block"></span>Break / blocked (click a block you added to remove it)</span>
-    </div>
+  <div class="pp-legend" aria-label="Legend">
+    <span><span class="pp-swatch pp-tone-success"></span>Confirmed</span>
+    <span><span class="pp-swatch pp-tone-warn"></span>Awaiting payment</span>
+    <span><span class="pp-swatch pp-tone-neutral"></span>Completed</span>
+    <span><span class="pp-swatch pp-swatch-block"></span>Break / blocked (click a block you added to remove it)</span>
+  </div>
 
-    @if (blockOpen()) {
-      <pp-block-time [date]="calDate()" (closed)="blockOpen.set(false)" (saved)="onBlockSaved()" />
-    }
+  @if (blockOpen()) {
+    <pp-block-time [date]="calDate()" (closed)="blockOpen.set(false)" (saved)="onBlockSaved()" />
   }
 }

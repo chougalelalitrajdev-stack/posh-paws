@@ -20,16 +20,15 @@ import { ScheduleColumn, ScheduleGridComponent, ScheduleItem } from '../../../sh
 import { SegmentedComponent } from '../../../shared/components/segmented/segmented.component';
 import { StatusPillComponent } from '../../../shared/components/status-pill/status-pill.component';
 import { BlockTimeComponent } from '../block-time/block-time.component';
-import { SlotBoardComponent } from '../slot-board/slot-board.component';
 
 const PAGE_SIZE = 10;
 
-/** Bookings as a filterable list, a day/week calendar, or the day's start times (design: "Bookings (list + calendar)"). */
+/** Bookings as a filterable list or a day/week calendar (design: "Bookings (list + calendar)"). Start times are on Availability. */
 @Component({
   selector: 'pp-booking-list',
   imports: [
     RouterLink, PageHeaderComponent, FilterTabsComponent, SegmentedComponent, PaginationComponent,
-    StatusPillComponent, ScheduleGridComponent, IconComponent, BlockTimeComponent, SlotBoardComponent,
+    StatusPillComponent, ScheduleGridComponent, IconComponent, BlockTimeComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './booking-list.component.html',
@@ -45,14 +44,14 @@ export class BookingListComponent {
   readonly stage = input<string>();
   readonly view = input<string>();
 
-  protected readonly viewOptions = [{ value: 'list', label: 'List' }, { value: 'calendar', label: 'Calendar' }, { value: 'slots', label: 'Slots' }];
+  protected readonly viewOptions = [{ value: 'list', label: 'List' }, { value: 'calendar', label: 'Calendar' }];
   protected readonly calOptions = [{ value: 'day', label: 'Day' }, { value: 'week', label: 'Week' }];
   protected readonly paymentOptions = Object.entries(PAYMENT_STATUSES).map(([value, p]) => ({ value: value as PaymentStatus, label: p.label }));
   protected readonly formatPhone = formatPhone;
   protected readonly whenLabel = whenLabel;
 
   // ── List ──
-  protected mode = linkedSignal(() => (this.view() === 'calendar' || this.view() === 'slots' ? this.view()! : 'list'));
+  protected mode = linkedSignal(() => (this.view() === 'calendar' ? 'calendar' : 'list'));
   protected tab = linkedSignal(() => (BOOKING_TABS.some(t => t.key === this.stage()) ? this.stage()! : 'all'));
   protected range = signal<NonNullable<BookingFilters['range']>>('any');
   protected serviceId = signal('');
@@ -77,8 +76,7 @@ export class BookingListComponent {
   protected calendar = signal<CalendarData | null>(null);
   protected blockOpen = signal(false);
 
-  /** The calendar's day view and the slot board move a day at a time. */
-  protected oneDay = computed(() => this.mode() === 'slots' || this.calView() === 'day');
+  protected oneDay = computed(() => this.calView() === 'day');
 
   protected calTitle = computed(() =>
     this.oneDay()

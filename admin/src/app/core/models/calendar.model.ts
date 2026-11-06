@@ -54,6 +54,8 @@ export interface BoardSlot {
   freeStations: number;
   /** Why it can't be booked whatever its state, e.g. "Past", "Break", "Closed · Diwali". */
   blockedBy: string | null;
+  /** What the weekly pattern says about this time (Availability › Week); the day's own change wins. */
+  weekly: 'closed' | 'extra' | null;
 }
 
 /** GET /admin/slot-board?date= : the start times customers can book on one day. */
@@ -65,6 +67,18 @@ export interface SlotBoard {
   stepMinutes: number;
   stations: number;
   slots: BoardSlot[];
+}
+
+/** One start time in the usual week. break = inside the break, so not bookable unless opened as an extra time on a day. */
+export interface WeekSlot {
+  time: string;
+  state: 'open' | 'closed' | 'extra' | 'break';
+}
+
+/** GET /admin/slot-board/week: the start times of the usual week, per weekday (0 = Monday). */
+export interface WeekBoard {
+  stepMinutes: number;
+  days: (DayHours & { slots: WeekSlot[] })[];
 }
 
 /** GET /admin/slots: one entry per day. */

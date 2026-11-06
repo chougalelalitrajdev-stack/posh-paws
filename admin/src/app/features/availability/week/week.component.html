@@ -1,7 +1,54 @@
+<section class="pp-card pp-bs-card" aria-labelledby="week-title">
+  <div>
+    <h2 id="week-title" class="pp-card-title">Start times every week</h2>
+    <p class="pp-hint pp-bs-lead">Tap a time to close it every week, and tap again to reopen it. Tapping a break time opens it every week. For one date only, use the Day tab.</p>
+  </div>
+  @if (!canEdit()) { <div class="pp-alert pp-alert-info" role="status">Only Admins can change the usual week. You can still change single days and holidays.</div> }
+  @if (boardError()) { <div class="pp-alert pp-alert-error" role="alert">{{ boardError() }}</div> }
+
+  @if (board(); as b) {
+    <div class="pp-wk-days">
+      @for (d of b.days; track d.day) {
+        <div class="pp-wk-day">
+          <div class="pp-wk-day-head"><strong>{{ days[d.day] }}</strong><span class="pp-muted pp-small">{{ hoursText(d) }}</span></div>
+          @if (d.open) {
+            <div class="pp-slot-grid is-compact" role="group" [attr.aria-label]="days[d.day] + ' start times'">
+              @for (s of d.slots; track s.time) {
+                <button class="pp-slot-chip" type="button" [class.is-closed]="s.state === 'closed'" [class.is-extra]="s.state === 'extra'" [class.is-blocked]="s.state === 'break'"
+                  [attr.aria-pressed]="s.state === 'open' || s.state === 'extra'" [attr.aria-label]="days[d.day] + ' ' + s.time + (label(s) ? ', ' + label(s) : '')"
+                  [disabled]="!canEdit() || busy() === d.day + '-' + s.time" (click)="toggle(d.day, s)">
+                  <strong>{{ s.time }}</strong>
+                  @if (label(s)) { <span>{{ label(s) }}</span> }
+                </button>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (canEdit()) {
+      <form class="pp-field pp-wk-add" (submit)="$event.preventDefault(); addWeekly()">
+        <label class="pp-label" for="wk-time">Add a start time every week</label>
+        <div class="pp-input-row">
+          <select class="pp-input" aria-label="Day" (change)="onAddDay($event)">
+            @for (name of days; track $index) { <option [value]="$index" [selected]="$index === addDay()">{{ name }}</option> }
+          </select>
+          <input id="wk-time" class="pp-input" type="time" step="300" [value]="addTime()" (input)="onAddTime($event)">
+          <button class="pp-btn" type="submit" [disabled]="!addTime() || busy() !== null">Add</button>
+        </div>
+        <p class="pp-hint">For example 19:00 every Saturday. Opening hours and breaks don't apply to it; bookings and blocked time still do.</p>
+      </form>
+    }
+  } @else {
+    <p class="pp-muted">Loading the week…</p>
+  }
+</section>
+
 <section class="pp-card pp-bs-card" aria-labelledby="hours-title">
   <div>
     <h2 id="hours-title" class="pp-card-title">Opening hours</h2>
-    <p class="pp-hint pp-bs-lead">Slots are only offered inside these hours. Breaks and closures are blocked on every station. To close or open single start times on one day, use <a routerLink="/bookings" [queryParams]="{ view: 'slots' }">Bookings › Slots</a>.</p>
+    <p class="pp-hint pp-bs-lead">Start times are only offered inside these hours. Breaks are blocked on every station.</p>
   </div>
   @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
 
@@ -15,7 +62,7 @@
           @for (h of hours.controls; track $index; let i = $index) {
             <tr [formGroupName]="i" [class.pp-muted]="!h.controls.open.value">
               <th scope="row" class="pp-nowrap">{{ days[i] }}</th>
-              <td><pp-switch [label]="'Open on ' + days[i]" [checked]="h.controls.open.value" (checkedChange)="setOpen(h, $event)" /></td>
+              <td><pp-switch [label]="'Open on ' + days[i]" [checked]="h.controls.open.value" [disabled]="!canEdit()" (checkedChange)="setOpen(h, $event)" /></td>
               <td>
                 <span class="pp-bs-times">
                   <input class="pp-input" type="time" formControlName="opens" [attr.aria-label]="days[i] + ' opens'">
@@ -55,6 +102,7 @@
     </div>
   </form>
 
+  @if (canEdit()) {
   <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
     <span class="pp-editor-dirty">@if (form.dirty) { Unsaved changes }</span>
     <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty" (click)="discard()">Discard</button>
@@ -62,47 +110,5 @@
       @if (saving()) { Saving… } @else { Save changes }
     </button>
   </div>
+  }
 </section>
-
-<section class="pp-card pp-bs-card" aria-labelledby="closures-title">
-  <div class="pp-card-head">
-    <h2 id="closures-title" class="pp-card-title">Holidays and closures</h2>
-    <button class="pp-btn pp-btn-sm" type="button" (click)="openClosure()">Add closure</button>
-  </div>
-  <div class="pp-bs-closures">
-    @for (c of closures(); track c.id) {
-      <div class="pp-bs-closure">
-        <strong class="pp-nowrap">{{ longDate(c.date) }}</strong>
-        <span class="pp-bs-closure-name">{{ c.name }} <span class="pp-muted">· {{ closureLabel(c) }}</span></span>
-        <span class="pp-small" [class.pp-danger-text]="c.affectedBookings > 0" [class.pp-muted]="!c.affectedBookings">
-          {{ c.affectedBookings ? c.affectedBookings + ' booking' + (c.affectedBookings === 1 ? '' : 's') + ' to move' : 'No bookings' }}
-        </span>
-        <button class="pp-btn pp-btn-sm pp-btn-ghost" type="button" [attr.aria-label]="'Remove ' + c.name" (click)="removeClosure(c)">Remove</button>
-      </div>
-    } @empty {
-      <p class="pp-muted pp-small">No closures planned.</p>
-    }
-  </div>
-</section>
-
-@if (closureOpen()) {
-  <pp-modal title="Add closure" (closed)="closureOpen.set(false)">
-    <form class="pp-form-grid" id="closure-form" [formGroup]="closureForm" (ngSubmit)="addClosure()" novalidate>
-      @if (closureError()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ closureError() }}</div> }
-      <div class="pp-field"><label class="pp-label" for="cl-date">Date</label>
-        <input id="cl-date" class="pp-input" type="date" [min]="today" formControlName="date"
-          [class.is-invalid]="closureForm.controls.date.invalid && closureForm.controls.date.touched"></div>
-      <div class="pp-field"><label class="pp-label" for="cl-name">Name</label>
-        <input id="cl-name" class="pp-input" placeholder="Diwali" formControlName="name"
-          [class.is-invalid]="closureForm.controls.name.invalid && closureForm.controls.name.touched"></div>
-      <label class="pp-check pp-span"><input type="checkbox" formControlName="allDay"><span>Closed all day</span></label>
-      @if (!closureForm.controls.allDay.value) {
-        <div class="pp-field"><label class="pp-label" for="cl-time">Closing at</label><input id="cl-time" class="pp-input" type="time" formControlName="closesAt"></div>
-      }
-    </form>
-    <button ppModalActions class="pp-btn" type="button" (click)="closureOpen.set(false)">Cancel</button>
-    <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="closure-form" [disabled]="addingClosure()">
-      @if (addingClosure()) { Adding… } @else { Add closure }
-    </button>
-  </pp-modal>
-}

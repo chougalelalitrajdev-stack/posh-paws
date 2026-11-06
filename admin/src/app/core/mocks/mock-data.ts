@@ -72,7 +72,11 @@ export const SETTINGS: Omit<Settings, 'booking'> & { booking: Omit<Settings['boo
     instagram: '@poshpaws.pune', mapsLink: '', address: '[Your address], Koregaon Park, Pune',
   },
   booking: {
-    hours: [0, 1, 2, 3, 4, 5, 6].map(day => ({ day, open: true, opens: '09:00', closes: '19:00', breakFrom: '14:00', breakTo: '14:30' })),
+    // Weekly changes: no 9:00 start on Mondays (team meeting); an extra 19:00 start every Saturday.
+    hours: [0, 1, 2, 3, 4, 5, 6].map(day => ({
+      day, open: true, opens: '09:00', closes: '19:00', breakFrom: '14:00', breakTo: '14:30',
+      closedStarts: day === 0 ? ['09:00'] : [], extraStarts: day === 5 ? ['19:00'] : [],
+    })),
     slotStepMinutes: 30, bufferMinutes: 15, bookAheadDays: 30, minNoticeMinutes: 30,
   },
   payments: { currency: 'INR', linkExpiryHours: 24, slotHoldPaise: 10000, freeCancellationHours: 24, upiId: 'poshpaws@upi', qrImageUrl: null, provider: null },
