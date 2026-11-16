@@ -6,13 +6,15 @@
       <div class="pp-field">
         <label class="pp-label" for="blk-station">Station</label>
         <select id="blk-station" class="pp-input" formControlName="stationId">
-          @for (s of catalog.stations(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+          @for (s of catalog.stations(); track s.id) { <option [value]="s.id">{{ s.name }}{{ s.active ? '' : ' (off)' }}</option> }
         </select>
       </div>
       <div class="pp-field">
         <label class="pp-label" for="blk-date">Date</label>
         <input id="blk-date" class="pp-input" type="date" [min]="minDate" formControlName="date">
       </div>
+      <label class="pp-check pp-block-allday"><input type="checkbox" formControlName="allDay"><span>All day (a day off for this station)</span></label>
+      @if (!form.controls.allDay.value) {
       <div class="pp-field">
         <label class="pp-label" for="blk-time">From</label>
         <select id="blk-time" class="pp-input" formControlName="time">
@@ -25,6 +27,7 @@
           @for (d of durations; track d.value) { <option [ngValue]="d.value">{{ d.label }}</option> }
         </select>
       </div>
+      }
     </div>
 
     <div class="pp-field">

@@ -60,9 +60,11 @@ export const SERVICES: StoredService[] = [
     description: 'Moisturising balm for dry, cracked paw pads.' },
 ];
 
+/** Stations seed (Availability › Stations): two all-round tables and a corner for cats only. */
 export const STATIONS: Station[] = [
-  { id: 'st1', name: 'Station 1' },
-  { id: 'st2', name: 'Station 2' },
+  { id: 'st1', name: 'Station 1', active: true, canDo: 'all', serviceIds: [] },
+  { id: 'st2', name: 'Station 2', active: true, canDo: 'all', serviceIds: [] },
+  { id: 'st3', name: 'Cat corner', active: true, canDo: 'cats', serviceIds: [] },
 ];
 
 /** Settings seed. The booking rules are the ones the app has used so far (09:00–19:00, lunch 14:00–14:30, 15 min buffer). */

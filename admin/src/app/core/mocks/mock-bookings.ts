@@ -3,10 +3,10 @@ import { PAYMENT_METHODS, STAGES } from '../constants/status.constants';
 import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
 import { BoardSlot, CalendarData, DayAvailability, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock, WeekBoard, WeekSlot } from '../models/calendar.model';
 import { DayHours } from '../models/settings.model';
+import { Station } from '../models/catalog.model';
 import { Paged } from '../models/paged.model';
 import { addDays, dateRange, minutesOfDay, shortDate, slotStart, timeFromMinutes, today } from '../utils/date.utils';
 import { formatInr } from '../utils/money.utils';
-import { STATIONS } from './mock-data';
 import { closureOn, dayHours, openingSpan } from './mock-settings';
 import { MockError, MockRequest, NO_ROUTE, db, requireRole, requireStaff, route, save } from './mock-db';
 import { settleMoney } from './mock-money';
@@ -105,7 +105,7 @@ function counts(): StageCounts {
 function calendar(from: string, days: number): CalendarData {
   const dates = dateRange(from, Math.min(days, 14));
   return {
-    stations: STATIONS,
+    stations: db().stations,
     bookings: db().bookings.filter(b => b.date && dates.includes(b.date) && HOLDS_SLOT.includes(b.stage)),
     blocks: dates.flatMap(blocksOn),
     ...openingSpan(),
@@ -119,7 +119,7 @@ function blocksOn(date: string): TimeBlock[] {
   const hours = dayHours(date);
   const closure = closureOn(date);
   const span = openingSpan();
-  const fixed = (key: string, from: string, to: string, reason: string) => STATIONS.map(st => ({
+  const fixed = (key: string, from: string, to: string, reason: string) => db().stations.map(st => ({
     id: `${key}-${date}-${st.id}`, stationId: st.id, date, time: from, durationMinutes: minutesOfDay(to) - minutesOfDay(from), reason, fixed: true,
   }));
   let blocks: TimeBlock[];
@@ -148,7 +148,8 @@ const rules = () => db().settings.booking;
  * The first station free for the whole appointment, or null. Follows Settings › Booking & availability
  * (opening hours, breaks, closures, buffer, minimum notice, how far ahead) and the slot board.
  */
-export function freeStation(date: string, time: string, durationMinutes: number, excludeId?: string): string | null {
+export function freeStation(date: string, time: string, service: { id: string; durationMinutes: number }, excludeId?: string): string | null {
+  const durationMinutes = service.durationMinutes;
   const { closed, extra } = changesOn(date);
   if (closed.includes(time)) return null;
   // Staff opened extra times on purpose, so opening hours, breaks and closures don't apply to them.
@@ -159,13 +160,27 @@ export function freeStation(date: string, time: string, durationMinutes: number,
   if (!isExtra && (!hours.open || start < minutesOfDay(hours.opens) || end > minutesOfDay(hours.closes))) return null;
   if (slotStart(date, time).getTime() - Date.now() < rules().minNoticeMinutes * 60_000) return null;
   if (date > addDays(today(), rules().bookAheadDays)) return null;
-  return freeStations(date, start, end, isExtra, excludeId)[0] ?? null;
+  return freeStations(date, start, end, isExtra, excludeId, service.id)[0] ?? null;
 }
 
-/** Stations with [start, end) and the cleaning buffer free. */
-function freeStations(date: string, start: number, end: number, ignoreFixed: boolean, excludeId?: string): string[] {
+/** Whether a station can do a service: every service, every dog or cat service, or the chosen ones. */
+export function canDo(st: Station, serviceId: string): boolean {
+  if (st.canDo === 'all') return true;
+  if (st.canDo === 'some') return st.serviceIds.includes(serviceId);
+  return db().services.find(s => s.id === serviceId)?.petType === (st.canDo === 'dogs' ? 'dog' : 'cat');
+}
+
+/** How many services a station can do; the most specialised free station is used first, keeping all-rounders free. */
+const breadth = (st: Station) => db().services.filter(s => !s.archived && canDo(st, s.id)).length;
+
+/** Stations in use with [start, end) and the cleaning buffer free; with a service, only those that can do it, most specialised first. */
+function freeStations(date: string, start: number, end: number, ignoreFixed: boolean, excludeId?: string, serviceId?: string): string[] {
   const buffer = rules().bufferMinutes;
-  return STATIONS.filter(st => busy(date, st.id, excludeId, ignoreFixed).every(([from, to]) => end + buffer <= from || start >= to)).map(st => st.id);
+  return db().stations
+    .filter(st => st.active && (!serviceId || canDo(st, serviceId)))
+    .filter(st => busy(date, st.id, excludeId, ignoreFixed).every(([from, to]) => end + buffer <= from || start >= to))
+    .sort((a, b) => (serviceId ? breadth(a) - breadth(b) : 0))
+    .map(st => st.id);
 }
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -194,7 +209,7 @@ function slots(serviceId: string, from: string, days: number, excludeId?: string
   return dateRange(from, Math.min(days, 14)).map(date => {
     const { closed, extra } = changesOn(date);
     const starts = [...new Set([...usualStarts(date, service.durationMinutes).filter(t => !closed.includes(t)), ...extra])].sort();
-    return { date, slots: starts.map(time => ({ time, available: freeStation(date, time, service.durationMinutes, excludeId) !== null })) };
+    return { date, slots: starts.map(time => ({ time, available: freeStation(date, time, service, excludeId) !== null })) };
   });
 }
 
@@ -231,7 +246,7 @@ function slotBoard(date: string): SlotBoard {
   const closure = closureOn(date);
   const step = rules().slotStepMinutes;
   const usual = usualStarts(date, step);
-  const fixedBlocks = blocksOn(date).filter(b => b.fixed && b.stationId === STATIONS[0].id);
+  const fixedBlocks = blocksOn(date).filter(b => b.fixed && b.stationId === db().stations[0]?.id);
   // Weekly extra times stay listed when closed for the day, so they can be opened again.
   const times = [...new Set([...usual, ...extra, ...weeklyExtra])].sort();
   const slot = (time: string): BoardSlot => {
@@ -251,7 +266,7 @@ function slotBoard(date: string): SlotBoard {
   };
   return {
     date, hours, closure: closure ? { name: closure.name, closesAt: closure.closesAt } : null,
-    stepMinutes: step, stations: STATIONS.length, slots: times.map(slot),
+    stepMinutes: step, stations: db().stations.filter(st => st.active).length, slots: times.map(slot),
   };
 }
 
@@ -317,12 +332,20 @@ function setWeekSlot(weekday: number, body: { time?: string; open?: boolean }): 
 }
 
 function addBlock(body: NewTimeBlock): TimeBlock {
-  if (!STATIONS.some(s => s.id === body.stationId)) throw new MockError(400, 'Pick a station.');
+  if (!db().stations.some(s => s.id === body.stationId)) throw new MockError(400, 'Pick a station.');
+  if (body.allDay) {
+    // A day off for one station: opening to closing.
+    const h = dayHours(body.date);
+    if (!h.open) throw new MockError(400, 'The shop is closed that day.');
+    body = { ...body, time: h.opens, durationMinutes: minutesOfDay(h.closes) - minutesOfDay(h.opens), reason: body.reason?.trim() || 'Day off' };
+  }
   if (!body.durationMinutes || body.durationMinutes < 15) throw new MockError(400, 'Block at least 15 minutes.');
   const start = minutesOfDay(body.time);
-  const clash = busy(body.date, body.stationId).some(([from, to]) => start < to && from < start + body.durationMinutes);
+  // Only bookings and other blocks clash; running over the break or a closure is harmless.
+  const clash = busy(body.date, body.stationId, undefined, true).some(([from, to]) => start < to && from < start + body.durationMinutes);
   if (clash) throw new MockError(409, 'That time overlaps a booking or another block on this station.');
-  const block: TimeBlock = { ...body, reason: body.reason?.trim() || 'Blocked', id: `blk-${Date.now()}`, fixed: false };
+  const { allDay, ...fields } = body;
+  const block: TimeBlock = { ...fields, reason: fields.reason?.trim() || 'Blocked', id: `blk-${Date.now()}`, fixed: false };
   db().blocks.push(block);
   save();
   return block;
@@ -359,7 +382,7 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
   if (service.archived) throw new MockError(400, `${service.name} is archived. Pick another service.`);
   if (service.petType !== pet.type) throw new MockError(400, `${service.name} is for ${service.petType}s.`);
   if (d.date && d.time && changesOn(d.date).closed.includes(d.time)) throw new MockError(409, 'That start time is closed. Pick another time.');
-  if (d.date && d.time && !freeStation(d.date, d.time, service.durationMinutes, id ?? undefined)) {
+  if (d.date && d.time && !freeStation(d.date, d.time, service, id ?? undefined)) {
     throw new MockError(409, 'That slot was just taken. Pick another time.');
   }
 
@@ -396,7 +419,7 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
 function confirm(b: Booking, by: string): Booking {
   if (b.stage !== 'draft') throw new MockError(409, 'Only drafts can be confirmed.');
   if (!b.service || !b.date || !b.time) throw new MockError(400, 'Pick a service and a slot first.');
-  const station = freeStation(b.date, b.time, b.service.durationMinutes, b.id);
+  const station = freeStation(b.date, b.time, b.service, b.id);
   if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
   // Prices are fixed now (a plan session or an offer may have changed since the draft).
   b.bill = quoteBill(b.customer.id, b.service.id, b.offerCode, false, b.id);
@@ -421,7 +444,7 @@ function paymentLink(b: Booking, amountType: AmountType, by: string): Booking {
   let amountPaise: number;
   let type: AmountType = 'full';
   if (before) {
-    const station = freeStation(b.date, b.time, b.service.durationMinutes, b.id);
+    const station = freeStation(b.date, b.time, b.service, b.id);
     if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
     if (b.stage !== 'awaiting_payment') b.bill = quoteBill(b.customer.id, b.service.id, b.offerCode, false, b.id);
     if (!b.bill.totalPaise) throw new MockError(409, 'Nothing to pay: the plan session covers it. Confirm the booking instead.');
@@ -489,7 +512,7 @@ function recordPayment(b: Booking, body: NewShopPayment, by: string): Booking {
 
 function reschedule(b: Booking, date: string, time: string, by: string): Booking {
   if (b.stage !== 'awaiting_payment' && b.stage !== 'confirmed') throw new MockError(409, 'Only upcoming bookings can be rescheduled.');
-  const station = b.service ? freeStation(date, time, b.service.durationMinutes, b.id) : null;
+  const station = b.service ? freeStation(date, time, b.service, b.id) : null;
   if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
   const from = b.date && b.time ? `${shortDate(b.date)} ${b.time}` : 'no slot';
   b.date = date;

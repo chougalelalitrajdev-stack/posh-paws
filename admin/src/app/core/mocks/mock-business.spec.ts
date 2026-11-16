@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { API } from '../constants/api-endpoints';
 import { Booking } from '../models/booking.model';
 import { CalendarData, DayAvailability, SlotBoard, WeekBoard } from '../models/calendar.model';
+import { Station } from '../models/catalog.model';
 import { Paged } from '../models/paged.model';
 import { Payment, PaymentSummary } from '../models/payment.model';
 import { Settings } from '../models/settings.model';
@@ -80,7 +81,7 @@ describe('mock settings, templates, payments and team', () => {
     const day = addDays(today(), 3);
     const setSlot = (time: string, open: boolean, date = day) => send<SlotBoard>('PUT', `${API.slotBoard}/${date}`, { time, open }, staff);
     const board = await get<SlotBoard>(API.slotBoard, { date: day });
-    expect(board.slots[0]).toMatchObject({ time: '09:00', state: 'open', freeStations: 2, blockedBy: null });
+    expect(board.slots[0]).toMatchObject({ time: '09:00', state: 'open', freeStations: 3, blockedBy: null }); // 2 tables + the cat corner
     expect(board.slots.find(s => s.time === '14:00')?.blockedBy).toBe('Break');
 
     // A closed time leaves the customer's list and can't be booked.
@@ -91,7 +92,7 @@ describe('mock settings, templates, payments and team', () => {
 
     // Extra times ignore opening hours and the break: 19:30 is after closing, 14:00 is in the break.
     const late = await setSlot('19:30', true);
-    expect(late.slots.at(-1)).toMatchObject({ time: '19:30', state: 'extra', freeStations: 2 });
+    expect(late.slots.at(-1)).toMatchObject({ time: '19:30', state: 'extra', freeStations: 3 });
     expect((await setSlot('14:00', true)).slots.find(s => s.time === '14:00')).toMatchObject({ state: 'extra', blockedBy: null });
     const open = await slotsOn(day);
     expect(open.find(s => s.time === '19:30')?.available).toBe(true);
@@ -140,6 +141,44 @@ describe('mock settings, templates, payments and team', () => {
     await send('POST', `${API.settings}/closures`, { date: saturday, name: 'Diwali', closesAt: null }, staff);
     expect(await slotsOn(saturday)).toEqual([]);
   });
+
+  it('books each service on a station that can do it, most specialised first, and lets Admins set up stations', async () => {
+    const day = addDays(today(), 3);
+    const stations = await get<Station[]>(API.stations);
+    expect(stations.map(st => `${st.name}:${st.canDo}`)).toEqual(['Station 1:all', 'Station 2:all', 'Cat corner:cats']);
+    const book = (customerId: string, petId: string, serviceId: string, time = '10:00') =>
+      send<Booking>('POST', API.bookings, { customerId, petId, serviceId, date: day, time })
+        .then(b => send<Booking>('POST', `${API.bookings}/${b.id}/confirm`));
+
+    // A cat goes to the cat corner first, so both all-round tables are still free for dogs at 10:00.
+    expect((await book('c5', 'p6', 'cat-gentle-cat-bath')).stationId).toBe('st3');
+    expect((await book('c1', 'p1', 'dog-signature-bath')).stationId).toBe('st1');
+    expect((await book('c10', 'p12', 'dog-signature-bath')).stationId).toBe('st2');
+    expect((await slotsOn(day)).find(s => s.time === '10:00')?.available).toBe(false);
+    expect((await slotsOn(day, 'cat-nail-trim-filing')).find(s => s.time === '10:00')?.available).toBe(false);
+
+    // Switching a station off takes it out of new bookings; staff can't change stations.
+    const freeAtNoon = async () => (await get<SlotBoard>(API.slotBoard, { date: day })).slots.find(s => s.time === '12:00')!.freeStations;
+    expect(await freeAtNoon()).toBe(3);
+    expect(await statusOf(send('PUT', `${API.stations}/st3`, { ...stations[2], active: false }, staff))).toBe(403);
+    await send('PUT', `${API.stations}/st3`, { ...stations[2], active: false });
+    expect(await freeAtNoon()).toBe(2);
+    expect(await statusOf(send('PUT', `${API.stations}/st2`, { ...stations[1], canDo: 'some', serviceIds: [] }))).toBe(400);
+
+    // A new station for nail trims only: a nail trim fits at 10:00 again, a bath doesn't.
+    const quick = await send<Station>('POST', API.stations, { name: 'Quick station', active: true, canDo: 'some', serviceIds: ['dog-nail-trim-filing'] });
+    expect(await freeAtNoon()).toBe(3);
+    expect((await slotsOn(day, 'dog-nail-trim-filing')).find(s => s.time === '10:00')?.available).toBe(true);
+    expect((await slotsOn(day)).find(s => s.time === '10:00')?.available).toBe(false);
+
+    // One with upcoming bookings can't be removed; an empty one can.
+    expect(await statusOf(send('DELETE', `${API.stations}/st1`))).toBe(409);
+    expect(await statusOf(send('DELETE', `${API.stations}/${quick.id}`))).toBe(200);
+
+    // A day off for one station: Block time, all day.
+    const off = await send<{ time: string; durationMinutes: number }>('POST', API.blocks, { stationId: 'st2', date: addDays(today(), 4), allDay: true, time: '', durationMinutes: 0, reason: '' });
+    expect(off).toMatchObject({ time: '09:00', durationMinutes: 600, reason: 'Day off' });
+  }, 15000);
 
   it('uses the hold amount and link expiry from Settings › Payments', async () => {
     const s = await get<Settings>(API.settings);

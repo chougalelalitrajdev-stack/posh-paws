@@ -3,7 +3,6 @@ import { BANNER_PLACEMENTS } from '../constants/content.constants';
 import { AttentionItem, DashboardSummary } from '../models/dashboard.model';
 import { addDays, ageLabel, agoLabel, dateRange, minutesSince, parseIsoDate, shortDate, slotStart, toIsoDate, today } from '../utils/date.utils';
 import { formatInr } from '../utils/money.utils';
-import { STATIONS } from './mock-data';
 import { bannerStatus } from './mock-banners';
 import { subscriptionSummary } from './mock-subscriptions';
 import { MockRequest, NO_ROUTE, db, route } from './mock-db';
@@ -30,7 +29,7 @@ function summary(): DashboardSummary {
   const paidThisWeek = entries.filter(p => p.kind !== 'refund' && week.includes(dayOf(p.at)));
 
   return {
-    openStations: STATIONS.length,
+    openStations: db().stations.filter(st => st.active).length,
     awaitingPayment: {
       count: awaiting.length,
       outstandingPaise: awaiting.reduce((sum, b) => sum + (b.paymentLink?.amountPaise ?? 0), 0),

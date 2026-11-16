@@ -29,8 +29,22 @@ export interface Service {
 /** Body of POST /admin/services and PUT /admin/services/{id}. */
 export type ServiceDraft = Pick<Service, 'name' | 'petType' | 'category' | 'description' | 'durationMinutes' | 'pricePaise' | 'imageUrl' | 'visible'>;
 
-/** A grooming table; slots are booked per station. */
+/** What a station can do: every service, every dog or cat service, or the chosen ones. */
+export type StationScope = 'all' | 'dogs' | 'cats' | 'some';
+
+/**
+ * A grooming table or room (Availability › Stations). Each booking holds one station for the service plus cleaning,
+ * so the stations in use decide how many pets are groomed at once.
+ */
 export interface Station {
   id: string;
   name: string;
+  /** Off: no new bookings on it (repairs, groomer on leave); bookings already on it stay. */
+  active: boolean;
+  canDo: StationScope;
+  /** canDo = 'some': the services it can do. */
+  serviceIds: string[];
 }
+
+/** Body of POST /admin/stations and PUT /admin/stations/{id}. */
+export type StationDraft = Omit<Station, 'id'>;

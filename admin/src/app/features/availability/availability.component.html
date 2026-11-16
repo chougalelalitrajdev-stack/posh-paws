@@ -1,4 +1,4 @@
-<pp-page-header title="Availability" subtitle="When customers can book: the usual week, single days and holidays.">
+<pp-page-header title="Availability" subtitle="When customers can book: the usual week, single days, holidays and the stations.">
   <pp-segmented ppActions label="Show" [options]="views" [value]="picked()" (valueChange)="picked.set($event); show($event)" />
 </pp-page-header>
 
@@ -6,4 +6,5 @@
   @case ('week') { <pp-week /> }
   @case ('day') { <pp-day [(date)]="day" /> }
   @case ('holidays') { <pp-holidays (openDay)="openDay($event)" /> }
+  @case ('stations') { <pp-stations /> }
 }

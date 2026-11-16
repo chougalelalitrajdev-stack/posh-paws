@@ -1,0 +1,17 @@
+.pp-st-card { display: flex; flex-direction: column; gap: var(--space-3); .pp-hint { margin: 0; } }
+.pp-st-list { display: flex; flex-direction: column; }
+
+.pp-st-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 0;
+
+  & + & { border-top: 1px solid var(--pp-divider); }
+  &.is-off .pp-st-text { color: var(--pp-muted); }
+}
+
+.pp-st-text { flex: 1 1 220px; display: flex; flex-direction: column; font-size: var(--fs-sm); span { color: var(--pp-muted); } }
+.pp-st-capacity { margin: 0; font-size: var(--fs-sm); font-weight: 600; }
+.pp-st-switch { flex-direction: row; align-items: center; gap: var(--space-3); > span { display: flex; flex-direction: column; } .pp-hint { margin: 0; } }

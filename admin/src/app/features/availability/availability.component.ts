@@ -5,22 +5,25 @@ import { PageHeaderComponent } from '../../shared/components/page-header/page-he
 import { SegmentedComponent } from '../../shared/components/segmented/segmented.component';
 import { DayComponent } from './day/day.component';
 import { HolidaysComponent } from './holidays/holidays.component';
+import { StationsComponent } from './stations/stations.component';
 import { WeekComponent } from './week/week.component';
 
-type View = 'week' | 'day' | 'holidays';
+type View = 'week' | 'day' | 'holidays' | 'stations';
 const VIEWS: { value: View; label: string }[] = [
   { value: 'week', label: 'Week' },
   { value: 'day', label: 'Day' },
   { value: 'holidays', label: 'Holidays' },
+  { value: 'stations', label: 'Stations' },
 ];
 
 /**
  * Availability: everything about when customers can book. Strongest first: a holiday, that day's changes (Day),
- * the weekly pattern and opening hours (Week). Block time for one station stays on the Bookings calendar.
+ * the weekly pattern and opening hours (Week). Stations decide how many pets at once and which services each can do.
+ * Block time for one station stays on the Bookings calendar.
  */
 @Component({
   selector: 'pp-availability',
-  imports: [PageHeaderComponent, SegmentedComponent, WeekComponent, DayComponent, HolidaysComponent],
+  imports: [PageHeaderComponent, SegmentedComponent, WeekComponent, DayComponent, HolidaysComponent, StationsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss',

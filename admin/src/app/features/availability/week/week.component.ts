@@ -71,7 +71,7 @@ export class WeekComponent {
     bookAheadDays: [30],
     minNoticeMinutes: [30],
   });
-  protected stations = computed(() => this.catalog.stations().map(s => s.name).join(', '));
+  protected stations = computed(() => this.catalog.stations().filter(s => s.active).map(s => s.name).join(', '));
 
   constructor() {
     this.catalog.load().subscribe();

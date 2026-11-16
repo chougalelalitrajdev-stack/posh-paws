@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDragPlaceholder, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { CATALOG_EDIT_ROLES } from '../../../core/constants/app.constants';
 import { PetType, Service, ServiceCategory, ServiceDraft } from '../../../core/models/catalog.model';
@@ -30,7 +31,7 @@ export const MAX_DESCRIPTION = 140;
 @Component({
   selector: 'pp-services',
   imports: [
-    ReactiveFormsModule, CdkDropList, CdkDrag, CdkDragHandle, CdkDragPlaceholder, PageHeaderComponent, SegmentedComponent, StatusPillComponent,
+    ReactiveFormsModule, RouterLink, CdkDropList, CdkDrag, CdkDragHandle, CdkDragPlaceholder, PageHeaderComponent, SegmentedComponent, StatusPillComponent,
     SwitchComponent, ImageUploadComponent, IconComponent, HasRoleDirective, InrPipe, DurationPipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -80,6 +81,11 @@ export class ServicesComponent {
     ];
   });
   protected selected = computed(() => this.catalog.services().find(s => s.id === this.selectedId()) ?? null);
+
+  /** Stations in use that can do the service (Availability › Stations). */
+  protected doneAt(svc: Service): string {
+    return this.catalog.stationsFor(svc).map(st => st.name).join(', ');
+  }
   protected durations = computed(() => {
     const current = this.form.controls.durationMinutes.value;
     return [...new Set([...DURATIONS, current])].sort((a, b) => a - b).map(m => ({ value: m, label: formatDuration(m) }));

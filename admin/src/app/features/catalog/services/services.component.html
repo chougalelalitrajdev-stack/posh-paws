@@ -71,6 +71,12 @@
           <label class="pp-label" for="svc-pet">For</label>
           <select id="svc-pet" class="pp-input" formControlName="petType"><option value="dog">Dogs</option><option value="cat">Cats</option></select>
         </div>
+        @if (selected(); as svc) {
+          <div class="pp-field pp-span">
+            <span class="pp-label">Done at</span>
+            <span class="pp-small">{{ doneAt(svc) || 'No station in use can do it, so customers can’t book it.' }} · <a routerLink="/availability" [queryParams]="{ view: 'stations' }">Stations</a></span>
+          </div>
+        }
         <div class="pp-field pp-span">
           <label class="pp-label" for="svc-desc">Description</label>
           <textarea id="svc-desc" class="pp-input" rows="3" formControlName="description" aria-describedby="svc-desc-hint"

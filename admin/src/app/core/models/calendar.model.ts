@@ -15,8 +15,8 @@ export interface TimeBlock {
   fixed: boolean;
 }
 
-/** Body of POST /admin/blocks. */
-export type NewTimeBlock = Omit<TimeBlock, 'id' | 'fixed'>;
+/** Body of POST /admin/blocks. `allDay` blocks the station from opening to closing (a day off), ignoring time and duration. */
+export type NewTimeBlock = Omit<TimeBlock, 'id' | 'fixed'> & { allDay?: boolean };
 
 /** GET /admin/calendar?from=&days= */
 export interface CalendarData {

@@ -102,7 +102,7 @@ export class BookingListComponent {
     if (this.calView() === 'day') {
       return cal.stations.map(st => ({
         key: st.id,
-        label: st.name,
+        label: st.active ? st.name : `${st.name} (off)`,
         items: [
           ...cal.blocks.filter(b => b.stationId === st.id && b.date === this.calDate()).map(b => blockItem(b, false)),
           ...cal.bookings.filter(b => b.stationId === st.id && b.date === this.calDate()).map(b => bookingItem(b, false)),

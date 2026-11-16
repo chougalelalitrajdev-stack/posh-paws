@@ -2,7 +2,7 @@ import { HttpRequest } from '@angular/common/http';
 import { Banner } from '../models/banner.model';
 import { Booking } from '../models/booking.model';
 import { SlotChanges, TimeBlock } from '../models/calendar.model';
-import { Service } from '../models/catalog.model';
+import { Service, Station } from '../models/catalog.model';
 import { Customer } from '../models/customer.model';
 import { GalleryCategory, GalleryPhoto } from '../models/gallery.model';
 import { Offer } from '../models/offer.model';
@@ -15,7 +15,7 @@ import { StaffRole, StaffUser, TeamMember } from '../models/staff-user.model';
 import { today } from '../utils/date.utils';
 import { readJson } from '../utils/storage.utils';
 import {
-  FAQS, FAQ_GROUPS, GALLERY_CATEGORIES, PLANS, SERVICES, SETTINGS, seedBanners, seedBookings, seedClosures, seedCustomers, seedGallery, seedOffers,
+  FAQS, FAQ_GROUPS, GALLERY_CATEGORIES, PLANS, SERVICES, SETTINGS, STATIONS, seedBanners, seedBookings, seedClosures, seedCustomers, seedGallery, seedOffers,
   seedPages, seedSlotChanges, seedSubscriptions, seedTeam, seedTemplates,
 } from './mock-data';
 
@@ -23,7 +23,7 @@ import {
 // It is reseeded each new day, so the demo's "today" always looks like today.
 
 const KEY = 'ppa_mock_db';
-const VERSION = 11;
+const VERSION = 12;
 
 /** Browsers keep about 5 million characters per site; uploads are refused past this, so the demo keeps saving. */
 export const STORAGE_LIMIT = 4_000_000;
@@ -45,6 +45,8 @@ export interface MockDb {
   customers: StoredCustomer[];
   bookings: Booking[];
   blocks: TimeBlock[];
+  /** Availability › Stations, in display order (calendar columns). */
+  stations: Station[];
   /** Slot board: start times staff closed or opened, per day. */
   slotChanges: SlotChanges[];
   subscriptions: Subscription[];
@@ -99,7 +101,7 @@ function seed(): MockDb {
   const customers = seedCustomers();
   return {
     version: VERSION, seededOn: today(), nextId: 1060, customers,
-    bookings: seedBookings(customers), blocks: [], slotChanges: seedSlotChanges(), subscriptions: seedSubscriptions(customers),
+    bookings: seedBookings(customers), blocks: [], stations: structuredClone(STATIONS), slotChanges: seedSlotChanges(), subscriptions: seedSubscriptions(customers),
     services: structuredClone(SERVICES), plans: structuredClone(PLANS), offers: seedOffers(),
     banners: seedBanners(), galleryCategories: structuredClone(GALLERY_CATEGORIES), gallery: seedGallery(), pages: seedPages(),
     faqGroups: structuredClone(FAQ_GROUPS), faqs: structuredClone(FAQS),

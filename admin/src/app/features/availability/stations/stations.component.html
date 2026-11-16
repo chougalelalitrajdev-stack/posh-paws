@@ -1,0 +1,69 @@
+<section class="pp-card pp-st-card" aria-labelledby="stations-title">
+  <div class="pp-card-head">
+    <h2 id="stations-title" class="pp-card-title">Stations</h2>
+    <button *ppHasRole="editors" class="pp-btn pp-btn-sm pp-btn-primary" type="button" (click)="openEditor(null)">Add station</button>
+  </div>
+  <p class="pp-hint">Each booking holds one station for the whole service plus cleaning, so the stations in use decide how many pets are groomed at once. A start time is offered for a service only when a station that can do it is free; when several fit, the most specialised one is used first, keeping the all-rounders free.</p>
+
+  @if (gaps().length) {
+    <div class="pp-alert pp-alert-error" role="alert">No station in use can do {{ gaps().join(', ') }}, so customers can't book {{ gaps().length === 1 ? 'it' : 'them' }}.</div>
+  }
+
+  <div class="pp-st-list">
+    @for (st of catalog.stations(); track st.id) {
+      <div class="pp-st-row" [class.is-off]="!st.active">
+        <span class="pp-st-text"><strong>{{ st.name }}</strong><span>Can do: {{ scopeText(st) }}</span></span>
+        <pp-status-pill [label]="st.active ? 'In use' : 'Off'" [tone]="st.active ? 'success' : 'neutral'" />
+        <button *ppHasRole="editors" class="pp-btn pp-btn-sm" type="button" (click)="openEditor(st)">Edit</button>
+      </div>
+    }
+  </div>
+
+  <p class="pp-st-capacity">{{ capacityText() }}</p>
+  <p class="pp-hint">
+    @if (!canEdit()) { Only Admins change stations. }
+    For one day off, use Block time on the <a routerLink="/bookings" [queryParams]="{ view: 'calendar' }">Bookings calendar</a> and tick "All day".
+  </p>
+</section>
+
+@if (editing() !== undefined) {
+  <pp-modal [title]="editing() ? 'Edit ' + editing()!.name : 'Add station'" (closed)="editing.set(undefined)">
+    <form class="pp-form-grid" id="station-form" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+      <div class="pp-field pp-span">
+        <label class="pp-label" for="st-name">Name</label>
+        <input id="st-name" class="pp-input" placeholder="e.g. Table 3, Bath tub, Cat corner" formControlName="name"
+          [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched">
+      </div>
+      <div class="pp-field pp-span pp-st-switch">
+        <pp-switch label="In use" [checked]="form.controls.active.value" (checkedChange)="setActive($event)" />
+        <span><strong>In use</strong><span class="pp-hint">Switch off for repairs or while short of a groomer. Bookings already on it stay.</span></span>
+      </div>
+      <fieldset class="pp-field pp-span pp-radio-row">
+        <legend class="pp-label">Can do</legend>
+        @for (o of scopes; track o.value) {
+          <label class="pp-check"><input type="radio" formControlName="canDo" [value]="o.value"><span>{{ o.label }}</span></label>
+        }
+      </fieldset>
+      @if (form.controls.canDo.value === 'some') {
+        @for (group of serviceGroups(); track group.label) {
+          <div class="pp-field pp-span">
+            <span class="pp-label">{{ group.label }}</span>
+            <div class="pp-toggle-chips" role="group" [attr.aria-label]="group.label">
+              @for (s of group.services; track s.id) {
+                <button class="pp-toggle-chip" type="button" [class.active]="serviceIds().includes(s.id)" [attr.aria-pressed]="serviceIds().includes(s.id)" (click)="toggleService(s.id)">{{ s.name }}</button>
+              }
+            </div>
+          </div>
+        }
+      }
+    </form>
+    @if (editing()) {
+      <button ppModalActions class="pp-btn pp-btn-ghost pp-danger-text" type="button" [disabled]="saving()" (click)="remove()">Remove</button>
+    }
+    <button ppModalActions class="pp-btn" type="button" (click)="editing.set(undefined)">Cancel</button>
+    <button ppModalActions class="pp-btn pp-btn-primary" type="submit" form="station-form" [disabled]="saving()">
+      @if (saving()) { Saving… } @else { {{ editing() ? 'Save' : 'Add station' }} }
+    </button>
+  </pp-modal>
+}

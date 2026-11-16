@@ -1,7 +1,6 @@
-import { CATALOG_EDIT_ROLES } from '../constants/app.constants';
-import { PetType, Service, ServiceCategory, ServiceDraft } from '../models/catalog.model';
+import { CATALOG_EDIT_ROLES, SETTINGS_ROLES } from '../constants/app.constants';
+import { PetType, Service, ServiceCategory, ServiceDraft, Station, StationDraft } from '../models/catalog.model';
 import { today } from '../utils/date.utils';
-import { STATIONS } from './mock-data';
 import { MockError, MockRequest, NO_ROUTE, STORAGE_LIMIT, StoredService, db, requireRole, route, save, storageUsed } from './mock-db';
 
 const CATEGORIES: ServiceCategory[] = ['Bath', 'Haircut', 'Package', 'Add-on', 'Treatment'];
@@ -17,7 +16,11 @@ export function handleCatalog(r: MockRequest): unknown {
   if ((m = route(r, 'PUT', /^\/services\/([^/]+)$/))) return update(find(m[0]), r.body);
   if ((m = route(r, 'POST', /^\/services\/([^/]+)\/archive$/))) return setArchived(find(m[0]), true);
   if ((m = route(r, 'POST', /^\/services\/([^/]+)\/restore$/))) return setArchived(find(m[0]), false);
-  if ((m = route(r, 'GET', /^\/stations$/))) return STATIONS;
+  if ((m = route(r, 'GET', /^\/stations$/))) return db().stations;
+  if (r.method !== 'GET' && /^\/stations\b/.test(r.path)) requireRole(r, SETTINGS_ROLES); // shop setup: Admin and Super Admin
+  if ((m = route(r, 'POST', /^\/stations$/))) return createStation(r.body);
+  if ((m = route(r, 'PUT', /^\/stations\/([^/]+)$/))) return updateStation(station(m[0]), r.body);
+  if ((m = route(r, 'DELETE', /^\/stations\/([^/]+)$/))) return removeStation(station(m[0]));
   if ((m = route(r, 'POST', /^\/uploads$/))) return upload(r.body);
   return NO_ROUTE;
 }
@@ -101,4 +104,54 @@ async function upload(body: FormData): Promise<{ url: string }> {
     throw new MockError(507, 'Photo storage for this demo is full. Delete photos you don’t need, then try again. Real photo storage removes this limit.');
   }
   return { url };
+}
+
+// ── Stations (Availability › Stations) ────────────────────────
+
+function station(id: string): Station {
+  const st = db().stations.find(x => x.id === id);
+  if (!st) throw new MockError(404, 'Station not found.');
+  return st;
+}
+
+function cleanStation(body: StationDraft, id?: string): StationDraft {
+  const name = body?.name?.trim();
+  if (!name) throw new MockError(400, 'Name the station, e.g. Table 3 or Cat corner.');
+  if (db().stations.some(st => st.id !== id && st.name.toLowerCase() === name.toLowerCase())) throw new MockError(409, `There's already a station called ${name}.`);
+  if (!['all', 'dogs', 'cats', 'some'].includes(body.canDo)) throw new MockError(400, 'Pick what the station can do.');
+  const serviceIds = body.canDo === 'some' ? [...new Set(body.serviceIds ?? [])].filter(sid => db().services.some(sv => sv.id === sid)) : [];
+  if (body.canDo === 'some' && !serviceIds.length) throw new MockError(400, 'Pick at least one service it can do.');
+  return { name, active: body.active !== false, canDo: body.canDo, serviceIds };
+}
+
+/** Keep at least one station in use, or nobody could book. */
+function keepOneInUse(changing: string, active: boolean): void {
+  if (!active && !db().stations.some(st => st.id !== changing && st.active)) throw new MockError(409, 'Keep at least one station in use.');
+}
+
+function createStation(body: StationDraft): Station {
+  const st: Station = { id: `st-${Date.now().toString(36)}`, ...cleanStation(body) };
+  db().stations.push(st);
+  save();
+  return st;
+}
+
+function updateStation(st: Station, body: StationDraft): Station {
+  const draft = cleanStation(body, st.id);
+  keepOneInUse(st.id, draft.active);
+  // Bookings already on the station stay, even if it's switched off or can no longer do their service.
+  Object.assign(st, draft);
+  save();
+  return st;
+}
+
+/** Only a station with no upcoming bookings can go; otherwise switch it off. */
+function removeStation(st: Station): object {
+  keepOneInUse(st.id, false);
+  const upcoming = db().bookings.filter(b => b.stationId === st.id && b.date && b.date >= today() && ['awaiting_payment', 'confirmed'].includes(b.stage)).length;
+  if (upcoming) throw new MockError(409, `${upcoming} upcoming booking${upcoming === 1 ? ' is' : 's are'} on ${st.name}. Move ${upcoming === 1 ? 'it' : 'them'} first, or switch the station off instead.`);
+  db().stations = db().stations.filter(x => x.id !== st.id);
+  db().blocks = db().blocks.filter(b => b.stationId !== st.id);
+  save();
+  return {};
 }

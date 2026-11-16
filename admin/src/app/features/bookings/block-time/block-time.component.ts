@@ -8,7 +8,7 @@ import { errorMessage } from '../../../core/utils/error.utils';
 import { formatDuration, timeFromMinutes, today } from '../../../core/utils/date.utils';
 import { ModalComponent } from '../../../shared/components/modal/modal.component';
 
-/** "Block time" dialog on the calendar: keeps a station free (meeting, maintenance, leave). */
+/** "Block time" dialog on the calendar: keeps a station free (meeting, maintenance, leave), for a while or all day. */
 @Component({
   selector: 'pp-block-time',
   imports: [ReactiveFormsModule, ModalComponent],
@@ -35,6 +35,7 @@ export class BlockTimeComponent implements OnInit {
     date: ['', Validators.required],
     time: ['10:00', Validators.required],
     durationMinutes: [60, Validators.required],
+    allDay: [false],
     reason: [''],
   });
   protected saving = signal(false);
@@ -52,11 +53,11 @@ export class BlockTimeComponent implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     const v = this.form.getRawValue();
-    this.bookingService.addBlock({ ...v, durationMinutes: Number(v.durationMinutes), reason: v.reason.trim() || 'Blocked' })
+    this.bookingService.addBlock({ ...v, durationMinutes: Number(v.durationMinutes), reason: v.reason.trim() || (v.allDay ? 'Day off' : 'Blocked') })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: () => {
-          this.alert.success('Time blocked.');
+          this.alert.success(v.allDay ? 'Station blocked for the day.' : 'Time blocked.');
           this.saved.emit();
         },
         error: e => this.error.set(errorMessage(e)),

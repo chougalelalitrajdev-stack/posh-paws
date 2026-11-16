@@ -97,7 +97,7 @@
       <div class="pp-field"><label class="pp-label" for="bs-notice">Minimum notice</label>
         <select id="bs-notice" class="pp-input" formControlName="minNoticeMinutes">@for (o of options.notice; track o.value) { <option [ngValue]="o.value">{{ o.label }}</option> }</select>
         <span class="pp-hint">No slots sooner than this from now.</span></div>
-      <div class="pp-field"><span class="pp-label">Grooming stations</span><span class="pp-small">{{ catalog.stations().length }} · {{ stations() }}</span></div>
+      <div class="pp-field"><span class="pp-label">Stations in use</span><span class="pp-small">{{ stations() }} · <a routerLink="/availability" [queryParams]="{ view: 'stations' }">Change</a></span></div>
       <div class="pp-field"><span class="pp-label">Service lengths</span><span class="pp-small">Set per service in <a routerLink="/services">Services</a>.</span></div>
     </div>
   </form>
