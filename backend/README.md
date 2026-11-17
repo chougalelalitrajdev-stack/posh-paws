@@ -4,18 +4,33 @@ REST API for the customer and admin apps, built with Python FastAPI.
 
 ## Run
 
+Needs Python 3.12+ and PostgreSQL 17 (on the Mac: `brew install python@3.13 postgresql@17`, then `brew services start postgresql@17`).
+
 ```bash
 cd backend
-python3 -m venv .venv            # once
-source .venv/bin/activate        # every new terminal
-pip install -r requirements.txt  # once, and after requirements change
-cp .env.example .env             # once, then edit if needed
+createdb posh_paws && createdb posh_paws_test   # once (psql tools live in /opt/homebrew/opt/postgresql@17/bin)
+python3.13 -m venv .venv                         # once
+source .venv/bin/activate                        # every new terminal
+pip install -r requirements.txt                  # once, and after requirements change
+cp .env.example .env                             # once, then edit if needed
 
-uvicorn app.main:app --reload    # http://localhost:8000/api/health
-pytest                           # tests
+alembic upgrade head                             # bring the database's tables up to date (after every pull)
+uvicorn app.main:app --reload                    # http://localhost:8000/api/health
+pytest                                           # tests (they use posh_paws_test)
 ```
 
 Interactive API docs: http://localhost:8000/docs
+
+## Database changes (migrations)
+
+Tables are defined in each topic's `models.py`. After changing them:
+
+```bash
+alembic revision --autogenerate -m "add stations"   # writes a migration file in alembic/versions/ (check it!)
+alembic upgrade head                                 # applies it to your database
+```
+
+Migrations are committed with the code, so every database (yours, the test one, the online one) reaches the same shape. New topics' models are imported in `alembic/env.py` so Alembic can see them.
 
 ## Structure
 
@@ -24,13 +39,15 @@ Organised by **module**, because the product grows: grooming now, a store and do
 ```
 backend/
 ├── app/
-│   ├── main.py          creates the app, CORS, registers every router under /api
-│   ├── core/            plumbing: settings (config.py), health check; later database connection, login tokens, error handlers
+│   ├── main.py          creates the app, CORS, error format, registers every router under /api
+│   ├── core/            plumbing: settings (config.py), database connection (database.py), CamelModel (schemas.py),
+│   │                    error format (errors.py), health check; later login tokens
 │   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
 │   ├── grooming/        services, stations, slots, bookings, membership plans
 │   ├── shop/            (later)
 │   └── vet/             (later)
-├── tests/               pytest, mirroring app/: tests/grooming/test_bookings.py, ...
+├── alembic/             migrations: versions/ holds one file per database change
+├── tests/               pytest, mirroring app/: tests/grooming/test_bookings.py, ... (conftest.py points them at posh_paws_test)
 ├── requirements.txt
 └── .env.example
 ```
@@ -61,5 +78,7 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 ## Conventions
 
 - Follow the API contract in the root `CLAUDE.md`: camelCase JSON, money in integer paise, errors as `{"detail": "..."}`.
+- Request and response shapes inherit `CamelModel` (`app.core.schemas`), so Python stays snake_case and the JSON is camelCase.
+- Routes get a database session with `db: Session = Depends(get_db)` (`app.core.database`).
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
 - Settings come from `core/config.py` (environment variables or `.env`), never hard-coded.

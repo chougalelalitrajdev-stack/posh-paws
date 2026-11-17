@@ -78,7 +78,7 @@ Every request goes **route → service → database**: the route receives it, th
 ## 6. Modules
 
 ### Phase 1: admin side
-- [ ] **0. Foundations:** what an API is, requests/responses, status codes, tables, migrations. The project connects to Postgres; error format; camelCase.
+- [x] **0. Foundations:** what an API is, requests/responses, status codes, tables, migrations. The project connects to Postgres; error format; camelCase.
 - [ ] **1. Authentication & team:** password hashing, login tokens (JWT), roles and 403. Real sign-in, Super Admin / Admin / Staff, Team & roles.
 - [ ] **2. Settings & message templates:** basic create/read/update/delete and validation.
 - [ ] **First deploy:** Render + Supabase; the admin on Netlify talks to the real API.
@@ -117,9 +117,7 @@ Every request goes **route → service → database**: the route receives it, th
 
 ## 8. Before Module 0
 
-1. Install **Python 3.12 or newer** from python.org.
-2. Install **Postgres.app** and press Initialize.
-3. Optional: install **TablePlus**, to watch the tables fill up as we build.
+Done on 16 Nov 2026: Python 3.13 and PostgreSQL 17 (Homebrew, running as a service), TablePlus; databases `posh_paws` and `posh_paws_test`.
 
 ## 9. Decisions
 

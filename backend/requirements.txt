@@ -1,6 +1,11 @@
-fastapi>=0.110
-uvicorn[standard]>=0.29
-pydantic-settings>=2.2
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic-settings>=2.4
+
+# Database: SQLAlchemy (tables as Python classes), psycopg (the PostgreSQL driver), Alembic (migrations)
+sqlalchemy>=2.0.30
+psycopg[binary]>=3.2
+alembic>=1.13
 
 # Tests
 pytest>=8.0
