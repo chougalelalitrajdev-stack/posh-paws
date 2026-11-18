@@ -15,6 +15,7 @@ pip install -r requirements.txt                  # once, and after requirements 
 cp .env.example .env                             # once, then edit if needed
 
 alembic upgrade head                             # bring the database's tables up to date (after every pull)
+python -m app.seed                               # once: demo staff (owner@ / meera@ / amit@poshpaws.in, password pawsword)
 uvicorn app.main:app --reload                    # http://localhost:8000/api/health
 pytest                                           # tests (they use posh_paws_test)
 ```
@@ -41,7 +42,8 @@ backend/
 ├── app/
 │   ├── main.py          creates the app, CORS, error format, registers every router under /api
 │   ├── core/            plumbing: settings (config.py), database connection (database.py), CamelModel (schemas.py),
-│   │                    error format (errors.py), health check; later login tokens
+│   │                    error format (errors.py), passwords + sign-in tokens (security.py), health check
+│   ├── seed.py          demo data for your own Mac (python -m app.seed)
 │   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
 │   ├── grooming/        services, stations, slots, bookings, membership plans
 │   ├── shop/            (later)
@@ -80,5 +82,6 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 - Follow the API contract in the root `CLAUDE.md`: camelCase JSON, money in integer paise, errors as `{"detail": "..."}`.
 - Request and response shapes inherit `CamelModel` (`app.core.schemas`), so Python stays snake_case and the JSON is camelCase.
 - Routes get a database session with `db: Session = Depends(get_db)` (`app.core.database`).
+- Staff routes are protected with `Depends(require_roles(*SETTINGS_ROLES))` (or `current_staff` for any signed-in staff) from `app.shared.staff.service`, which also holds the permissions list. 401 = not signed in, 403 = signed in but not allowed.
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
 - Settings come from `core/config.py` (environment variables or `.env`), never hard-coded.

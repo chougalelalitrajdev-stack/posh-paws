@@ -19,7 +19,7 @@ A ✅ foundation (shell, login, roles, interceptors, toasts, confirm, mocks) · 
 
 ```
 src/
-  environments/          apiUrl, useMocks
+  environments/          apiUrl, useMocks, liveApi (areas served by the real backend); environment.testing.ts keeps unit tests on mocks
   styles/                _tokens (brand colours from the design), _bootstrap-overrides, _base, components/
   app/
     core/                app-wide logic, no UI
@@ -52,6 +52,7 @@ Rules (same as customer): imports go `features → shared → core`, never backw
 
 - **Form layouts**: a row of radios is `fieldset.pp-radio-row`; an input with buttons beside it is `.pp-input-row`.
 - **Forms use Reactive Forms** (`NonNullableFormBuilder`); show field errors once touched; disable submit while saving.
+- **Moving to the real backend, area by area**: `environment.liveApi` (development only) lists the `/admin` areas the FastAPI backend already serves (`/auth`, `/team` after backend Module 1); the mock interceptor passes those through and answers the rest. Mocks trust the backend's JWT (they read who it names) so demo screens keep working with a real sign-in. Unit tests always run on mocks (`npm test` uses the `test` build configuration → `environment.testing.ts`). Production lists nothing until the backend is deployed.
 - **Async = RxJS for calls, signals for state.** Services return `Observable`s straight from `HttpClient` (cache updates in `tap`); nothing happens until a caller subscribes, so every call site subscribes. State lives in signals (a `BehaviorSubject` only if a signal genuinely can't do it).
   - Loads that depend on changing inputs (filters, tabs, pages, route ids): `toObservable(query).pipe(tap(loading), switchMap(q => service.list(q).pipe(catchError(() => of(null)))), takeUntilDestroyed())`, so a newer request cancels the older one. To load again after an action, bump a `version` signal that is part of the query.
   - Button actions: `service.save(...).pipe(finalize(() => saving.set(false))).subscribe({ next, error })`; chain follow-ups with `switchMap` (save → reload) so the toast comes after the screen is up to date.

@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://localhost:5432/posh_paws"
     # Print every query the backend sends to the database in the server's terminal (for learning and debugging).
     sql_echo: bool = False
+    # Signs the sign-in tokens. Anyone who knows it could make tokens, so online it's a long random value set
+    # in the host's settings (SECRET_KEY), never in the code. This default only works on your own Mac.
+    secret_key: str = "dev-only-not-secret-use-a-long-random-key-online"
+    # How long a sign-in lasts before staff sign in again.
+    token_days: int = 7
     # Front-ends allowed to call the API: customer (4200) and admin (4300) in development.
     cors_origins: List[str] = ["http://localhost:4200", "http://localhost:4300"]
 

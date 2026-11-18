@@ -40,8 +40,11 @@ const HANDLERS = [
   handlePayments, handleTemplates, handleSettings,
 ];
 
+/** Areas the real backend serves (environment.liveApi): those requests go straight through to it. */
+const isLive = (url: string) => environment.liveApi.some(area => url.slice(ADMIN_API.length).startsWith(area));
+
 export const mockInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.startsWith(ADMIN_API)) return next(req);
+  if (!req.url.startsWith(ADMIN_API) || isLive(req.url)) return next(req);
   const alert = inject(AlertService);
   return timer(LATENCY_MS).pipe(
     mergeMap(() => respond(req)),
@@ -107,7 +110,22 @@ function login({ email, password }: { email: string; password: string }) {
 
 function currentStaff(req: HttpRequest<unknown>): StaffUser {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
-  const user = db().staff.find(s => tokenFor(s) === token && s.status === 'active');
+  const user = db().staff.find(s => tokenFor(s) === token && s.status === 'active') ?? staffFromToken(token);
   if (!user) throw new MockError(401, 'Please sign in.');
   return user;
+}
+
+/**
+ * Once sign-in is live, tokens come from the real backend (a JWT). Its middle part names the person and their role;
+ * the backend checks the signature, and these demo screens simply trust it.
+ */
+function staffFromToken(token: string): StaffUser | null {
+  const claims = token.split('.')[1];
+  if (!claims) return null;
+  try {
+    const c = JSON.parse(atob(claims.replace(/-/g, '+').replace(/_/g, '/')));
+    return c.sub && c.role ? { id: c.sub, name: c.name, email: c.email, role: c.role } : null;
+  } catch {
+    return null;
+  }
 }
