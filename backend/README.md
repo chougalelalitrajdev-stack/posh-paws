@@ -15,7 +15,7 @@ pip install -r requirements.txt                  # once, and after requirements 
 cp .env.example .env                             # once, then edit if needed
 
 alembic upgrade head                             # bring the database's tables up to date (after every pull)
-python -m app.seed                               # once: demo staff (owner@ / meera@ / amit@poshpaws.in, password pawsword)
+python -m app.seed                               # demo staff (owner@ / meera@ / amit@poshpaws.in, password pawsword) and the demo catalog; safe to rerun
 uvicorn app.main:app --reload                    # http://localhost:8000/api/health
 pytest                                           # tests (they use posh_paws_test)
 ```
@@ -44,9 +44,9 @@ backend/
 │   ├── core/            plumbing: settings (config.py), database connection (database.py), CamelModel (schemas.py),
 │   │                    error format (errors.py), passwords + sign-in tokens (security.py), the shop's clock and
 │   │                    HH:mm helpers (dates.py), health check
-│   ├── seed.py          demo data for your own Mac (python -m app.seed)
+│   ├── seed.py          demo data for your own Mac (python -m app.seed), with the admin demo's ids
 │   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
-│   ├── grooming/        services, stations, slots, bookings, membership plans
+│   ├── grooming/        catalog (services + stations), plans, offers; later slots, bookings, subscriptions
 │   ├── shop/            (later)
 │   └── vet/             (later)
 ├── alembic/             migrations: versions/ holds one file per database change
@@ -84,7 +84,8 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 - Request and response shapes inherit `CamelModel` (`app.core.schemas`), so Python stays snake_case and the JSON is camelCase.
 - Routes get a database session with `db: Session = Depends(get_db)` (`app.core.database`).
 - "Today" and times are the shop's (`app.core.dates.today()`, Asia/Kolkata), never the server's.
-- A single set of options (a settings section) is one JSONB row with defaults in code; a list of things (holidays, templates, later bookings) is a table with one row each.
+- A single set of options (a settings section) is one JSONB row with defaults in code; a list of things (holidays, templates, services, later bookings) is a table with one row each. A short list inside one row (a station's service ids) is an `ARRAY` column; services are archived, never deleted, so those ids stay valid.
+- Checks on the shape of a request (required fields, ranges, choices) live in `schemas.py` and answer 422; rules that need the database (a unique name or code, ids that exist, "keep one station in use") live in `service.py` and answer 400, 404 or 409.
 - Staff routes are protected with `Depends(require_roles(*SETTINGS_ROLES))` (or `current_staff` for any signed-in staff) from `app.shared.staff.service`, which also holds the permissions list. 401 = not signed in, 403 = signed in but not allowed.
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
 - Settings come from `core/config.py` (environment variables or `.env`), never hard-coded.

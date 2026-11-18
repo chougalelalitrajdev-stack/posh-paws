@@ -19,6 +19,9 @@ from app.core.config import settings  # noqa: E402
 from app.core.database import Base  # noqa: E402
 
 # Import every topic's models.py here as modules are built, so Alembic can see their tables, e.g.:
+import app.grooming.catalog.models  # noqa: E402,F401
+import app.grooming.offers.models  # noqa: E402,F401
+import app.grooming.plans.models  # noqa: E402,F401
 import app.shared.settings.models  # noqa: E402,F401
 import app.shared.staff.models  # noqa: E402,F401
 import app.shared.templates.models  # noqa: E402,F401

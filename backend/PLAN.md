@@ -35,7 +35,7 @@ Admin app ────┘    "the backend"       ├─► SMS/WhatsApp provider
 | OTP codes for customer login | MSG91 or similar (SMS in India needs DLT registration) | Per message | Module 9 |
 | Payment gateway | **Razorpay**: UPI, payment links, refunds | % per payment | Module 12 |
 
-Free plans are fine for building and testing. Render's free API sleeps when unused (the first request after a while takes 30–60 s), and Supabase pauses idle free projects. When real customers use it, expect roughly $7/month (Render) + $25/month (Supabase); confirm prices when signing up. **Nothing to buy to start:** we build on the Mac first and deploy after Module 2.
+Free plans are fine for building and testing. Render's free API sleeps when unused (the first request after a while takes 30–60 s), and Supabase pauses idle free projects. When real customers use it, expect roughly $7/month (Render) + $25/month (Supabase); confirm prices when signing up. **Nothing to buy to start:** we build every module on the Mac first and deploy once at the end (decided 18 Nov 2026).
 
 ## 3. Tools inside the backend
 
@@ -81,8 +81,7 @@ Every request goes **route → service → database**: the route receives it, th
 - [x] **0. Foundations:** what an API is, requests/responses, status codes, tables, migrations. The project connects to Postgres; error format; camelCase.
 - [x] **1. Authentication & team:** password hashing, login tokens (JWT), roles and 403. Real sign-in, Super Admin / Admin / Staff, Team & roles.
 - [x] **2. Settings & message templates:** basic create/read/update/delete and validation.
-- [ ] **First deploy:** Render + Supabase; the admin on Netlify talks to the real API.
-- [ ] **3. Catalog:** services, stations, membership plans, offers (ordering, archiving, unique codes).
+- [x] **3. Catalog:** services, stations, membership plans, offers (ordering, archiving, unique codes).
 - [ ] **4. Customers & pets:** relations (one customer, many pets), pagination, search.
 - [ ] **5. Bookings & slots** (the heart): slots, slot board, calendar, block time, New booking, reschedule, cancel, complete / no-show; stopping two people from taking the same slot.
 - [ ] **6. Money:** bills, discounts, plan sessions, payment records, checkout, refunds, Payments, Today dashboard.
@@ -107,7 +106,13 @@ Every request goes **route → service → database**: the route receives it, th
 - [ ] **Login codes:** either SMS through a provider like MSG91, which needs **DLT registration** (business entity, sender name, approved message wording, about 1–2 weeks), or codes on WhatsApp through a provider (Meta business verification, some days). Needed for customer login (Module 9).
 - [ ] **Domain name** (optional but nicer): e.g. `poshpaws.in` for the app, `admin.poshpaws.in`, `api.poshpaws.in`.
 
-**Needed on launch day:** Modules 0–12 and the first deploy. Module 13 (automatic WhatsApp) can follow; staff keep using "Open WhatsApp" until then. If time is short, content (Module 8) can also follow, since the customer app's pages work without it.
+**Needed on launch day:** Modules 0–12, all built and checked on the Mac, then the deploy. Module 13 (automatic WhatsApp) can follow; staff keep using "Open WhatsApp" until then. If time is short, content (Module 8) can also follow, since the customer app's pages work without it.
+
+**The deploy** (once, after the modules; about a day, plus time to fix what only shows up online):
+- [ ] **Supabase** (database): an account (sign in with GitHub), a project in the **Singapore** region with a strong database password you keep safe. The app connects through the **Session pooler** address (Render can't reach the direct address).
+- [ ] **Render** (API): an account (sign in with GitHub) with access to the `posh-paws` repo, a web service from `backend/`, Singapore region (next to the database). Its environment variables: `DATABASE_URL` (pasted by you from Supabase; nobody else needs to see it), `SECRET_KEY` (a long random value), `CORS_ORIGINS` (the admin's and customer app's Netlify addresses). Migrations run when the service starts.
+- [ ] **The first Super Admin** account created with a small command (your real email and a password you choose); everyone else is added from Team & roles.
+- [ ] **Both apps** rebuilt with the real `apiUrl` and uploaded to Netlify.
 
 **At launch, switch hosting to paid plans:** free plans sleep and have no backups, which isn't acceptable with real customers. Roughly $7/month (Render) + $25/month (Supabase, includes daily backups). Then:
 - [ ] Both apps: `useMocks: false` and the real `apiUrl`; rebuild and upload to Netlify.
@@ -122,5 +127,6 @@ Done on 16 Nov 2026: Python 3.13 and PostgreSQL 17 (Homebrew, running as a servi
 ## 9. Decisions
 
 - Decided: backend organised by module (`core/`, `shared/`, `grooming/`, later `shop/` and `vet/`).
-- Recommended, confirm at first deploy: Render (API) + Supabase (database and photos).
+- Decided (18 Nov 2026): finish all Phase 1 modules locally, then deploy once.
+- Recommended, confirm at the deploy: Render (API) + Supabase (database and photos), both in Singapore.
 - Open, decide when we get there: OTP provider (Module 9), payment gateway (Module 12), WhatsApp sending (Module 13).

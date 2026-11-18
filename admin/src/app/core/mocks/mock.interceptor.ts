@@ -55,21 +55,33 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   );
 };
 
+/** Catalog lists the demo bookings, memberships and prices read from their own copy (same ids as the backend's seed). */
+const MIRRORED = ['services', 'stations', 'plans', 'offers'] as const;
+
 /**
- * Screens still on demo data (slots, bookings, the Day board) work from the demo copy of the settings.
- * While settings are live, each real settings reply is copied in, so those screens follow the real hours and holidays.
- * Goes away when slots move to the backend (backend/PLAN.md, Module 5).
+ * Screens still on demo data (slots, bookings, the Day board, bills, subscriptions) work from the demo copy of the settings and catalog.
+ * While those are live, each real reply is copied in, so those screens follow the real hours, holidays, services, stations, plans and offers.
+ * Goes away when bookings, money and subscriptions move to the backend (backend/PLAN.md, Modules 5–7).
  */
 function mirrorLive(path: string, body: unknown): void {
   if (!body || typeof body !== 'object') return;
+  const list = MIRRORED.find(name => path.startsWith(`/${name}`));
   if (path.startsWith('/settings') && 'booking' in body) {
     const s = body as Settings;
     db().settings = { ...s, booking: { ...s.booking, closures: s.booking.closures.map(({ affectedBookings, ...c }) => c) } };
-    save();
   } else if (path.startsWith('/slot-board/week') && 'days' in body) {
     for (const { slots, ...hours } of (body as WeekBoard).days) db().settings.booking.hours[hours.day] = hours;
-    save();
-  }
+  } else if (list) {
+    // A whole list replaces the copy; one saved item replaces its old self (or is added).
+    const lists = db() as unknown as Record<(typeof MIRRORED)[number], { id: string }[]>;
+    if (Array.isArray(body)) lists[list] = body;
+    else if ('id' in body) {
+      const i = lists[list].findIndex(x => x.id === body.id);
+      if (i < 0) lists[list].push(body as { id: string });
+      else lists[list][i] = body as { id: string };
+    } else return;
+  } else return;
+  save();
 }
 
 /** Uploaded photos live in browser storage while mocks are on; say so before it fills up. */
