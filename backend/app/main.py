@@ -4,9 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core import health
 from app.core.config import settings
 from app.core.errors import add_error_handlers
+from app.grooming.bookings import routes as booking_routes
 from app.grooming.catalog import routes as catalog_routes
 from app.grooming.offers import routes as offer_routes
 from app.grooming.plans import routes as plan_routes
+from app.grooming.slots import routes as slot_routes
 from app.shared.customers import routes as customer_routes
 from app.shared.settings import routes as settings_routes
 from app.shared.staff import routes as staff_routes
@@ -36,3 +38,8 @@ app.include_router(plan_routes.router, prefix="/api")
 app.include_router(offer_routes.router, prefix="/api")
 app.include_router(customer_routes.router, prefix="/api")
 app.include_router(customer_routes.pet_router, prefix="/api")
+app.include_router(slot_routes.slots_router, prefix="/api")
+app.include_router(slot_routes.board_router, prefix="/api")
+app.include_router(slot_routes.blocks_router, prefix="/api")
+app.include_router(booking_routes.router, prefix="/api")
+app.include_router(booking_routes.calendar_router, prefix="/api")

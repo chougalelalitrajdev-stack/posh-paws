@@ -1,7 +1,7 @@
 """Dates and times in the shop's timezone (settings.timezone), and the HH:mm helpers slots use."""
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, time
 from zoneinfo import ZoneInfo
 
 from app.core.config import settings
@@ -16,6 +16,22 @@ def now() -> datetime:
 
 def today() -> date:
     return now().date()
+
+
+def local(day: date, hhmm: str) -> datetime:
+    """A day and an HH:mm in the shop's local time, without a timezone (how slot times are stored)."""
+    hours, minutes = hhmm.split(":")
+    return datetime.combine(day, time(int(hours), int(minutes)))
+
+
+def starts_at(day: date, hhmm: str) -> datetime:
+    """The moment an appointment starts, as a real point in time (to compare with now())."""
+    return local(day, hhmm).replace(tzinfo=ZoneInfo(settings.timezone))
+
+
+def short_date(day: date) -> str:
+    """"Thu 19 Nov", as the apps show dates."""
+    return f"{day:%a} {day.day} {day:%b}"
 
 
 def minutes_of_day(time: str) -> int:

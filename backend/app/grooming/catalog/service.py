@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.dates import today
+from app.grooming.bookings.models import Booking
 from app.grooming.catalog.models import Service, Station
 from app.grooming.catalog.schemas import ServiceIn, StationIn
 
@@ -125,7 +127,13 @@ def update_station(db: Session, st: Station, body: StationIn) -> Station:
 
 
 def remove_station(db: Session, st: Station) -> None:
-    """Only a station with no upcoming bookings can go; otherwise switch it off. (Bookings are checked from Module 5.)"""
+    """Only a station with no upcoming bookings can go; otherwise switch it off. Its blocks go with it; past bookings keep no station."""
     _keep_one_in_use(db, st.id, False)
+    upcoming = db.scalar(select(func.count()).select_from(Booking).where(
+        Booking.station_id == st.id, Booking.date >= today(), Booking.stage.in_(("awaiting_payment", "confirmed"))))
+    if upcoming:
+        them = "it" if upcoming == 1 else "them"
+        raise HTTPException(status_code=409, detail=f"{upcoming} upcoming booking{' is' if upcoming == 1 else 's are'} on {st.name}. "
+                                                    f"Move {them} first, or switch the station off instead.")
     db.delete(st)
     db.commit()

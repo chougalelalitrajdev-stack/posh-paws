@@ -6,11 +6,14 @@ os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://localhost:5432/posh_
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
-import app.grooming.catalog.models  # noqa: E402,F401  (registers the tables)
+import app.grooming.bookings.models  # noqa: E402,F401  (registers the tables)
+import app.grooming.catalog.models  # noqa: E402,F401
 import app.grooming.offers.models  # noqa: E402,F401
 import app.grooming.plans.models  # noqa: E402,F401
+import app.grooming.slots.models  # noqa: E402,F401
 import app.shared.customers.models  # noqa: E402,F401
 import app.shared.settings.models  # noqa: E402,F401
 import app.shared.staff.models  # noqa: E402,F401
@@ -22,6 +25,8 @@ from app.main import app  # noqa: E402
 @pytest.fixture(scope="session", autouse=True)
 def tables():
     """Fresh tables once per test run, built straight from the models."""
+    with engine.begin() as conn:
+        conn.execute(text("create extension if not exists btree_gist"))  # for the no-double-booking rule (as in the migration)
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     yield
