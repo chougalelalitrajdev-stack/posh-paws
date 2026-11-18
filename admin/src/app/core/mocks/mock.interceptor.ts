@@ -2,6 +2,8 @@ import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from 
 import { inject } from '@angular/core';
 import { Observable, catchError, from, map, mergeMap, tap, throwError, timer } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { WeekBoard } from '../models/calendar.model';
+import { Settings } from '../models/settings.model';
 import { StaffUser } from '../models/staff-user.model';
 import { AlertService } from '../services/alert.service';
 import { handleBanners } from './mock-banners';
@@ -20,7 +22,7 @@ import { handlePets } from './mock-pets';
 import { handleSearch } from './mock-search';
 import { handleSubscriptions } from './mock-subscriptions';
 import { MOCK_PASSWORD } from './mock-data';
-import { MockError, MockRequest, NO_ROUTE, STORAGE_LIMIT, db, storageUsed } from './mock-db';
+import { MockError, MockRequest, NO_ROUTE, STORAGE_LIMIT, db, save, storageUsed } from './mock-db';
 
 // ─────────────────────────────────────────────────────────────
 //  TEMPORARY fake backend. While environment.useMocks is true it answers
@@ -44,13 +46,31 @@ const HANDLERS = [
 const isLive = (url: string) => environment.liveApi.some(area => url.slice(ADMIN_API.length).startsWith(area));
 
 export const mockInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.startsWith(ADMIN_API) || isLive(req.url)) return next(req);
+  if (!req.url.startsWith(ADMIN_API)) return next(req);
+  if (isLive(req.url)) return next(req).pipe(tap(event => event instanceof HttpResponse && mirrorLive(req.url.slice(ADMIN_API.length), event.body)));
   const alert = inject(AlertService);
   return timer(LATENCY_MS).pipe(
     mergeMap(() => respond(req)),
     tap(res => warnWhenStorageFills(req, res, alert)),
   );
 };
+
+/**
+ * Screens still on demo data (slots, bookings, the Day board) work from the demo copy of the settings.
+ * While settings are live, each real settings reply is copied in, so those screens follow the real hours and holidays.
+ * Goes away when slots move to the backend (backend/PLAN.md, Module 5).
+ */
+function mirrorLive(path: string, body: unknown): void {
+  if (!body || typeof body !== 'object') return;
+  if (path.startsWith('/settings') && 'booking' in body) {
+    const s = body as Settings;
+    db().settings = { ...s, booking: { ...s.booking, closures: s.booking.closures.map(({ affectedBookings, ...c }) => c) } };
+    save();
+  } else if (path.startsWith('/slot-board/week') && 'days' in body) {
+    for (const { slots, ...hours } of (body as WeekBoard).days) db().settings.booking.hours[hours.day] = hours;
+    save();
+  }
+}
 
 /** Uploaded photos live in browser storage while mocks are on; say so before it fills up. */
 function warnWhenStorageFills(req: HttpRequest<unknown>, res: HttpResponse<unknown>, alert: AlertService): void {

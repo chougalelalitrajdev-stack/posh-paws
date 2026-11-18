@@ -42,7 +42,8 @@ backend/
 ├── app/
 │   ├── main.py          creates the app, CORS, error format, registers every router under /api
 │   ├── core/            plumbing: settings (config.py), database connection (database.py), CamelModel (schemas.py),
-│   │                    error format (errors.py), passwords + sign-in tokens (security.py), health check
+│   │                    error format (errors.py), passwords + sign-in tokens (security.py), the shop's clock and
+│   │                    HH:mm helpers (dates.py), health check
 │   ├── seed.py          demo data for your own Mac (python -m app.seed)
 │   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
 │   ├── grooming/        services, stations, slots, bookings, membership plans
@@ -82,6 +83,8 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 - Follow the API contract in the root `CLAUDE.md`: camelCase JSON, money in integer paise, errors as `{"detail": "..."}`.
 - Request and response shapes inherit `CamelModel` (`app.core.schemas`), so Python stays snake_case and the JSON is camelCase.
 - Routes get a database session with `db: Session = Depends(get_db)` (`app.core.database`).
+- "Today" and times are the shop's (`app.core.dates.today()`, Asia/Kolkata), never the server's.
+- A single set of options (a settings section) is one JSONB row with defaults in code; a list of things (holidays, templates, later bookings) is a table with one row each.
 - Staff routes are protected with `Depends(require_roles(*SETTINGS_ROLES))` (or `current_staff` for any signed-in staff) from `app.shared.staff.service`, which also holds the permissions list. 401 = not signed in, 403 = signed in but not allowed.
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
 - Settings come from `core/config.py` (environment variables or `.env`), never hard-coded.

@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     secret_key: str = "dev-only-not-secret-use-a-long-random-key-online"
     # How long a sign-in lasts before staff sign in again.
     token_days: int = 7
+    # The shop's timezone: "today", opening hours and slots are in Pune time, wherever the server runs.
+    timezone: str = "Asia/Kolkata"
     # Front-ends allowed to call the API: customer (4200) and admin (4300) in development.
     cors_origins: List[str] = ["http://localhost:4200", "http://localhost:4300"]
 

@@ -80,7 +80,7 @@ Every request goes **route → service → database**: the route receives it, th
 ### Phase 1: admin side
 - [x] **0. Foundations:** what an API is, requests/responses, status codes, tables, migrations. The project connects to Postgres; error format; camelCase.
 - [x] **1. Authentication & team:** password hashing, login tokens (JWT), roles and 403. Real sign-in, Super Admin / Admin / Staff, Team & roles.
-- [ ] **2. Settings & message templates:** basic create/read/update/delete and validation.
+- [x] **2. Settings & message templates:** basic create/read/update/delete and validation.
 - [ ] **First deploy:** Render + Supabase; the admin on Netlify talks to the real API.
 - [ ] **3. Catalog:** services, stations, membership plans, offers (ordering, archiving, unique codes).
 - [ ] **4. Customers & pets:** relations (one customer, many pets), pagination, search.

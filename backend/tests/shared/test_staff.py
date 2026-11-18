@@ -81,7 +81,7 @@ def test_team_rules(client, team):
     assert invited.json() | {"id": None} == {"id": None, "name": "Pooja S.", "email": "pooja@poshpaws.in", "role": "staff", "status": "invited", "lastSeenAt": None}
     assert client.post("/api/admin/team", json={"name": "Again", "email": "pooja@poshpaws.in", "role": "staff"}, headers=h).status_code == 409
     bad = client.post("/api/admin/team", json={"name": "X", "email": "not-an-email", "role": "staff"}, headers=h)
-    assert bad.status_code == 422 and bad.json() == {"detail": "email: Enter their email."}
+    assert bad.status_code == 422 and bad.json() == {"detail": "Enter their email."}
     assert client.post("/api/admin/team", json={"name": "X", "email": "x@poshpaws.in", "role": "boss"}, headers=h).status_code == 422
 
     members = {m["name"]: m["id"] for m in client.get("/api/admin/team", headers=h).json()}

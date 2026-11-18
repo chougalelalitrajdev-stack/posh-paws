@@ -8,7 +8,9 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
-import app.shared.staff.models  # noqa: E402,F401  (registers the tables)
+import app.shared.settings.models  # noqa: E402,F401  (registers the tables)
+import app.shared.staff.models  # noqa: E402,F401
+import app.shared.templates.models  # noqa: E402,F401
 from app.core.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
@@ -40,3 +42,19 @@ def db() -> Session:
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def signed_in(client, db):
+    """Headers for a signed-in owner, admin or staff member: signed_in("admin")."""
+    from app.shared.staff.service import create_staff
+
+    people = {"super_admin": ("Sanjay R.", "owner@poshpaws.in"), "admin": ("Meera K.", "meera@poshpaws.in"), "staff": ("Amit J.", "amit@poshpaws.in")}
+    for role, (name, email) in people.items():
+        create_staff(db, name, email, role, "pawsword")
+
+    def headers(role: str) -> dict:
+        token = client.post("/api/admin/auth/login", json={"email": people[role][1], "password": "pawsword"}).json()["token"]
+        return {"Authorization": f"Bearer {token}"}
+
+    return headers
