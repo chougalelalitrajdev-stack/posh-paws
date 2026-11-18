@@ -82,7 +82,7 @@ Every request goes **route → service → database**: the route receives it, th
 - [x] **1. Authentication & team:** password hashing, login tokens (JWT), roles and 403. Real sign-in, Super Admin / Admin / Staff, Team & roles.
 - [x] **2. Settings & message templates:** basic create/read/update/delete and validation.
 - [x] **3. Catalog:** services, stations, membership plans, offers (ordering, archiving, unique codes).
-- [ ] **4. Customers & pets:** relations (one customer, many pets), pagination, search.
+- [x] **4. Customers & pets:** relations (one customer, many pets), pagination, search.
 - [ ] **5. Bookings & slots** (the heart): slots, slot board, calendar, block time, New booking, reschedule, cancel, complete / no-show; stopping two people from taking the same slot.
 - [ ] **6. Money:** bills, discounts, plan sessions, payment records, checkout, refunds, Payments, Today dashboard.
 - [ ] **7. Subscriptions:** plan changes and renewals.

@@ -7,6 +7,7 @@ from app.core.errors import add_error_handlers
 from app.grooming.catalog import routes as catalog_routes
 from app.grooming.offers import routes as offer_routes
 from app.grooming.plans import routes as plan_routes
+from app.shared.customers import routes as customer_routes
 from app.shared.settings import routes as settings_routes
 from app.shared.staff import routes as staff_routes
 from app.shared.templates import routes as template_routes
@@ -33,3 +34,5 @@ app.include_router(catalog_routes.router, prefix="/api")
 app.include_router(catalog_routes.station_router, prefix="/api")
 app.include_router(plan_routes.router, prefix="/api")
 app.include_router(offer_routes.router, prefix="/api")
+app.include_router(customer_routes.router, prefix="/api")
+app.include_router(customer_routes.pet_router, prefix="/api")

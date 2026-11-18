@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session  # noqa: E402
 import app.grooming.catalog.models  # noqa: E402,F401  (registers the tables)
 import app.grooming.offers.models  # noqa: E402,F401
 import app.grooming.plans.models  # noqa: E402,F401
+import app.shared.customers.models  # noqa: E402,F401
 import app.shared.settings.models  # noqa: E402,F401
 import app.shared.staff.models  # noqa: E402,F401
 import app.shared.templates.models  # noqa: E402,F401

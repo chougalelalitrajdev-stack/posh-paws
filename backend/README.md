@@ -85,6 +85,8 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 - Routes get a database session with `db: Session = Depends(get_db)` (`app.core.database`).
 - "Today" and times are the shop's (`app.core.dates.today()`, Asia/Kolkata), never the server's.
 - A single set of options (a settings section) is one JSONB row with defaults in code; a list of things (holidays, templates, services, later bookings) is a table with one row each. A short list inside one row (a station's service ids) is an `ARRAY` column; services are archived, never deleted, so those ids stay valid.
+- Related tables are linked by a foreign key (`pets.customer_id` → `customers.id`) plus a `relationship()`, so `customer.pets` and `pet.owner` work in Python. When a list shows related rows, load them with `selectinload(...)` (one extra query for the whole page, not one per row).
+- Long lists answer one page at a time as `Paged` (`app.core.schemas`): `?page=1&pageSize=10` in, `{items, total, page, pageSize}` out. Text search uses `column.icontains(text, autoescape=True)` (any case, and `%` typed by a user is just a character).
 - Checks on the shape of a request (required fields, ranges, choices) live in `schemas.py` and answer 422; rules that need the database (a unique name or code, ids that exist, "keep one station in use") live in `service.py` and answer 400, 404 or 409.
 - Staff routes are protected with `Depends(require_roles(*SETTINGS_ROLES))` (or `current_staff` for any signed-in staff) from `app.shared.staff.service`, which also holds the permissions list. 401 = not signed in, 403 = signed in but not allowed.
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
