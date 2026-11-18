@@ -48,7 +48,8 @@ backend/
 │   │                    error format (errors.py), passwords + sign-in tokens (security.py), the shop's clock and
 │   │                    HH:mm helpers (dates.py), health check
 │   ├── seed.py          demo data for your own Mac (python -m app.seed), with the admin demo's ids
-│   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
+│   ├── shared/          used by every module: customers & pets, staff & roles, payments, settings, message templates,
+│   │                    content (banners, gallery, pages, FAQs), uploads (photos)
 │   ├── grooming/        catalog (services + stations), plans, offers, slots, bookings, subscriptions (memberships),
 │   │                    money (the Payments page), dashboard (Today)
 │   ├── shop/            (later)
@@ -99,3 +100,4 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 - Staff routes are protected with `Depends(require_roles(*SETTINGS_ROLES))` (or `current_staff` for any signed-in staff) from `app.shared.staff.service`, which also holds the permissions list. 401 = not signed in, 403 = signed in but not allowed.
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
 - Settings come from `core/config.py` (environment variables or `.env`), never hard-coded.
+- Photos: `POST /api/admin/uploads` checks the file (JPG, PNG or WebP by its contents, up to 10 MB), stores it and answers its address. On the Mac they're saved in `backend/uploads/` (git-ignored) and served at `/uploads/...`; online, `store()` in `app/shared/uploads/service.py` puts them in a storage bucket instead. Records keep only the address.

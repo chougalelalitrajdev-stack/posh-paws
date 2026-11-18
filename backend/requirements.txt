@@ -1,6 +1,7 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
 pydantic-settings>=2.4
+python-multipart>=0.0.9   # lets FastAPI receive file uploads (photos)
 
 # Database: SQLAlchemy (tables as Python classes), psycopg (the PostgreSQL driver), Alembic (migrations)
 sqlalchemy>=2.0.30

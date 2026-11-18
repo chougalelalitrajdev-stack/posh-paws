@@ -1,10 +1,11 @@
-"""Fills an empty development database with demo data (staff, catalog, customers and pets, memberships, bookings and payments): python -m app.seed
+"""Fills an empty development database with demo data (staff, catalog, customers and pets, memberships, bookings and payments, content): python -m app.seed
 
 Only for your own Mac (it refuses unless the database is the local one). Real staff accounts are created at launch.
 Each part is added only while its table is empty, so running it again is safe.
 """
 
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import quote
 
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import Range
@@ -18,6 +19,8 @@ from app.grooming.catalog.models import Service, Station
 from app.grooming.offers.models import Offer
 from app.grooming.plans.models import Plan
 from app.grooming.subscriptions.models import PlanChange, Subscription
+from app.shared.content.models import Banner, Faq, GalleryPhoto, SitePage
+from app.shared.content.service import faq_data, gallery, list_pages
 from app.shared.customers.models import Customer, Pet
 from app.shared.payments.models import Payment, PaymentLink
 from app.shared.staff.models import StaffUser
@@ -338,6 +341,81 @@ def _demo_bookings(customers: dict[str, Customer], plans: dict[str, Plan]) -> li
     return bookings
 
 
+# ── Content: banners, gallery photos and FAQs, as in the admin's demo ──
+
+PAW = ("M12 14c-2.5 0-5 2-5 4.5 0 1.7 1.3 2.5 2.7 2.5 1 0 1.5-.5 2.3-.5s1.3.5 2.3.5c1.4 0 2.7-.8 2.7-2.5 0-2.5-2.5-4.5-5-4.5z"
+       "M5.5 11a1.8 2.2 0 1 0 0-4.4 1.8 2.2 0 0 0 0 4.4zM9.5 7a1.8 2.2 0 1 0 0-4.4 1.8 2.2 0 0 0 0 4.4z"
+       "M14.5 7a1.8 2.2 0 1 0 0-4.4 1.8 2.2 0 0 0 0 4.4zM18.5 11a1.8 2.2 0 1 0 0-4.4 1.8 2.2 0 0 0 0 4.4z")
+
+
+def _picture(color: str, width: int = 1200, height: int = 900) -> str:
+    """A small coloured stand-in picture with a paw print (an SVG written into the address itself, so no file is needed)."""
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}"><rect width="100%" height="100%" fill="{color}"/>'
+           f'<g transform="translate({width / 2 - 60} {height / 2 - 60}) scale(5)" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.4">'
+           f'<path d="{PAW}"/></g></svg>')
+    return f"data:image/svg+xml,{quote(svg)}"
+
+
+# (placement, title, subtitle, button, link, starts in days, ends in days, colour, paused)
+DEMO_BANNERS = [
+    ("home_hero", "Diwali grooming week", "20% off every dog service, with the code DIWALI20.", "Book with 20% off", "book", -20, 2, "#2D6A4F", False),
+    ("home_hero", "Winter coat care", "De-shedding and deep conditioning for thick winter coats.", "See treatments", "services", 3, 33, "#5C4A33", False),
+    ("home_hero", "Monsoon paw care", "Paw cleaning and anti-fungal care after rainy walks.", "Book now", "book", -60, -31, "#C4B49E", False),
+    ("home_promo", "Refer a friend, get ₹200", "Your friend gets ₹200 off their first groom too.", "Book now", "book", -200, None, "#F4A261", False),
+    ("services", "New: De-shedding Treatment", "Less shedding at home after one session.", "See it", "services", -15, 15, "#2D6A4F", False),
+    ("membership", "Royal plan, ₹500 off the first month", "Unlimited grooming for less this month.", "See plans", "membership", -30, 30, "#8A3F0E", True),
+]
+# (caption, category, pet, colour, shown in the app)
+DEMO_PHOTOS = [
+    ("Bruno after his Royal Package", "gc-happy", "Golden Retriever", "#C9A26B", True), ("Luna, freshly brushed", "gc-grooming", "Persian", "#B8A99A", True),
+    ("Before and after: Rocky", "gc-before-after", "German Shepherd", "#7E6B55", True), ("Coco ready for Diwali", "gc-happy", "Shih Tzu", "#D9B38C", False),
+    ("Our grooming room", "gc-studio", "", "#5F7F6C", True), ("Mia at the flea spa", "gc-grooming", "Siamese", "#A89580", True),
+    ("Adoption day, September", "gc-events", "", "#3F6E57", True), ("Before and after: Tiger", "gc-before-after", "Indie", "#8C7356", False),
+    ("Pumpkin after a cat bath", "gc-grooming", "Ragdoll", "#C2B3A3", True), ("Daisy loves the dryer", "gc-happy", "Beagle", "#B48A5E", True),
+]
+DEMO_FAQS = [
+    ("fg-booking", "How do I book a slot?", "Tap Book now, pick a service, a time and your pet, then confirm with a ₹100 hold. We send the confirmation on WhatsApp."),
+    ("fg-booking", "Can I reschedule?", "Yes, up to 24 hours before your slot at no charge."),
+    ("fg-booking", "How does the ₹100 hold work?", "It secures your slot and is adjusted in your bill when you arrive."),
+    ("fg-membership", "Can I cancel or change my plan anytime?",
+     "Yes. You can upgrade, downgrade, or cancel your membership at any time before the next billing cycle. No lock-in, no penalties."),
+    ("fg-membership", "Do unused sessions roll over to the next month?",
+     "Sessions are valid for the calendar month. They do not roll over, so we recommend booking early to make the most of your plan."),
+    ("fg-membership", "Can I use my membership for both dogs and cats?",
+     "Absolutely. Your membership covers all pets linked to your profile. Add multiple pets and the sessions are shared across them."),
+    ("fg-membership", "How does the ₹100 slot hold work for members?",
+     "Members still place a ₹100 refundable hold to confirm a booking. It is fully returned when you arrive for the appointment."),
+    ("fg-pets", "Is my pet safe with anxious handling?", "We follow a fear-free approach and move at your pet’s pace."),
+    ("fg-pets", "Do you need vaccination records?", "Yes, please share them before the first visit."),
+]
+
+
+def _seed_content(db) -> None:
+    t = today()
+    # The starting gallery categories, FAQ groups and pages (added the first time they're read).
+    gallery(db)
+    faq_data(db)
+    list_pages(db)
+    if _empty(db, Banner):
+        for i, (placement, title, subtitle, button, link, starts, ends, color, paused) in enumerate(DEMO_BANNERS):
+            db.add(Banner(placement=placement, title=title, subtitle=subtitle, button_text=button, link=link, paused=paused, sort_order=i,
+                          starts_on=t + timedelta(days=starts), ends_on=t + timedelta(days=ends) if ends is not None else None,
+                          image_url=_picture(color, 1080, 1350), desktop_image_url=_picture(color, 1920, 720)))
+        print(f"Added {len(DEMO_BANNERS)} banners.")
+    if _empty(db, GalleryPhoto):
+        db.add_all(GalleryPhoto(image_url=_picture(color), caption=caption, category_id=category, pet=pet, visible=shown, sort_order=i)
+                   for i, (caption, category, pet, color, shown) in enumerate(DEMO_PHOTOS))
+        print(f"Added {len(DEMO_PHOTOS)} gallery photos.")
+    if _empty(db, Faq):
+        db.add_all(Faq(group_id=group, question=q, answer=a, sort_order=i) for i, (group, q, a) in enumerate(DEMO_FAQS))
+        print(f"Added {len(DEMO_FAQS)} FAQs.")
+        # An unpublished change on the About page, as in the demo.
+        about = db.get(SitePage, "about")
+        about.draft = [{**s, "visible": True, "body": "Our certified groomers: [names]. Ask for your favourite when you book."} if s["id"] == "about-team" else s
+                       for s in about.sections]
+        about.draft_saved_at, about.draft_saved_by = datetime.now(timezone.utc) - timedelta(days=1), "Meera K."
+
+
 def _empty(db, model) -> bool:
     return db.scalar(select(model).limit(1)) is None
 
@@ -380,6 +458,7 @@ def seed() -> None:
             customers = {c.id: c for c in db.scalars(select(Customer))}
             db.add_all(_demo_bookings(customers, plans))
             print(f"Added {len(DEMO_BOOKINGS) + len(DEMO_HISTORY)} bookings with their payments.")
+        _seed_content(db)
         # New bookings and memberships are numbered after the demo ones.
         db.execute(text("select setval('booking_number', greatest(1059, coalesce((select max(substring(id from 4)::int) from bookings), 0)))"))
         db.execute(text("select setval('subscription_number', greatest(110, coalesce((select max(substring(id from 5)::int) from subscriptions), 0)))"))

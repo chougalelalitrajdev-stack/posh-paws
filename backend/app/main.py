@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.core import health
 from app.core.config import settings
@@ -12,10 +15,12 @@ from app.grooming.offers import routes as offer_routes
 from app.grooming.plans import routes as plan_routes
 from app.grooming.slots import routes as slot_routes
 from app.grooming.subscriptions import routes as subscription_routes
+from app.shared.content import routes as content_routes
 from app.shared.customers import routes as customer_routes
 from app.shared.settings import routes as settings_routes
 from app.shared.staff import routes as staff_routes
 from app.shared.templates import routes as template_routes
+from app.shared.uploads import routes as upload_routes
 
 app = FastAPI(title=settings.app_name)
 add_error_handlers(app)
@@ -51,3 +56,12 @@ app.include_router(money_routes.router, prefix="/api")
 app.include_router(money_routes.customer_router, prefix="/api")
 app.include_router(dashboard_routes.router, prefix="/api")
 app.include_router(subscription_routes.router, prefix="/api")
+app.include_router(upload_routes.router, prefix="/api")
+app.include_router(content_routes.banner_router, prefix="/api")
+app.include_router(content_routes.gallery_router, prefix="/api")
+app.include_router(content_routes.page_router, prefix="/api")
+app.include_router(content_routes.faq_router, prefix="/api")
+
+# Uploaded photos on your Mac, at http://localhost:8000/uploads/<name> (online they're in the photo storage bucket).
+Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")

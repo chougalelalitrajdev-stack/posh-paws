@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     timezone: str = "Asia/Kolkata"
     # Front-ends allowed to call the API: customer (4200) and admin (4300) in development.
     cors_origins: List[str] = ["http://localhost:4200", "http://localhost:4300"]
+    # The API's own address, for links to uploaded photos (the apps load them from here).
+    public_url: str = "http://localhost:8000"
+    # Uploaded photos on your Mac: this folder, served at /uploads. Online they go to a photo storage bucket instead (at the deploy).
+    upload_dir: str = "uploads"
 
 
 settings = Settings()

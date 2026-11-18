@@ -9,5 +9,6 @@ export const environment = {
   liveApi: [
     '/auth', '/team', '/settings', '/templates', '/services', '/stations', '/plans', '/offers', '/customers', '/pets',
     '/bookings', '/calendar', '/slots', '/slot-board', '/blocks', '/payments', '/subscriptions', '/dashboard', '/search',
+    '/banners', '/gallery', '/pages', '/faqs', '/uploads',
   ],
 };

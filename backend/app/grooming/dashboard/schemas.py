@@ -76,4 +76,4 @@ class DashboardOut(CamelModel):
     schedule: list[BookingOut]  # today's appointments, by time
     payments: WeekPayments
     memberships: Memberships
-    content: list[ContentRow] = []  # banners, gallery and pages (Module 8)
+    content: list[ContentRow]  # banners, gallery and pages

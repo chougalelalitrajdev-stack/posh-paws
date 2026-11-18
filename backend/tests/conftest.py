@@ -1,8 +1,10 @@
 """pytest reads this first. Tests use their own database, so they never touch the development data."""
 
 import os
+import tempfile
 
 os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://localhost:5432/posh_paws_test")
+os.environ.setdefault("UPLOAD_DIR", tempfile.mkdtemp(prefix="posh-paws-test-uploads-"))  # test photos go to a throwaway folder
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -15,6 +17,7 @@ import app.grooming.offers.models  # noqa: E402,F401
 import app.grooming.plans.models  # noqa: E402,F401
 import app.grooming.slots.models  # noqa: E402,F401
 import app.grooming.subscriptions.models  # noqa: E402,F401
+import app.shared.content.models  # noqa: E402,F401
 import app.shared.customers.models  # noqa: E402,F401
 import app.shared.payments.models  # noqa: E402,F401
 import app.shared.settings.models  # noqa: E402,F401

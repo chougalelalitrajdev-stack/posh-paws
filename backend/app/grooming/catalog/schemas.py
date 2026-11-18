@@ -1,22 +1,15 @@
 """Service and station shapes. Each one is checked here before it's saved, with the admin's messages."""
 
-from typing import Literal, get_args
+from typing import Literal
 
 from pydantic import ConfigDict, Field, field_validator
 
-from app.core.schemas import CamelModel
+from app.core.schemas import CamelModel, one_of
 
 PetType = Literal["dog", "cat"]
 Category = Literal["Bath", "Haircut", "Package", "Add-on", "Treatment"]
 StationScope = Literal["all", "dogs", "cats", "some"]
 MAX_DESCRIPTION = 140
-
-
-def one_of(value, choices, message: str):
-    """Used as a mode="before" check, so a wrong choice gets the admin's message instead of Pydantic's."""
-    if value not in get_args(choices):
-        raise ValueError(message)
-    return value
 
 
 # ── Services ──

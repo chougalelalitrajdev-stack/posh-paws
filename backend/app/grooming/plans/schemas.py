@@ -4,8 +4,7 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field, field_validator
 
-from app.core.schemas import CamelModel
-from app.grooming.catalog.schemas import one_of
+from app.core.schemas import CamelModel, one_of
 
 Billing = Literal["month", "quarter", "year"]
 

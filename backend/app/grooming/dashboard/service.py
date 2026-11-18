@@ -1,5 +1,4 @@
-"""Everything the Today screen shows, worked out from bookings, payments and memberships in a handful of queries.
-Content reminders (banners ending soon) come with Module 8."""
+"""Everything the Today screen shows, worked out from bookings, payments, memberships and content in a handful of queries."""
 
 import datetime as dt
 
@@ -11,8 +10,35 @@ from app.core.money import inr
 from app.grooming.bookings.models import HOLDS_SLOT, Booking
 from app.grooming.bookings.service import WITH_DETAILS, balance, booking_out
 from app.grooming.catalog.service import list_stations
-from app.grooming.dashboard.schemas import AttentionItem, AwaitingPayment, DashboardOut, DayAmount, Memberships, PlanCount, TodaySummary, WeekPayments
+from app.grooming.dashboard.schemas import (
+    AttentionItem, AwaitingPayment, ContentRow, DashboardOut, DayAmount, Memberships, PlanCount, TodaySummary, WeekPayments,
+)
+
+PLACEMENTS = {"home_hero": "Home hero", "home_promo": "Home promo strip", "services": "Services page", "membership": "Membership page"}
+
+
+def _ends_in(ends_on: dt.date | None) -> float:
+    return (ends_on - today()).days if ends_on else float("inf")
+
+
+def _ends_label(ends_on: dt.date) -> str:
+    days = (ends_on - today()).days
+    return "ends today" if days == 0 else f"ends in {days} day{'' if days == 1 else 's'}"
+
+
+def content(db: Session) -> list[ContentRow]:
+    """The customer app's content at a glance: the banners showing now, photos waiting for a caption, unpublished page drafts."""
+    rows = [ContentRow(title=b.title, where=f"{PLACEMENTS[b.placement]} banner", tone="warn" if _ends_in(b.ends_on) <= 3 else "success",
+                       status=_ends_label(b.ends_on).capitalize() if _ends_in(b.ends_on) <= 3 else "Live") for b in shown_banners(db)]
+    hidden = db.scalar(select(func.count()).select_from(GalleryPhoto).where(GalleryPhoto.visible.is_(False)))
+    if hidden:
+        rows.append(ContentRow(title=f"{hidden} photo{'' if hidden == 1 else 's'} not shown yet", where="Gallery", status="Hidden", tone="draft"))
+    for page in db.scalars(select(SitePage).where(SitePage.draft.is_not(None))):
+        rows.append(ContentRow(title=page.title, where=f"Pages & FAQs · draft saved {age_label(page.draft_saved_at)} ago", status="Draft", tone="draft"))
+    return rows[:5]
 from app.grooming.subscriptions.service import summary as membership_summary
+from app.shared.content.models import GalleryPhoto, SitePage
+from app.shared.content.service import shown_banners
 from app.shared.payments.models import Payment
 from app.shared.payments.service import open_link
 from app.shared.settings.service import get_section
@@ -50,7 +76,13 @@ def attention(db: Session) -> list[AttentionItem]:
                 kind="draft", at=b.created_at, action="Continue", link="/bookings/new", query_params={"from": b.id}, title="Booking left unfinished",
                 detail=f"{b.customer.name} · {b.pet.name if b.pet else 'no pet yet'} · {'payment link not sent' if b.date else 'slot not picked yet'}",
             ))
-    return sorted(items, key=lambda i: i.at)
+    items.sort(key=lambda i: i.at)
+    # Banners ending within 3 days, after the rest.
+    for b in shown_banners(db):
+        if _ends_in(b.ends_on) <= 3:
+            items.append(AttentionItem(kind="content", at=moment, action="Review", link="/banners", title=f"{b.title} banner {_ends_label(b.ends_on)}",
+                                       detail=f"{PLACEMENTS[b.placement]} · Banners"))
+    return items
 
 
 def _week_payments(db: Session) -> WeekPayments:
@@ -91,4 +123,5 @@ def summary(db: Session) -> DashboardOut:
         attention=attention(db),
         schedule=[booking_out(b) for b in todays],
         payments=_week_payments(db),
+        content=content(db),
     )

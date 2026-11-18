@@ -89,7 +89,7 @@ Every request goes **route → service → database**: the route receives it, th
   Then the admin switched **Bookings, Availability › Day, the calendar, Payments, Subscriptions, Today and search** to the backend together (with a demo bookings seed), and customer numbers, pet visits and a holiday's "bookings to move" are worked out from bookings.
   Still to come: joining a plan (customers, in the app: Module 11), and paying plan links for real plus the daily job that ends unpaid memberships (Module 12).
   *Why together:* a booking's bill depends on the customer's membership, and paying or cancelling changes both, so switching one of them alone would show wrong bills.
-- [ ] **8. Content & photos:** banners, gallery, pages & FAQs, file uploads.
+- [x] **8. Content & photos:** banners, gallery, pages & FAQs, photo uploads (a folder on the Mac for now). With this the whole admin runs on the backend.
 
 ### Phase 1: customer side (reuses most of the admin work)
 - [ ] **9. Customer login:** phone + OTP code, registration.
@@ -112,7 +112,7 @@ Every request goes **route → service → database**: the route receives it, th
 **Needed on launch day:** Modules 0–12, all built and checked on the Mac, then the deploy. Module 13 (automatic WhatsApp) can follow; staff keep using "Open WhatsApp" until then. If time is short, content (Module 8) can also follow, since the customer app's pages work without it.
 
 **The deploy** (once, after the modules; about a day, plus time to fix what only shows up online):
-- [ ] **Supabase** (database): an account (sign in with GitHub), a project in the **Singapore** region with a strong database password you keep safe. The app connects through the **Session pooler** address (Render can't reach the direct address).
+- [ ] **Supabase** (database and photos): an account (sign in with GitHub), a project in the **Singapore** region with a strong database password you keep safe. The app connects through the **Session pooler** address (Render can't reach the direct address). A public **Storage bucket** for photos; `store()` in `app/shared/uploads/service.py` changes to put photos there (it speaks the S3 protocol, so AWS S3 or Cloudflare R2 would work the same way).
 - [ ] **Render** (API): an account (sign in with GitHub) with access to the `posh-paws` repo, a web service from `backend/`, Singapore region (next to the database). Its environment variables: `DATABASE_URL` (pasted by you from Supabase; nobody else needs to see it), `SECRET_KEY` (a long random value), `CORS_ORIGINS` (the admin's and customer app's Netlify addresses). Migrations run when the service starts.
 - [ ] **The first Super Admin** account created with a small command (your real email and a password you choose); everyone else is added from Team & roles.
 - [ ] **Both apps** rebuilt with the real `apiUrl` and uploaded to Netlify.
