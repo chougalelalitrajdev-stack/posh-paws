@@ -15,7 +15,10 @@ pip install -r requirements.txt                  # once, and after requirements 
 cp .env.example .env                             # once, then edit if needed
 
 alembic upgrade head                             # bring the database's tables up to date (after every pull)
-python -m app.seed                               # demo staff (owner@ / meera@ / amit@poshpaws.in, password pawsword) and the demo catalog; safe to rerun
+python -m app.seed                               # demo data: staff (owner@ / meera@ / amit@poshpaws.in, password pawsword), catalog,
+                                                 # customers, memberships, bookings, payments; each part only fills an empty table
+# Start the demo data again from scratch (deletes everything in your local database):
+#   dropdb posh_paws && createdb posh_paws && alembic upgrade head && python -m app.seed
 uvicorn app.main:app --reload                    # http://localhost:8000/api/health
 pytest                                           # tests (they use posh_paws_test)
 ```
@@ -46,7 +49,8 @@ backend/
 │   │                    HH:mm helpers (dates.py), health check
 │   ├── seed.py          demo data for your own Mac (python -m app.seed), with the admin demo's ids
 │   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
-│   ├── grooming/        catalog (services + stations), plans, offers, slots, bookings, money (the Payments page), dashboard (Today); later subscriptions
+│   ├── grooming/        catalog (services + stations), plans, offers, slots, bookings, subscriptions (memberships),
+│   │                    money (the Payments page), dashboard (Today)
 │   ├── shop/            (later)
 │   └── vet/             (later)
 ├── alembic/             migrations: versions/ holds one file per database change
@@ -65,7 +69,7 @@ app/grooming/bookings/
 └── routes.py     the endpoints
 ```
 
-A request flows **route → service → database**. Routes stay thin: they validate input with a schema, call a service and return a schema. Rules live in services, so they can be tested without HTTP. A module may use `shared/` and `core/`, never another module (the store doesn't import grooming).
+A request flows **route → service → database**. Routes stay thin: they validate input with a schema, call a service and return a schema. Rules live in services, so they can be tested without HTTP. A module may use `shared/` and `core/`, never another module (the store doesn't import grooming). Shared code doesn't read modules either, with two marked exceptions where a screen must show everything: `shared/customers/overview.py` (a customer's visits, money, membership, activity, and the top-bar search) and a holiday's "bookings to move" in `shared/settings/service.py`. The store and vet add their numbers in those same two places.
 
 ## Adding a topic (example: grooming bookings)
 

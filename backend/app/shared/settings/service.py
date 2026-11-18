@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.dates import TIME, today
+from app.core.dates import TIME, minutes_of_day, today
+from app.grooming.bookings.models import Booking
 from app.shared.settings.models import Closure, SettingsRow
 from app.shared.settings.schemas import (
     AppSettings, BookingRules, BookingSettingsOut, BusinessSettings, ClosureIn, ClosureOut, DayHours,
@@ -77,9 +78,20 @@ def all_settings(db: Session) -> SettingsOut:
 # ── Holidays ──
 
 
+def _bookings_to_move(db: Session, c: Closure) -> int:
+    """Bookings already made that the holiday falls on: all that day, or those still running when it closes early.
+    (Settings reads grooming's bookings here, the one place it looks at a module's table; vet visits will join later.)"""
+    closes = minutes_of_day(c.closes_at) if c.closes_at else 0
+    booked = db.scalars(select(Booking).where(Booking.date == c.date, Booking.stage.in_(("awaiting_payment", "confirmed"))))
+    return sum(1 for b in booked if b.time and minutes_of_day(b.time) + (b.duration_minutes or 0) > closes)
+
+
+def _closure_out(db: Session, c: Closure) -> ClosureOut:
+    return ClosureOut.model_validate(c).model_copy(update={"affected_bookings": _bookings_to_move(db, c)})
+
+
 def list_closures(db: Session) -> list[ClosureOut]:
-    # affected_bookings is worked out from bookings once they live here (Module 5); until then it's 0.
-    return [ClosureOut.model_validate(c) for c in db.scalars(select(Closure).order_by(Closure.date))]
+    return [_closure_out(db, c) for c in db.scalars(select(Closure).order_by(Closure.date))]
 
 
 def add_closure(db: Session, body: ClosureIn) -> ClosureOut:
@@ -90,7 +102,7 @@ def add_closure(db: Session, body: ClosureIn) -> ClosureOut:
     closure = Closure(date=body.date, name=body.name, closes_at=body.closes_at)
     db.add(closure)
     db.commit()
-    return ClosureOut.model_validate(closure)
+    return _closure_out(db, closure)
 
 
 def remove_closure(db: Session, closure_id: str) -> SettingsOut:

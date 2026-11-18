@@ -29,7 +29,7 @@ def bookings(
     pet_type: Literal["dog", "cat"] | None = Query(default=None, alias="petType"),
     payment_status: str | None = Query(default=None, alias="paymentStatus"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=10, ge=1, le=100, alias="pageSize"),
+    page_size: int = Query(default=10, ge=1, le=10_000, alias="pageSize"),
     db: Session = Depends(get_db),
     _: StaffUser = Depends(current_staff),
 ) -> Paged[BookingOut]:

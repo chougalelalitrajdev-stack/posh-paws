@@ -1,7 +1,5 @@
 """Bookings: drafts, the bill, confirming, rescheduling, cancelling, the money on a booking (payment links, payments at the
 shop, the advance refund) and closing a visit (root CLAUDE.md › Booking & payment rules).
-
-Still to come: plan sessions and member discounts on the bill (memberships: Module 7).
 """
 
 import datetime as dt
@@ -26,6 +24,7 @@ from app.grooming.offers.models import Offer
 from app.grooming.offers.service import status_of
 from app.grooming.slots.models import TimeBlock
 from app.grooming.slots.service import blocks_on, free_station, held_range, load_day, load_days, opening_span
+from app.grooming.subscriptions.service import active_membership, sessions_left, use_session
 from app.shared.customers.models import Customer, Pet
 from app.shared.payments.models import Payment, PaymentLink
 from app.shared.payments.service import METHOD_LABELS, net_paid, open_link, refunded_ids
@@ -64,7 +63,7 @@ def booking_out(b: Booking) -> BookingOut:
         date=b.date, time=b.time, station_id=b.station_id, bill=bill, offer_code=b.offer_code, booked_by=b.booked_by,
         payments=[PaymentEntry.model_validate(p) for p in b.payments],
         payment_link=PaymentLinkOut.model_validate(link) if (link := open_link(b.links)) else None,
-        activity=[ActivityEntry.model_validate(a) for a in sorted(b.activity, key=lambda a: a.id, reverse=True)],  # newest first
+        activity=[ActivityEntry.model_validate(a) for a in sorted(b.activity, key=lambda a: (a.at, a.id), reverse=True)],  # newest first
     )
 
 
@@ -162,18 +161,30 @@ def _offer_discount(db: Session, customer_id: str, service: Service, code: str |
     return max(automatic, key=lambda d: d.amount_paise, default=None)
 
 
-def quote_bill(db: Session, customer_id: str, service: Service, offer_code: str | None, with_advance: bool,
-               exclude_booking_id: str | None = None) -> BookingBill:
-    """Service price → at most one discount (the best) → total. `with_advance` = booked in the customer app."""
-    options: list[BillDiscount] = []  # plan sessions and member discounts join these with memberships (Module 7)
-    if offer := _offer_discount(db, customer_id, service, offer_code, exclude_booking_id):
-        options.append(offer)
-    best = max(options, key=lambda d: d.amount_paise, default=None)
-    total = max(0, service.price_paise - (best.amount_paise if best else 0))
+def _bill(db: Session, price: int, discount: BillDiscount | None, with_advance: bool) -> BookingBill:
+    total = max(0, price - (discount.amount_paise if discount else 0))
     hold = get_section(db, "payments").slot_hold_paise if with_advance else 0
     # The advance is the hold amount, never more than the total, and none when the total is ₹0.
     advance = min(hold, total) if total else 0
-    return BookingBill(service_price_paise=service.price_paise, discount=best, total_paise=total, advance_paise=advance, balance_paise=total)
+    return BookingBill(service_price_paise=price, discount=discount, total_paise=total, advance_paise=advance, balance_paise=total)
+
+
+def quote_bill(db: Session, customer_id: str, service: Service, offer_code: str | None, with_advance: bool,
+               exclude_booking_id: str | None = None) -> BookingBill:
+    """Service price → at most one discount → total. Discounts don't stack: a plan session (₹0) if the member has one left for
+    this service, otherwise the better of the member discount and an offer. `with_advance` = booked in the customer app."""
+    price = service.price_paise
+    member = active_membership(db, customer_id)
+    if member and service.id in member.plan.eligible_service_ids and (sessions_left(member) is None or sessions_left(member) > 0):
+        # No count in the label: the bill is kept, and a count would go stale.
+        return _bill(db, price, BillDiscount(kind="session", label=f"{member.plan.name} plan session", amount_paise=price), with_advance)
+    options: list[BillDiscount] = []
+    if member and member.plan.discount_percent:
+        percent = member.plan.discount_percent
+        options.append(BillDiscount(kind="membership", label=f"{member.plan.name} member {percent}% off", amount_paise=(price * percent + 50) // 100))
+    if offer := _offer_discount(db, customer_id, service, offer_code, exclude_booking_id):
+        options.append(offer)
+    return _bill(db, price, max(options, key=lambda d: d.amount_paise, default=None), with_advance)
 
 
 def quote(db: Session, body: QuoteIn) -> BookingBill:
@@ -192,13 +203,17 @@ def _apply_bill(b: Booking, bill: BookingBill) -> None:
 
 
 def _reserve(db: Session, b: Booking) -> None:
-    """A confirmed booking uses its offer. The database adds 1 itself, so two bookings at once are both counted."""
+    """A confirmed booking uses its plan session or its offer. The database adds 1 itself, so two bookings at once are both counted."""
+    if b.discount_kind == "session":
+        use_session(db, b.customer_id)
     if b.offer_id:
         db.execute(update(Offer).where(Offer.id == b.offer_id).values(used=Offer.used + 1))
 
 
 def _release(db: Session, b: Booking) -> None:
-    """A cancelled booking gives its offer use back."""
+    """A cancelled booking gives its session or offer use back (a no-show keeps them used)."""
+    if b.discount_kind == "session":
+        use_session(db, b.customer_id, give_back=True)
     if b.offer_id:
         db.execute(update(Offer).where(Offer.id == b.offer_id).values(used=func.greatest(Offer.used - 1, 0)))
 
@@ -318,7 +333,8 @@ def confirm(db: Session, b: Booking, by: str) -> BookingOut:
     b.stage = "confirmed"
     _reserve(db, b)
     settle(b)
-    log(b, "status", "Booking confirmed", f"{inr(b.total_paise)} to pay at the shop." if b.total_paise else "Nothing to pay.", by)
+    due = f"{inr(b.total_paise)} to pay at the shop." if b.total_paise else "Covered by the plan session; nothing to pay." if b.discount_kind == "session" else "Nothing to pay."
+    log(b, "status", "Booking confirmed", due, by)
     return save(db, b)
 
 
@@ -413,7 +429,8 @@ def payment_link(db: Session, b: Booking, amount_type: str, by: str) -> BookingO
         if b.stage != "awaiting_payment":
             _apply_bill(b, quote_bill(db, b.customer_id, service, b.offer_code, with_advance=False, exclude_booking_id=b.id))
         if not b.total_paise:
-            raise HTTPException(status_code=409, detail="Nothing to pay on this booking. Confirm it instead.")
+            raise HTTPException(status_code=409, detail="Nothing to pay: the plan session covers it. Confirm the booking instead."
+                                if b.discount_kind == "session" else "Nothing to pay on this booking. Confirm it instead.")
         # A re-sent link asks for the same as before.
         kind = link.amount_type if b.stage == "awaiting_payment" and link else amount_type
         amount = min(settings.slot_hold_paise, b.total_paise) if kind == "hold" else b.total_paise

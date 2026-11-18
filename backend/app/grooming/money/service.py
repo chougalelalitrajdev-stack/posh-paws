@@ -1,5 +1,5 @@
 """Payments (Business › Payments): every payment and refund, the links waiting to be paid and the balances still due,
-worked out from bookings (memberships join in Module 7). Refunds are Super Admin only."""
+worked out from bookings and memberships. Refunds (of booking payments) are Super Admin only."""
 
 import datetime as dt
 
@@ -8,12 +8,14 @@ from sqlalchemy import and_, case, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.dates import starts_at
+from app.core.dates import shop_date, starts_at
 from app.core.money import inr
 from app.core.schemas import Paged
 from app.grooming.bookings.models import Booking
 from app.grooming.bookings.service import WITH_DETAILS, add_payment, balance, find_booking, log, settle
 from app.grooming.money.schemas import PaymentCustomer, PaymentRow, PaymentSummary
+from app.grooming.subscriptions.models import Subscription
+from app.grooming.subscriptions.service import MONTHS, WITH_DETAILS as SUBSCRIPTION_DETAILS
 from app.shared.payments.models import Payment, PaymentLink
 from app.shared.payments.service import KIND_LABELS, METHOD_LABELS, link_state, open_link, refunded_ids
 
@@ -39,6 +41,28 @@ def booking_rows(b: Booking) -> list[PaymentRow]:
     return rows
 
 
+def plan_rows(s: Subscription) -> list[PaymentRow]:
+    """A membership's rows: each period paid, each upgrade difference, and the open renewal or first-payment link."""
+    base = {"kind": "plan", "customer": PaymentCustomer(id=s.customer.id, name=s.customer.name), "refundable": False}
+    period = MONTHS[s.plan.billing] * 31
+    paid = [p for p in s.payments if p.kind == "plan"]
+    rows = [
+        PaymentRow(**base, id=p.id, reference=f"{s.plan_name} plan · {p.at:%b}", detail="Plan · Online" if p.method == "online" else f"Plan · {METHOD_LABELS[p.method]}",
+                   item="First month" if i == 0 and (shop_date(p.at) - s.started_on).days < period else "Plan renewal",
+                   amount_paise=p.amount_paise, status="paid", at=p.at)
+        for i, p in enumerate(paid)
+    ]
+    upgrades = [c for c in reversed(s.changes) if c.kind == "upgrade"]  # oldest first, like the payments
+    for p, c in zip([p for p in s.payments if p.kind == "upgrade"], upgrades):
+        rows.append(PaymentRow(**base, id=p.id, reference=f"{c.to_plan} plan", item=f"Upgrade from {c.from_plan}",
+                               detail=f"Difference · {METHOD_LABELS[p.method]}", amount_paise=p.amount_paise, status="paid", at=p.at))
+    if link := open_link(s.links):
+        rows.append(PaymentRow(**base, id=f"{s.id}-LINK", reference=f"{(s.next_plan or s.plan).name} plan", detail="Payment link",
+                               item="First month" if s.status == "payment_pending" else "Plan renewal",
+                               amount_paise=link.amount_paise, status=link_state(link), at=link.sent_at))
+    return rows
+
+
 def payment_rows(db: Session, start: dt.date | None = None, end: dt.date | None = None, customer_id: str | None = None) -> list[PaymentRow]:
     """Every row in the period (from `start` to `end`, the shop's days, both included), newest first; open money whatever the period."""
     lo = starts_at(start, "00:00") if start else None
@@ -54,9 +78,14 @@ def payment_rows(db: Session, start: dt.date | None = None, end: dt.date | None 
         Booking.links.any(PaymentLink.closed_at.is_(None)),
         and_(Booking.stage.in_(("confirmed", "completed")), Booking.total_paise > paid_so_far),
     )).options(*WITH_DETAILS)
+    memberships = select(Subscription).where(or_(
+        Subscription.payments.any(and_(true(), *in_period)),
+        Subscription.links.any(PaymentLink.closed_at.is_(None)),
+    )).options(*SUBSCRIPTION_DETAILS)
     if customer_id:
         query = query.where(Booking.customer_id == customer_id)
-    rows = [r for b in db.scalars(query) for r in booking_rows(b)]
+        memberships = memberships.where(Subscription.customer_id == customer_id)
+    rows = [r for b in db.scalars(query) for r in booking_rows(b)] + [r for s in db.scalars(memberships) for r in plan_rows(s)]
     rows = [r for r in rows if r.status in OPEN or ((not lo or r.at >= lo) and (not hi or r.at < hi))]
     return sorted(rows, key=lambda r: r.at, reverse=True)
 

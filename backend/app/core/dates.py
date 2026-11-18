@@ -29,6 +29,14 @@ def starts_at(day: date, hhmm: str) -> datetime:
     return local(day, hhmm).replace(tzinfo=ZoneInfo(settings.timezone))
 
 
+def add_months(day: date, months: int) -> date:
+    """31 Jan + 1 month = 28 (or 29) Feb: the same day of the month, or the month's last day."""
+    month0 = day.month - 1 + months
+    year, month = day.year + month0 // 12, month0 % 12 + 1
+    next_first = date(year + (month == 12), month % 12 + 1, 1)
+    return date(year, month, min(day.day, (next_first - date(year, month, 1)).days))
+
+
 def shop_date(moment: datetime) -> date:
     """The shop's calendar day for a stored timestamp (a payment at 00:30 in Pune belongs to that day, not the day before in UTC)."""
     return moment.astimezone(ZoneInfo(settings.timezone)).date()

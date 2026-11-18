@@ -1,7 +1,7 @@
 """Money in and out (payments and refunds) and payment links, for anything the business sells.
 
-Each row says what it was for with a column per kind of thing: booking_id now; memberships (Module 7), and later store
-orders and vet visits, add their own column. So Payments, refunds and the payment gateway work once for everything.
+Each row says what it was for with a column per kind of thing: booking_id and subscription_id now; store orders and vet visits
+add their own column later. So Payments, refunds and the payment gateway work once for everything.
 """
 
 import datetime as dt
@@ -24,15 +24,17 @@ class Payment(Base):
 
     __tablename__ = "payments"
     __table_args__ = (
-        CheckConstraint("kind in ('advance', 'balance', 'refund')", name="payment_kind_known"),
+        CheckConstraint("kind in ('advance', 'balance', 'plan', 'upgrade', 'refund')", name="payment_kind_known"),
         CheckConstraint(f"method in {METHODS}", name="payment_method_known"),
         CheckConstraint("amount_paise > 0", name="payment_amount_positive"),
     )
 
-    id: Mapped[str] = mapped_column(String(24), primary_key=True)  # PAY-1051-2: booking PP-1051's second payment
+    id: Mapped[str] = mapped_column(String(24), primary_key=True)  # PAY-1051-2: booking PP-1051's second; PAY-SUB-101-1 for a membership
     customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
     booking_id: Mapped[str | None] = mapped_column(ForeignKey("bookings.id"), index=True)
-    # advance: before the visit (it confirms the booking) · balance: the rest · refund: money given back (subtracted)
+    subscription_id: Mapped[str | None] = mapped_column(ForeignKey("subscriptions.id"), index=True)
+    # Bookings: advance (before the visit; it confirms the booking) · balance (the rest).
+    # Memberships: plan (a period's price) · upgrade (the difference when moving up). refund: money given back (subtracted).
     kind: Mapped[str] = mapped_column(String(10))
     amount_paise: Mapped[int]
     method: Mapped[str] = mapped_column(String(8))
@@ -43,7 +45,7 @@ class Payment(Base):
 
 
 class PaymentLink(Base):
-    """A payment link sent on WhatsApp. At most one is open per booking; a paid, replaced or unneeded link is closed."""
+    """A payment link sent on WhatsApp. At most one is open per booking or membership; a paid, replaced or unneeded link is closed."""
 
     __tablename__ = "payment_links"
     __table_args__ = (CheckConstraint("amount_type in ('hold', 'full')", name="link_amount_type_known"),)
@@ -51,6 +53,7 @@ class PaymentLink(Base):
     id: Mapped[str] = mapped_column(String(40), primary_key=True, default=lambda: str(uuid4()))
     customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
     booking_id: Mapped[str | None] = mapped_column(ForeignKey("bookings.id"), index=True)
+    subscription_id: Mapped[str | None] = mapped_column(ForeignKey("subscriptions.id"), index=True)
     amount_type: Mapped[str] = mapped_column(String(4))  # hold = the advance, full = everything still due
     amount_paise: Mapped[int]
     url: Mapped[str] = mapped_column(Text)

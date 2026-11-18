@@ -1,20 +1,25 @@
-"""Fills an empty development database with demo data (staff, catalog, customers and pets): python -m app.seed
+"""Fills an empty development database with demo data (staff, catalog, customers and pets, memberships, bookings and payments): python -m app.seed
 
 Only for your own Mac (it refuses unless the database is the local one). Real staff accounts are created at launch.
 Each part is added only while its table is empty, so running it again is safe.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.dialects.postgresql import Range
 
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.core.dates import now, today
+from app.core.dates import local, now, starts_at, today
+from app.grooming.bookings.models import Booking, BookingActivity
+from app.grooming.bookings.service import settle
 from app.grooming.catalog.models import Service, Station
 from app.grooming.offers.models import Offer
 from app.grooming.plans.models import Plan
+from app.grooming.subscriptions.models import PlanChange, Subscription
 from app.shared.customers.models import Customer, Pet
+from app.shared.payments.models import Payment, PaymentLink
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import create_staff
 
@@ -172,6 +177,167 @@ def _demo_customers() -> list[Customer]:
     return customers
 
 
+# Memberships, as in the admin's demo: (id, customer, plan, started days ago, status, sessions used, renews in days, ended days ago,
+# upgraded from (plan, days ago), downgrade waiting for renewal).
+DEMO_SUBSCRIPTIONS = [
+    ("SUB-101", "c1", "posh", 970, "active", 2, 4, None, None, None),
+    ("SUB-102", "c2", "royal", 650, "active", 3, 12, None, None, "posh"),
+    ("SUB-103", "c6", "posh", 480, "active", 4, 1, None, None, None),
+    ("SUB-104", "c5", "basic", 435, "active", 1, 20, None, None, None),
+    ("SUB-105", "c13", "basic", 700, "active", 0, 11, None, None, None),
+    ("SUB-106", "c15", "posh", 690, "active", 1, 9, None, ("basic", 3), None),
+    ("SUB-107", "c11", "posh", 270, "active", 5, 2, None, None, None),
+    ("SUB-108", "c8", "basic", 6, "payment_pending", 0, None, None, None, None),
+    ("SUB-109", "c10", "royal", 540, "expired", 0, None, 22, None, None),
+    ("SUB-110", "c12", "basic", 210, "cancelled", 0, None, 16, None, None),
+]
+
+# Bookings: (id, customer, pet, service, stage, money, created minutes ago, day from today, time, station, link asks for, link sent
+# minutes ago, source). money: what happened to the payment (paid, link_sent, failed, refunded, or None).
+DEMO_BOOKINGS = [
+    # Phone calls: one left unfinished, and links waiting to be paid
+    ("PP-1049", "c7", "p9", "dog-signature-bath", "draft", None, 60 * 16, None, None, None, None, None, "phone"),
+    ("PP-1048", "c3", "p4", "cat-royale-cat-package", "awaiting_payment", "link_sent", 60 * 8, 2, "12:00", "st2", "full", 60 * 7, "phone"),
+    ("PP-1047", "c4", "p5", "dog-full-groom-style", "awaiting_payment", "failed", 90, 2, "15:00", "st1", "full", 60, "phone"),
+    ("PP-1046", "c14", "p16", "dog-nail-trim-filing", "awaiting_payment", "link_sent", 60 * 26, 0, "12:00", "st2", "full", 60 * 25, "phone"),
+    # Today
+    ("PP-1040", "c6", "p7", "dog-full-groom-style", "completed", "paid", 60 * 24 * 3, 0, "09:30", "st1", "full", 60 * 24 * 3, "app"),
+    ("PP-1039", "c13", "p15", "cat-gentle-cat-bath", "completed", "paid", 60 * 24 * 2, 0, "10:00", "st2", "full", 60 * 24 * 2, "app"),
+    ("PP-1045", "c2", "p3", "dog-royal-package", "confirmed", "paid", 60 * 24 * 2, 0, "11:30", "st1", "full", 60 * 24 * 2 - 30, "app"),
+    ("PP-1038", "c15", "p17", "dog-de-shedding-treatment", "confirmed", "paid", 60 * 24 * 4, 0, "15:00", "st1", "hold", 60 * 24 * 4, "app"),
+    ("PP-1037", "c5", "p6", "cat-flea-tick-spa", "confirmed", "paid", 60 * 24 * 3, 0, "16:30", "st2", "full", 60 * 24 * 3, "app"),
+    ("PP-1036", "c16", "p18", "dog-signature-bath", "confirmed", "paid", 60 * 24 * 5, 0, "17:00", "st1", "hold", 60 * 24 * 5, "app"),
+    # Coming days (PP-1035 was booked by phone: confirmed with no advance, everything to pay at the shop)
+    ("PP-1035", "c6", "p8", "dog-signature-bath", "confirmed", None, 60 * 24, 1, "10:00", "st1", None, None, "phone"),
+    ("PP-1034", "c1", "p2", "dog-nail-trim-filing", "confirmed", "paid", 60 * 30, 3, "11:00", "st2", "hold", 60 * 29, "app"),
+    ("PP-1033", "c2", "p3", "dog-de-shedding-treatment", "confirmed", "paid", 60 * 40, 4, "16:00", "st1", "full", 60 * 39, "app"),
+    # Earlier
+    ("PP-1032", "c8", "p10", "dog-nail-trim-filing", "no_show", "paid", 60 * 24 * 6, -2, "17:00", "st1", "hold", 60 * 24 * 6, "app"),
+    ("PP-1031", "c9", "p11", "cat-gentle-cat-bath", "cancelled", "refunded", 60 * 24 * 7, -3, "11:00", "st2", "full", 60 * 24 * 7, "app"),
+]
+# Completed, paid visits over the last six days (the Today chart), and two customers not seen in 90+ days: (day, customer, pet, service, time, station).
+DEMO_HISTORY = [
+    (-1, "c2", "p3", "dog-royal-package", "10:00", "st1"), (-1, "c5", "p6", "cat-gentle-cat-bath", "11:00", "st2"), (-1, "c13", "p15", "cat-full-groom-trim", "15:00", "st2"),
+    (-2, "c6", "p8", "dog-full-groom-style", "09:30", "st1"), (-2, "c16", "p18", "dog-signature-bath", "12:00", "st2"),
+    (-3, "c1", "p1", "dog-full-groom-style", "10:00", "st1"), (-3, "c15", "p17", "dog-royal-package", "15:00", "st1"), (-3, "c3", "p4", "cat-gentle-cat-bath", "16:30", "st2"),
+    (-3, "c14", "p16", "dog-signature-bath", "11:00", "st2"),
+    (-4, "c2", "p3", "dog-de-shedding-treatment", "09:00", "st1"), (-4, "c6", "p7", "dog-royal-package", "11:00", "st2"), (-4, "c11", "p13", "cat-full-groom-trim", "15:30", "st2"),
+    (-4, "c14", "p16", "dog-flea-tick-spa", "17:00", "st1"),
+    (-5, "c8", "p10", "dog-full-groom-style", "10:30", "st1"), (-5, "c5", "p6", "cat-de-shedding-treatment", "12:00", "st2"), (-5, "c1", "p2", "dog-signature-bath", "16:00", "st1"),
+    (-6, "c10", "p12", "dog-signature-bath", "10:00", "st1"), (-6, "c13", "p15", "cat-gentle-cat-bath", "14:30", "st2"),
+    (-135, "c7", "p9", "dog-signature-bath", "11:00", "st1"), (-123, "c9", "p11", "cat-gentle-cat-bath", "12:00", "st2"),
+]
+HOLD_PAISE, BUFFER_MINUTES = 10_000, 15
+
+
+def _demo_subscriptions(plans: dict[str, Plan]) -> list[Subscription]:
+    t, moment = today(), datetime.now(timezone.utc)
+    subs = []
+    for sid, customer, plan_key, started, status, used, renews_in, ended, upgraded, downgrade in DEMO_SUBSCRIPTIONS:
+        plan = plans[plan_key]
+        s = Subscription(id=sid, customer_id=customer, plan_id=plan.id, plan_name=plan.name, price_paise=plan.price_paise, status=status,
+                         sessions_total=plan.sessions_per_period, sessions_used=used, started_on=t - timedelta(days=started),
+                         renews_on=t + timedelta(days=renews_in) if renews_in is not None else None,
+                         ended_on=t - timedelta(days=ended) if ended is not None else None, next_plan_id=plans[downgrade].id if downgrade else None)
+        if s.renews_on:
+            # The last two monthly payments (oldest first).
+            for months_ago in (2, 1):
+                paid_on = s.renews_on - timedelta(days=30 * months_ago)
+                if paid_on >= s.started_on:
+                    s.payments.append(Payment(id=f"PAY-{sid}-{len(s.payments) + 1}", customer_id=customer, kind="plan", amount_paise=plan.price_paise,
+                                              method="online", at=starts_at(paid_on, "10:00")))
+        if upgraded:
+            from_plan, days_ago = plans[upgraded[0]], upgraded[1]
+            at = moment - timedelta(days=days_ago)
+            difference = plan.price_paise - from_plan.price_paise
+            s.changes.append(PlanChange(kind="upgrade", from_plan=from_plan.name, to_plan=plan.name, paid_paise=difference, method="upi_qr", by="Meera K.", at=at))
+            s.payments.append(Payment(id=f"PAY-{sid}-{len(s.payments) + 1}", customer_id=customer, kind="upgrade", amount_paise=difference,
+                                      method="upi_qr", by="Meera K.", at=at))
+        if downgrade:
+            s.changes.append(PlanChange(kind="downgrade", from_plan=plan.name, to_plan=plans[downgrade].name, by="Meera K.", at=moment - timedelta(days=1)))
+        if status == "payment_pending":
+            sent = moment - timedelta(days=6)
+            s.links.append(PaymentLink(customer_id=customer, amount_type="full", amount_paise=plan.price_paise, url=f"https://pay.poshpaws.in/s/{sid}",
+                                       sent_at=sent, expires_at=sent + timedelta(hours=24)))
+        subs.append(s)
+    return subs
+
+
+def _member_discount(customer: str, price: int, plans: dict[str, Plan]) -> tuple[str, int] | None:
+    """Seeded bookings keep the member discount they had (no plan sessions, so the session counts stay as seeded)."""
+    sub = next((x for x in DEMO_SUBSCRIPTIONS if x[1] == customer and x[4] == "active"), None)
+    plan = plans[sub[2]] if sub else None
+    if not plan or not plan.discount_percent:
+        return None
+    return f"{plan.name} member {plan.discount_percent}% off", (price * plan.discount_percent + 50) // 100
+
+
+def _demo_bookings(customers: dict[str, Customer], plans: dict[str, Plan]) -> list[Booking]:
+    t, moment = today(), datetime.now(timezone.utc)
+    services = {sid: (name, minutes, rupees * 100) for sid, _, name, _, rupees, minutes, _ in DEMO_SERVICES}
+
+    def ago(minutes: int) -> datetime:
+        return moment - timedelta(minutes=minutes)
+
+    history = [(f"PP-{1000 + i}", c, pet, svc, "completed", "paid", (2 - day) * 24 * 60, day, time, station, "full", (2 - day) * 24 * 60 - 30, "app")
+               for i, (day, c, pet, svc, time, station) in enumerate(DEMO_HISTORY)]
+    bookings = []
+    for bid, cid, pid, svc, stage, money, created, day, time, station, asks, sent_ago, source in DEMO_BOOKINGS + history:
+        name, minutes, price = services[svc]
+        discount = _member_discount(cid, price, plans)
+        total = price - (discount[1] if discount else 0)
+        advance = min(HOLD_PAISE, total) if source == "app" else 0  # app bookings pay the advance online; phone bookings don't
+        day_ = t + timedelta(days=day) if day is not None else None
+        b = Booking(id=bid, source=source, stage=stage, customer_id=cid, pet_id=pid, service_id=svc, service_name=name, duration_minutes=minutes,
+                    date=day_, time=time, station_id=station, created_at=ago(created), booked_by=None if source == "app" else "Meera K.",
+                    price_paise=price, total_paise=total, advance_paise=advance, discount_kind="membership" if discount else None,
+                    discount_label=discount[0] if discount else None, discount_paise=discount[1] if discount else 0)
+        b.customer = customers[cid]
+        if stage in ("awaiting_payment", "confirmed", "completed") and day_:
+            start = local(day_, time)
+            b.held = Range(start, start + timedelta(minutes=minutes + BUFFER_MINUTES))
+        log = [(ago(created), "created", "Booked in the app" if source == "app" else "Booking started by phone", None, None if source == "app" else "Meera K.")]
+
+        def pay(kind: str, amount: int, method: str, at: datetime, by: str | None = None, refund_of: str | None = None) -> None:
+            b.payments.append(Payment(id=f"PAY-{bid[3:]}-{len(b.payments) + 1}", customer_id=cid, kind=kind, amount_paise=amount, method=method,
+                                      at=at, by=by, refund_of=refund_of))
+
+        if sent_ago is not None and day_:
+            sent = ago(sent_ago)
+            log.append((ago(sent_ago + 2), "details", "Booking details saved", f"{name} · {day_} {time}", None))
+            if source == "app":
+                pay("advance", advance, "online", sent)
+                log.append((sent, "payment", "Advance paid in the app", f"₹{advance // 100}", None))
+            elif money in ("paid", "refunded"):
+                pay("advance", total, "online", ago(max(0, sent_ago - 20)))
+                log += [(sent, "payment", "Payment link sent on WhatsApp", None, "Meera K."), (ago(max(0, sent_ago - 20)), "payment", "Paid online", "Booking confirmed automatically.", None)]
+            else:
+                b.links.append(PaymentLink(customer_id=cid, amount_type=asks, amount_paise=total, url=f"https://pay.poshpaws.in/l/{bid}", sent_at=sent,
+                                           expires_at=sent + timedelta(hours=24), failed=money == "failed"))
+                log.append((sent, "payment", "Payment link sent on WhatsApp", None, "Meera K."))
+                if money == "failed":
+                    log.append((ago(20), "payment", "Payment failed", "The bank declined the payment.", None))
+        if stage == "confirmed" and not b.payments and not b.links:
+            log.append((ago(created - 5), "status", "Booking confirmed", "Booked by phone. Pays at the shop.", "Meera K."))
+        if stage == "completed":
+            # The rest was paid at the shop after the groom: mostly by the shop's UPI QR, sometimes cash.
+            rest = total - sum(x.amount_paise for x in b.payments)
+            if rest > 0:
+                pay("balance", rest, "cash" if bid.endswith("3") else "upi_qr", starts_at(day_, time), "Amit J.")
+            log.append((starts_at(day_, time), "status", "Marked completed", None, "Amit J."))
+        if money == "refunded" and b.payments:
+            pay("refund", b.payments[0].amount_paise, "online", ago(60 * 24 * 4), "Sanjay R.", refund_of=b.payments[0].id)
+        if stage == "no_show":
+            log.append((starts_at(day_, time), "status", "Marked as no-show", None, "Amit J."))
+        if stage == "cancelled":
+            log.append((ago(60 * 24 * 4), "status", "Booking cancelled", "Customer travelling. The advance was refunded (cancelled 24 h or more before).", "Sanjay R."))
+        for at, kind, title, detail, by in sorted(log, key=lambda x: x[0]):
+            b.activity.append(BookingActivity(at=at, kind=kind, title=title, detail=detail, by=by))
+        settle(b)
+        bookings.append(b)
+    return bookings
+
+
 def _empty(db, model) -> bool:
     return db.scalar(select(model).limit(1)) is None
 
@@ -205,6 +371,18 @@ def seed() -> None:
         if _empty(db, Offer):
             db.add_all(_demo_offers())
             print("Added 5 offers.")
+        db.flush()
+        plans = {p.id: p for p in db.scalars(select(Plan))}
+        if _empty(db, Subscription) and {"basic", "posh", "royal"} <= plans.keys():
+            db.add_all(_demo_subscriptions(plans))
+            print(f"Added {len(DEMO_SUBSCRIPTIONS)} memberships and their payments.")
+        if _empty(db, Booking) and {"st1", "st2"} <= set(db.scalars(select(Station.id))):
+            customers = {c.id: c for c in db.scalars(select(Customer))}
+            db.add_all(_demo_bookings(customers, plans))
+            print(f"Added {len(DEMO_BOOKINGS) + len(DEMO_HISTORY)} bookings with their payments.")
+        # New bookings and memberships are numbered after the demo ones.
+        db.execute(text("select setval('booking_number', greatest(1059, coalesce((select max(substring(id from 4)::int) from bookings), 0)))"))
+        db.execute(text("select setval('subscription_number', greatest(110, coalesce((select max(substring(id from 5)::int) from subscriptions), 0)))"))
         db.commit()
         print("Demo data is ready.")
 

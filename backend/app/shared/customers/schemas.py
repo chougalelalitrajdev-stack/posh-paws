@@ -95,7 +95,7 @@ class PetSummaryOut(CamelModel):
 
     pet: PetOut
     owner: PetOwner
-    last_groom: dt.date | None = None  # from completed bookings (Module 5)
+    last_groom: dt.date | None = None
 
 
 class Visit(CamelModel):
@@ -107,7 +107,7 @@ class Visit(CamelModel):
 class PetRecordOut(PetSummaryOut):
     """GET /admin/pets/{id}: the pet, its owner and past visits."""
 
-    visits: list[Visit] = []  # from completed bookings (Module 5)
+    visits: list[Visit] = []
 
 
 class PetCounts(CamelModel):
@@ -175,9 +175,22 @@ class LastVisit(CamelModel):
     pet_name: str
 
 
+class CustomerPlan(CamelModel):
+    """A customer's active membership, as bills and the profile need it (filled in by grooming's memberships)."""
+
+    subscription_id: str
+    name: str
+    discount_percent: int
+    price_paise: int
+    sessions_left: int | None  # None = unlimited
+    sessions_total: int | None
+    eligible_service_ids: list[str]
+    renews_on: dt.date | None
+    next_plan_name: str | None
+
+
 class CustomerOut(CamelModel):
-    """A customer's profile. The numbers at the end are worked out from bookings, payments and memberships, so they're
-    empty until those modules are in the backend (bookings 5, money 6, memberships 7)."""
+    """A customer's profile. The numbers at the end are worked out from bookings, payments and memberships (overview.py)."""
 
     id: str
     name: str
@@ -187,7 +200,7 @@ class CustomerOut(CamelModel):
     customer_since: dt.datetime
     pets: list[PetOut]
     staff_note: StaffNote | None = None
-    plan: dict | None = None  # the active membership (Module 7)
+    plan: CustomerPlan | None = None
     past_bookings: int = 0
     bookings_count: int = 0
     spent_paise: int = 0
@@ -201,7 +214,7 @@ class NextUp(CamelModel):
 
 
 class CustomerSummaryOut(CamelModel):
-    """One row of GET /admin/customers. Like CustomerOut, the booking and plan numbers fill in with Modules 5–7."""
+    """One row of GET /admin/customers."""
 
     id: str
     name: str
@@ -213,3 +226,39 @@ class CustomerSummaryOut(CamelModel):
     last_visit: dt.date | None = None
     lapsed: bool = False  # not seen in 90 days
     next: NextUp | None = None
+
+
+# ── Top-bar search ──
+
+
+class SearchCustomer(CamelModel):
+    id: str
+    name: str
+    phone: str
+    pet_names: list[str]
+
+
+class SearchPet(CamelModel):
+    id: str
+    name: str
+    type: PetType
+    breed: str | None
+    owner_name: str
+
+
+class SearchBooking(CamelModel):
+    id: str
+    customer_name: str
+    pet_name: str | None
+    service_name: str | None
+    date: dt.date | None
+    time: str | None
+    stage: str
+
+
+class SearchResults(CamelModel):
+    """GET /admin/search?q=: a few matches of each kind."""
+
+    customers: list[SearchCustomer]
+    pets: list[SearchPet]
+    bookings: list[SearchBooking]

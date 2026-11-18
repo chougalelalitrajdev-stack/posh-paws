@@ -1,5 +1,5 @@
-"""Everything the Today screen shows, worked out from bookings and payments in a handful of queries.
-Membership numbers come with Module 7, content reminders (banners ending soon) with Module 8."""
+"""Everything the Today screen shows, worked out from bookings, payments and memberships in a handful of queries.
+Content reminders (banners ending soon) come with Module 8."""
 
 import datetime as dt
 
@@ -11,7 +11,8 @@ from app.core.money import inr
 from app.grooming.bookings.models import HOLDS_SLOT, Booking
 from app.grooming.bookings.service import WITH_DETAILS, balance, booking_out
 from app.grooming.catalog.service import list_stations
-from app.grooming.dashboard.schemas import AttentionItem, AwaitingPayment, DashboardOut, DayAmount, TodaySummary, WeekPayments
+from app.grooming.dashboard.schemas import AttentionItem, AwaitingPayment, DashboardOut, DayAmount, Memberships, PlanCount, TodaySummary, WeekPayments
+from app.grooming.subscriptions.service import summary as membership_summary
 from app.shared.payments.models import Payment
 from app.shared.payments.service import open_link
 from app.shared.settings.service import get_section
@@ -74,7 +75,11 @@ def summary(db: Session) -> DashboardOut:
     awaiting = db.scalars(select(Booking).where(Booking.stage == "awaiting_payment").options(*WITH_DETAILS)).all()
     links = [link for b in awaiting if (link := open_link(b.links))]
     at_shop = [b for b in todays if b.stage != "awaiting_payment" and balance(b)]
+    members = membership_summary(db)
     return DashboardOut(
+        renewals_this_week=members.renewing_soon,
+        memberships=Memberships(active=members.active, renew_this_week=members.renewing_soon, expired=members.expired_this_month,
+                                plans=[PlanCount(name=p.name, count=p.count) for p in members.by_plan]),
         open_stations=sum(st.active for st in list_stations(db)),
         awaiting_payment=AwaitingPayment(count=len(awaiting), outstanding_paise=sum(link.amount_paise for link in links),
                                          failed=sum(link.failed for link in links)),

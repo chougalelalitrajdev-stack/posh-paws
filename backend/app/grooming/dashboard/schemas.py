@@ -54,12 +54,10 @@ class PlanCount(CamelModel):
 
 
 class Memberships(CamelModel):
-    """From subscriptions (Module 7); zeros until then."""
-
-    active: int = 0
-    renew_this_week: int = 0
-    expired: int = 0
-    plans: list[PlanCount] = []
+    active: int
+    renew_this_week: int
+    expired: int  # this month
+    plans: list[PlanCount]
 
 
 class ContentRow(CamelModel):
@@ -73,9 +71,9 @@ class DashboardOut(CamelModel):
     open_stations: int
     awaiting_payment: AwaitingPayment
     today: TodaySummary
-    renewals_this_week: int = 0  # Module 7
+    renewals_this_week: int
     attention: list[AttentionItem]
     schedule: list[BookingOut]  # today's appointments, by time
     payments: WeekPayments
-    memberships: Memberships = Memberships()
+    memberships: Memberships
     content: list[ContentRow] = []  # banners, gallery and pages (Module 8)

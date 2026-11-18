@@ -2,10 +2,6 @@ import { HttpErrorResponse, HttpInterceptorFn, HttpRequest, HttpResponse } from 
 import { inject } from '@angular/core';
 import { Observable, catchError, from, map, mergeMap, tap, throwError, timer } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { WeekBoard } from '../models/calendar.model';
-import { Customer, CustomerPet } from '../models/customer.model';
-import { PetOwner } from '../models/pet.model';
-import { Settings } from '../models/settings.model';
 import { StaffUser } from '../models/staff-user.model';
 import { AlertService } from '../services/alert.service';
 import { handleBanners } from './mock-banners';
@@ -24,7 +20,7 @@ import { handlePets } from './mock-pets';
 import { handleSearch } from './mock-search';
 import { handleSubscriptions } from './mock-subscriptions';
 import { MOCK_PASSWORD } from './mock-data';
-import { MockError, MockRequest, NO_ROUTE, STORAGE_LIMIT, db, save, storageUsed } from './mock-db';
+import { MockError, MockRequest, NO_ROUTE, STORAGE_LIMIT, db, storageUsed } from './mock-db';
 
 // ─────────────────────────────────────────────────────────────
 //  TEMPORARY fake backend. While environment.useMocks is true it answers
@@ -44,73 +40,18 @@ const HANDLERS = [
   handlePayments, handleTemplates, handleSettings,
 ];
 
-/** A customer's Payments and Activity tabs are bookings and money: demo data until those modules are live (backend Modules 5–6). */
-const STILL_DEMO = /^\/customers\/[^/]+\/(payments|activity)$/;
-
 /** Areas the real backend serves (environment.liveApi): those requests go straight through to it. */
-const isLive = (url: string) => {
-  const path = url.slice(ADMIN_API.length);
-  return !STILL_DEMO.test(path) && environment.liveApi.some(area => path.startsWith(area));
-};
+const isLive = (url: string) => environment.liveApi.some(area => url.slice(ADMIN_API.length).startsWith(area));
 
 export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(ADMIN_API)) return next(req);
-  if (isLive(req.url)) return next(req).pipe(tap(event => event instanceof HttpResponse && mirrorLive(req.url.slice(ADMIN_API.length), event.body)));
+  if (isLive(req.url)) return next(req);
   const alert = inject(AlertService);
   return timer(LATENCY_MS).pipe(
     mergeMap(() => respond(req)),
     tap(res => warnWhenStorageFills(req, res, alert)),
   );
 };
-
-/** Catalog lists the demo bookings, memberships and prices read from their own copy (same ids as the backend's seed). */
-const MIRRORED = ['services', 'stations', 'plans', 'offers'] as const;
-
-/**
- * Screens still on demo data (slots, bookings, the Day board, bills, subscriptions) work from the demo copy of the settings, catalog
- * and customers. While those are live, each real reply is copied in, so those screens follow the real hours, holidays, services,
- * stations, plans, offers, customers and pets. Goes away when bookings, money and subscriptions move to the backend (backend/PLAN.md, Modules 5–7).
- */
-function mirrorLive(path: string, body: unknown): void {
-  if (!body || typeof body !== 'object') return;
-  const list = MIRRORED.find(name => path.startsWith(`/${name}`));
-  if (path.startsWith('/settings') && 'booking' in body) {
-    const s = body as Settings;
-    db().settings = { ...s, booking: { ...s.booking, closures: s.booking.closures.map(({ affectedBookings, ...c }) => c) } };
-  } else if (path.startsWith('/slot-board/week') && 'days' in body) {
-    for (const { slots, ...hours } of (body as WeekBoard).days) db().settings.booking.hours[hours.day] = hours;
-  } else if (list) {
-    // A whole list replaces the copy; one saved item replaces its old self (or is added).
-    const lists = db() as unknown as Record<(typeof MIRRORED)[number], { id: string }[]>;
-    if (Array.isArray(body)) lists[list] = body;
-    else if ('id' in body) upsert(lists[list], body as { id: string });
-    else return;
-  } else if (!((path.startsWith('/customers') || path.startsWith('/pets')) && mirrorPeople(path, body))) {
-    return;
-  }
-  save();
-}
-
-/** A customer reply (profile, lookup, add, edit, note) or a pet reply (add, edit, record) updates the demo's copy. */
-function mirrorPeople(path: string, body: object): boolean {
-  if ('phone' in body && 'pets' in body) {
-    const { id, name, phone, email, area, customerSince, pets, staffNote } = body as Customer;
-    upsert(db().customers, { id, name, phone, email, area, customerSince, pets, staffNote });
-    return true;
-  }
-  const pet = ('pet' in body ? body.pet : body) as Partial<CustomerPet>;
-  const ownerId = 'owner' in body ? (body.owner as PetOwner).id : path.match(/^\/customers\/([^/]+)\/pets$/)?.[1];
-  const owner = db().customers.find(c => c.id === ownerId || c.pets.some(p => p.id === pet.id));
-  if (!owner || !pet.id) return false;
-  upsert(owner.pets, pet as CustomerPet);
-  return true;
-}
-
-function upsert<T extends { id: string }>(items: T[], item: T): void {
-  const i = items.findIndex(x => x.id === item.id);
-  if (i < 0) items.push(item);
-  else items[i] = item;
-}
 
 /** Uploaded photos live in browser storage while mocks are on; say so before it fills up. */
 function warnWhenStorageFills(req: HttpRequest<unknown>, res: HttpResponse<unknown>, alert: AlertService): void {

@@ -1,32 +1,30 @@
-"""Customers and pets: search, tabs and pages, one customer per mobile number, the staff note."""
+"""Customers and pets: search, tabs and pages, one customer per mobile number, the staff note.
+Their numbers (visits, money, membership) come from overview.py."""
 
 import datetime as dt
 import re
 
 from fastapi import HTTPException
-from sqlalchemy import ColumnElement, false, func, or_, select, true
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.core.dates import now
 from app.core.schemas import Paged
+from app.shared.customers import overview
 from app.shared.customers.models import Customer, Pet
 from app.shared.customers.schemas import (
     CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOwner, PetOut, PetRecordOut, PetSummaryOut, StaffNote,
     phone_digits,
 )
+from app.shared.customers.overview import in_segment, on_plan, sort_order
 
 SEGMENTS = ("all", "members", "new", "lapsed", "no_plan")
 
 # ── Customers ──
 
 
-def customer_out(c: Customer) -> CustomerOut:
+def customer_out(db: Session, c: Customer) -> CustomerOut:
     note = StaffNote(text=c.note_text, by=c.note_by or "", at=c.note_at) if c.note_text and c.note_at else None
-    return CustomerOut.model_validate(c).model_copy(update={"staff_note": note})
-
-
-def summary_out(c: Customer) -> CustomerSummaryOut:
-    return CustomerSummaryOut(id=c.id, name=c.name, phone=c.phone, pet_names=[p.name for p in c.pets])
+    return CustomerOut.model_validate(c).model_copy(update={"staff_note": note, **overview.profile_numbers(db, c)})
 
 
 def _matches(q: str) -> ColumnElement[bool]:
@@ -39,39 +37,26 @@ def _matches(q: str) -> ColumnElement[bool]:
     return or_(*found)
 
 
-def _in_segment(segment: str) -> ColumnElement[bool]:
-    """The tabs on the Customers page. Members and lapsed customers are worked out from memberships and visits, which come
-    with Modules 5 and 7; until then nobody is a member or lapsed, and everyone has no plan."""
-    if segment == "new":
-        start_of_month = now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        return Customer.customer_since >= start_of_month
-    if segment in ("members", "lapsed"):
-        return false()
-    return true()  # all, no_plan
-
-
 def list_customers(db: Session, q: str, segment: str, plan: str, pet_type: str | None, sort: str, page: int, page_size: int) -> Paged[CustomerSummaryOut]:
-    query = select(Customer).where(_in_segment(segment))
+    query = select(Customer).where(in_segment(segment))
     if q.strip():
         query = query.where(_matches(q.strip()))
     if pet_type:
         query = query.where(Customer.pets.any(Pet.type == pet_type))
-    if plan and plan != "none":
-        query = query.where(false())  # nobody is on a plan until memberships are in the backend (Module 7)
+    if plan:
+        query = query.where(on_plan(plan))
     total = db.scalar(select(func.count()).select_from(query.subquery()))
-    # Sorting by last visit or money spent needs bookings (Modules 5–6); until then those sorts show the newest customers first.
-    order = [Customer.name] if sort == "name" else [Customer.customer_since.desc()]
     rows = db.scalars(
-        query.order_by(*order, Customer.id)
+        query.order_by(*sort_order(sort), Customer.id)
         .offset((page - 1) * page_size)  # skip the earlier pages
         .limit(page_size)
         .options(selectinload(Customer.pets))  # every row's pets in one extra query, not one query per row
     )
-    return Paged(items=[summary_out(c) for c in rows], total=total, page=page, page_size=page_size)
+    return Paged(items=overview.summaries(db, list(rows)), total=total, page=page, page_size=page_size)
 
 
 def segment_counts(db: Session) -> dict[str, int]:
-    return {s: db.scalar(select(func.count()).select_from(Customer).where(_in_segment(s))) for s in SEGMENTS}
+    return {s: db.scalar(select(func.count()).select_from(Customer).where(in_segment(s))) for s in SEGMENTS}
 
 
 def find_customer(db: Session, customer_id: str) -> Customer:
@@ -95,31 +80,31 @@ def create_customer(db: Session, body: CustomerIn) -> CustomerOut:
     c = Customer(**body.model_dump())
     db.add(c)
     db.commit()
-    return customer_out(c)
+    return customer_out(db, c)
 
 
 def update_customer(db: Session, c: Customer, body: CustomerIn) -> CustomerOut:
-    """Bookings keep their own copy of the name and phone; Module 5 keeps those in step."""
+    """Bookings read the customer's record, so they show the new details too."""
     if _number_taken(db, body.phone, c.id):
         raise HTTPException(status_code=409, detail="Another customer already has this number.")
     for field, value in body.model_dump().items():
         setattr(c, field, value)
     db.commit()
-    return customer_out(c)
+    return customer_out(db, c)
 
 
 def save_note(db: Session, c: Customer, body: NoteIn, by: str) -> CustomerOut:
     text = body.text.strip()
     c.note_text, c.note_by, c.note_at = (text, by, dt.datetime.now(dt.timezone.utc)) if text else (None, None, None)
     db.commit()
-    return customer_out(c)
+    return customer_out(db, c)
 
 
 # ── Pets ──
 
 
-def _pet_summary(p: Pet) -> PetSummaryOut:
-    return PetSummaryOut(pet=PetOut.model_validate(p), owner=PetOwner.model_validate(p.owner))
+def _pet_summary(p: Pet, last_groom=None) -> PetSummaryOut:
+    return PetSummaryOut(pet=PetOut.model_validate(p), owner=PetOwner.model_validate(p.owner), last_groom=last_groom)
 
 
 def add_pet(db: Session, c: Customer, body: PetIn) -> Pet:
@@ -141,8 +126,9 @@ def list_pets(db: Session, q: str, pet_type: str | None, vaccination_due: bool, 
     if vaccination_due:
         query = query.where(Pet.vaccination.in_(("due_soon", "not_vaccinated")))
     total = db.scalar(select(func.count()).select_from(query.subquery()))
-    rows = db.scalars(query.order_by(Pet.name, Pet.id).offset((page - 1) * page_size).limit(page_size).options(selectinload(Pet.owner)))
-    return Paged(items=[_pet_summary(p) for p in rows], total=total, page=page, page_size=page_size)
+    rows = list(db.scalars(query.order_by(Pet.name, Pet.id).offset((page - 1) * page_size).limit(page_size).options(selectinload(Pet.owner))))
+    grooms = overview.last_grooms(db, [p.id for p in rows])
+    return Paged(items=[_pet_summary(p, grooms.get(p.id)) for p in rows], total=total, page=page, page_size=page_size)
 
 
 def pet_counts(db: Session) -> PetCounts:
@@ -157,12 +143,14 @@ def find_pet(db: Session, pet_id: str) -> Pet:
     return pet
 
 
-def pet_record(pet: Pet) -> PetRecordOut:
-    return PetRecordOut(pet=PetOut.model_validate(pet), owner=PetOwner.model_validate(pet.owner))
+def pet_record(db: Session, pet: Pet) -> PetRecordOut:
+    visits = overview.pet_visits(db, pet.id)
+    return PetRecordOut(pet=PetOut.model_validate(pet), owner=PetOwner.model_validate(pet.owner), visits=visits,
+                        last_groom=visits[0].date if visits else None)
 
 
 def update_pet(db: Session, pet: Pet, body: PetIn) -> Pet:
-    """Bookings keep their own copy of the pet's name and breed; Module 5 keeps those in step."""
+    """Bookings read the pet's record, so they show the new details too."""
     for field, value in body.model_dump().items():
         setattr(pet, field, value)
     db.commit()

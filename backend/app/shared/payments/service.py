@@ -5,7 +5,7 @@ import datetime as dt
 from app.shared.payments.models import Payment, PaymentLink
 
 METHOD_LABELS = {"online": "Online", "upi_qr": "Shop QR (UPI)", "cash": "Cash", "card": "Card"}
-KIND_LABELS = {"advance": "Advance", "balance": "Balance", "refund": "Refund"}
+KIND_LABELS = {"advance": "Advance", "balance": "Balance", "plan": "Plan", "upgrade": "Difference", "refund": "Refund"}
 
 
 def net_paid(payments: list[Payment]) -> int:

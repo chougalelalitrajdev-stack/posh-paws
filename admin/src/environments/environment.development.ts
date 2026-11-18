@@ -6,5 +6,8 @@ export const environment = {
   useMocks: true,
   // Areas the real backend (backend/, http://localhost:8000) already serves; everything else stays on core/mocks.
   // Add an area when its backend module is done (backend/PLAN.md).
-  liveApi: ['/auth', '/team', '/settings', '/templates', '/slot-board/week', '/services', '/stations', '/plans', '/offers', '/customers', '/pets'],
+  liveApi: [
+    '/auth', '/team', '/settings', '/templates', '/services', '/stations', '/plans', '/offers', '/customers', '/pets',
+    '/bookings', '/calendar', '/slots', '/slot-board', '/blocks', '/payments', '/subscriptions', '/dashboard', '/search',
+  ],
 };
