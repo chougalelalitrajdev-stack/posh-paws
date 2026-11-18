@@ -84,7 +84,7 @@ Every request goes **route → service → database**: the route receives it, th
 - [x] **3. Catalog:** services, stations, membership plans, offers (ordering, archiving, unique codes).
 - [x] **4. Customers & pets:** relations (one customer, many pets), pagination, search.
 - [x] **5. Bookings & slots** (the heart): slots, slot board, calendar, block time, New booking, reschedule, cancel, complete / no-show; stopping two people from taking the same slot (the database's `no_double_booking` rule). Bills with offers. Backend and tests only: see the note below.
-- [ ] **6. Money:** payment records on bookings (advance, links, shop payments, checkout, refunds, payment status), Payments, Today dashboard.
+- [x] **6. Money:** payment records on bookings (advance, links, shop payments, checkout, refunds, payment status), Payments, Today dashboard. Backend and tests only, like Module 5; Today's membership numbers come with Module 7 and its content reminders with Module 8.
 - [ ] **7. Subscriptions:** memberships, plan sessions and member discounts on bills, plan changes and renewals.
   Then the admin switches **Bookings, Availability › Day, the calendar, Payments, Subscriptions, Today and search** to the backend together (with a demo bookings seed), and customer numbers, pet visits and a holiday's "bookings to move" are worked out from bookings.
   *Why together:* a booking's bill depends on the customer's membership, and paying or cancelling changes both, so switching one of them alone would show wrong bills.

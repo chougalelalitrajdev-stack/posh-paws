@@ -30,8 +30,31 @@ class BookingBill(CamelModel):
     discount: BillDiscount | None
     total_paise: int
     advance_paise: int  # asked for online when booked in the app; 0 for phone bookings
-    paid_paise: int = 0  # payments minus refunds (Module 6)
+    paid_paise: int = 0  # payments minus refunds
     balance_paise: int  # total − paid, never below 0
+
+
+class PaymentEntry(CamelModel):
+    """Money received for a booking, or given back. Amounts are positive; refunds are subtracted."""
+
+    id: str  # PAY-1051-1
+    kind: Literal["advance", "balance", "refund"]
+    amount_paise: int
+    method: Literal["online", "upi_qr", "cash", "card"]
+    at: dt.datetime
+    by: str | None = None
+    refund_of: str | None = None
+
+
+class PaymentLinkOut(CamelModel):
+    """The open payment link, if any."""
+
+    amount_type: Literal["hold", "full"]
+    amount_paise: int
+    url: str
+    sent_at: dt.datetime
+    expires_at: dt.datetime
+    failed: bool
 
 
 class ActivityEntry(CamelModel):
@@ -74,8 +97,8 @@ class BookingOut(CamelModel):
     time: str | None
     station_id: str | None
     bill: BookingBill | None
-    payments: list[dict] = []  # payment entries (Module 6)
-    payment_link: dict | None = None  # an open payment link (Module 6)
+    payments: list[PaymentEntry] = []
+    payment_link: PaymentLinkOut | None = None
     offer_code: str | None
     booked_by: str | None
     activity: list[ActivityEntry]
@@ -125,6 +148,34 @@ class RescheduleIn(CamelModel):
     def time_given(cls, v: str) -> str:
         if not TIME.match(v):
             raise ValueError("Pick a time like 10:30.")
+        return v
+
+
+class PaymentLinkIn(CamelModel):
+    """POST /admin/bookings/{id}/payment-link: before the booking is confirmed, ask for the advance (hold) or the full amount."""
+
+    amount_type: Literal["hold", "full"] = "full"
+
+
+class ShopPaymentIn(CamelModel):
+    """POST /admin/bookings/{id}/payments: money taken at the shop. complete = checkout (also marks the visit completed)."""
+
+    amount_paise: int
+    method: Literal["upi_qr", "cash", "card"]
+    complete: bool = False
+
+    @field_validator("amount_paise")
+    @classmethod
+    def amount_given(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("Enter the amount received.")
+        return v
+
+    @field_validator("method", mode="before")
+    @classmethod
+    def method_known(cls, v):
+        if v not in ("upi_qr", "cash", "card"):
+            raise ValueError("Pick how they paid: shop QR, cash or card.")
         return v
 
 

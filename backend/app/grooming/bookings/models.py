@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.shared.customers.models import Customer, Pet
+from app.shared.payments.models import Payment, PaymentLink
 
 # Booking numbers (PP-1001, PP-1002, ...) come from a database counter, so two bookings made at once never get the same one.
 BOOKING_NUMBER = Sequence("booking_number", start=1001, metadata=Base.metadata)
@@ -71,6 +72,8 @@ class Booking(Base):
     customer: Mapped[Customer] = relationship()
     pet: Mapped[Pet | None] = relationship()
     activity: Mapped[list["BookingActivity"]] = relationship(order_by="BookingActivity.id.desc()")
+    payments: Mapped[list[Payment]] = relationship(order_by=Payment.at)  # rows of the payments table for this booking
+    links: Mapped[list[PaymentLink]] = relationship(order_by=PaymentLink.sent_at)  # every link sent; at most one still open
 
 
 class BookingActivity(Base):

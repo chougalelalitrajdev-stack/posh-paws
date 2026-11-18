@@ -1,7 +1,7 @@
-"""Bookings: drafts, the bill, confirming, rescheduling, cancelling and closing a visit (root CLAUDE.md › Booking & payment rules).
+"""Bookings: drafts, the bill, confirming, rescheduling, cancelling, the money on a booking (payment links, payments at the
+shop, the advance refund) and closing a visit (root CLAUDE.md › Booking & payment rules).
 
-Still to come: money taken on a booking (advance, payment links, shop payments, refunds: Module 6), and plan sessions and
-member discounts on the bill (memberships: Module 7).
+Still to come: plan sessions and member discounts on the bill (memberships: Module 7).
 """
 
 import datetime as dt
@@ -17,7 +17,8 @@ from app.core.money import inr
 from app.core.schemas import Paged
 from app.grooming.bookings.models import BOOKING_NUMBER, HOLDS_SLOT, STAGES, Booking, BookingActivity
 from app.grooming.bookings.schemas import (
-    ActivityEntry, BillDiscount, BookingBill, BookingCustomer, BookingDetailsIn, BookingOut, BookingPet, BookingService, CalendarOut, QuoteIn,
+    ActivityEntry, BillDiscount, BookingBill, BookingCustomer, BookingDetailsIn, BookingOut, BookingPet, BookingService, CalendarOut,
+    PaymentEntry, PaymentLinkOut, QuoteIn, ShopPaymentIn,
 )
 from app.grooming.catalog.models import Service, Station
 from app.grooming.catalog.schemas import StationOut
@@ -26,18 +27,23 @@ from app.grooming.offers.service import status_of
 from app.grooming.slots.models import TimeBlock
 from app.grooming.slots.service import blocks_on, free_station, held_range, load_day, load_days, opening_span
 from app.shared.customers.models import Customer, Pet
+from app.shared.payments.models import Payment, PaymentLink
+from app.shared.payments.service import METHOD_LABELS, net_paid, open_link, refunded_ids
 from app.shared.settings.service import get_section
 
 COUNTED = ("awaiting_payment", "confirmed", "completed", "no_show")  # a customer's bookings, for offer limits
 BOOKED = (*HOLDS_SLOT, "cancelled", "no_show")
 TAKEN = "That slot was just taken. Pick another time."
+# What a booking reply needs from other tables, loaded for a whole list in one query each.
+WITH_DETAILS = (selectinload(Booking.customer), selectinload(Booking.pet), selectinload(Booking.activity),
+                selectinload(Booking.payments), selectinload(Booking.links))
 
 # ── Reading ──
 
 
 def paid(b: Booking) -> int:
-    """Payments minus refunds (payments arrive with Module 6)."""
-    return 0
+    """Payments minus refunds."""
+    return net_paid(b.payments)
 
 
 def balance(b: Booking) -> int:
@@ -56,6 +62,8 @@ def booking_out(b: Booking) -> BookingOut:
         customer=BookingCustomer.model_validate(b.customer), pet=BookingPet.model_validate(b.pet) if b.pet else None,
         service=BookingService(id=b.service_id, name=b.service_name, duration_minutes=b.duration_minutes) if b.service_id else None,
         date=b.date, time=b.time, station_id=b.station_id, bill=bill, offer_code=b.offer_code, booked_by=b.booked_by,
+        payments=[PaymentEntry.model_validate(p) for p in b.payments],
+        payment_link=PaymentLinkOut.model_validate(link) if (link := open_link(b.links)) else None,
         activity=[ActivityEntry.model_validate(a) for a in sorted(b.activity, key=lambda a: a.id, reverse=True)],  # newest first
     )
 
@@ -87,8 +95,7 @@ def list_bookings(db: Session, stages: list[str], customer_id: str | None, perio
         query = query.where(Booking.payment_status == payment_status)
     total = db.scalar(select(func.count()).select_from(query.subquery()))
     rows = db.scalars(
-        query.order_by(Booking.created_at.desc(), Booking.id.desc()).offset((page - 1) * page_size).limit(page_size)
-        .options(selectinload(Booking.customer), selectinload(Booking.pet), selectinload(Booking.activity))
+        query.order_by(Booking.created_at.desc(), Booking.id.desc()).offset((page - 1) * page_size).limit(page_size).options(*WITH_DETAILS)
     )
     return Paged(items=[booking_out(b) for b in rows], total=total, page=page, page_size=page_size)
 
@@ -103,8 +110,7 @@ def calendar(db: Session, start: dt.date, days: int) -> CalendarOut:
     dates = [start + dt.timedelta(days=i) for i in range(min(days, 14))]
     loaded = load_days(db, dates)
     bookings = db.scalars(
-        select(Booking).where(Booking.date.in_(dates), Booking.stage.in_(HOLDS_SLOT)).order_by(Booking.date, Booking.time)
-        .options(selectinload(Booking.customer), selectinload(Booking.pet), selectinload(Booking.activity))
+        select(Booking).where(Booking.date.in_(dates), Booking.stage.in_(HOLDS_SLOT)).order_by(Booking.date, Booking.time).options(*WITH_DETAILS)
     )
     staff_blocks = list(db.scalars(select(TimeBlock).where(TimeBlock.date.in_(dates)).order_by(TimeBlock.time)))
     opens, closes = opening_span(loaded[0].rules)
@@ -197,16 +203,42 @@ def _release(db: Session, b: Booking) -> None:
         db.execute(update(Offer).where(Offer.id == b.offer_id).values(used=func.greatest(Offer.used - 1, 0)))
 
 
-def _settle(b: Booking) -> None:
-    """The payment status from the money. Payments and links (Module 6) add part_paid, link_sent, failed and refunded."""
-    b.payment_status = "paid" if b.total_paise == 0 and b.stage in BOOKED else "unpaid"
+def settle(b: Booking) -> None:
+    """The payment status, worked out from the bill, the payments and any open link (root CLAUDE.md › Payment status).
+    Call it after anything that changes the money or the stage."""
+    got, link, total = paid(b), open_link(b.links), b.total_paise or 0
+    if any(p.kind == "refund" for p in b.payments) and got <= 0:
+        b.payment_status = "refunded"
+    elif b.price_paise is not None and b.stage in BOOKED and (balance(b) == 0 or total == 0) and (got > 0 or total == 0):
+        b.payment_status = "paid"  # also when the total is ₹0
+    elif got > 0:
+        b.payment_status = "part_paid"
+    elif link:
+        b.payment_status = "failed" if link.failed else "link_sent"
+    else:
+        b.payment_status = "unpaid"
 
 
 # ── Changing bookings ──
 
 
-def _log(b: Booking, kind: str, title: str, detail: str | None = None, by: str | None = None) -> None:
+def log(b: Booking, kind: str, title: str, detail: str | None = None, by: str | None = None) -> None:
+    """A line in the booking's history."""
     b.activity.append(BookingActivity(kind=kind, title=title, detail=detail, by=by))
+
+
+def add_payment(b: Booking, kind: str, amount: int, method: str, by: str | None = None, refund_of: str | None = None) -> Payment:
+    """A row in the payments table for this booking: PAY-1051-1, PAY-1051-2, ..."""
+    entry = Payment(id=f"PAY-{b.id.removeprefix('PP-')}-{len(b.payments) + 1}", customer_id=b.customer_id, kind=kind, amount_paise=amount,
+                    method=method, by=by, refund_of=refund_of)
+    b.payments.append(entry)
+    return entry
+
+
+def _close_link(b: Booking) -> None:
+    """The open link was paid, replaced, or isn't needed any more."""
+    if link := open_link(b.links):
+        link.closed_at = dt.datetime.now(dt.timezone.utc)
 
 
 def _hold(b: Booking, station: Station, buffer: int) -> None:
@@ -214,7 +246,8 @@ def _hold(b: Booking, station: Station, buffer: int) -> None:
     b.held = Range(*held_range(b.date, b.time, b.duration_minutes, buffer))
 
 
-def _save(db: Session, b: Booking) -> BookingOut:
+def save(db: Session, b: Booking) -> BookingOut:
+    """Commits the change and answers with the booking. A clash on the station (someone else just took it) is a 409."""
     try:
         db.commit()
     except IntegrityError as e:
@@ -255,17 +288,17 @@ def save_details(db: Session, booking_id: str | None, body: BookingDetailsIn, by
         number = db.scalar(select(BOOKING_NUMBER.next_value()))
         b = Booking(id=f"PP-{number}", source="phone", stage="draft", customer=customer, booked_by=by)
         db.add(b)
-        _log(b, "created", "Booking started by staff", by=by)
+        log(b, "created", "Booking started by staff", by=by)
 
     b.customer, b.pet = customer, pet
     b.service_id, b.service_name, b.duration_minutes = service.id, service.name, service.duration_minutes
     # Phone bookings take no advance.
     _apply_bill(b, quote_bill(db, customer.id, service, body.offer_code, with_advance=False, exclude_booking_id=b.id))
     b.offer_code, b.date, b.time = body.offer_code, body.date, body.time
-    _settle(b)
+    settle(b)
     when = f" · {short_date(body.date)} {body.time}" if body.date and body.time else " · slot not picked yet"
-    _log(b, "details", "Booking details saved", f"{service.name}{when}", by)
-    return _save(db, b)
+    log(b, "details", "Booking details saved", f"{service.name}{when}", by)
+    return save(db, b)
 
 
 def confirm(db: Session, b: Booking, by: str) -> BookingOut:
@@ -284,9 +317,9 @@ def confirm(db: Session, b: Booking, by: str) -> BookingOut:
     _hold(b, station, day.rules.buffer_minutes)
     b.stage = "confirmed"
     _reserve(db, b)
-    _settle(b)
-    _log(b, "status", "Booking confirmed", f"{inr(b.total_paise)} to pay at the shop." if b.total_paise else "Nothing to pay.", by)
-    return _save(db, b)
+    settle(b)
+    log(b, "status", "Booking confirmed", f"{inr(b.total_paise)} to pay at the shop." if b.total_paise else "Nothing to pay.", by)
+    return save(db, b)
 
 
 def reschedule(db: Session, b: Booking, date: dt.date, time: str, by: str) -> BookingOut:
@@ -300,40 +333,156 @@ def reschedule(db: Session, b: Booking, date: dt.date, time: str, by: str) -> Bo
     before = f"{short_date(b.date)} {b.time}" if b.date and b.time else "no slot"
     b.date, b.time = date, time
     _hold(b, station, day.rules.buffer_minutes)
-    _log(b, "details", "Rescheduled", f"{before} → {short_date(date)} {time}", by)
-    return _save(db, b)
+    log(b, "details", "Rescheduled", f"{before} → {short_date(date)} {time}", by)
+    return save(db, b)
+
+
+def _refund_advance(db: Session, b: Booking) -> str | None:
+    """On cancel: an online advance is refunded when the slot is at least `freeCancellationHours` away, otherwise kept.
+    Returns the line for the activity log, or None when no advance was paid."""
+    gone = refunded_ids(b.payments)
+    advances = [p for p in b.payments if p.kind == "advance" and p.method == "online" and p.id not in gone]
+    amount = sum(p.amount_paise for p in advances)
+    if not amount:
+        return None
+    hours = get_section(db, "payments").free_cancellation_hours
+    if b.date and b.time and starts_at(b.date, b.time) - now() < dt.timedelta(hours=hours):
+        return f"The {inr(amount)} advance is kept (cancelled less than {hours} h before)."
+    for p in advances:
+        add_payment(b, "refund", p.amount_paise, "online", refund_of=p.id)
+    return f"The {inr(amount)} advance was refunded (cancelled {hours} h or more before)."
 
 
 def cancel(db: Session, b: Booking, reason: str, by: str) -> BookingOut:
-    """Frees the slot and gives back the offer use. (Refunding an advance comes with Module 6.)"""
+    """Frees the slot and gives back the offer use. The advance follows the refund rule; other payments are refunded from Payments."""
     if b.stage not in ("draft", "awaiting_payment", "confirmed"):
         raise HTTPException(status_code=409, detail="This booking can't be cancelled.")
     if b.stage == "confirmed":
         _release(db, b)
     b.stage, b.held = "cancelled", None
-    _settle(b)
-    _log(b, "status", "Booking cancelled", reason.strip() or None, by)
-    return _save(db, b)
+    _close_link(b)
+    advance = _refund_advance(db, b)
+    gone = refunded_ids(b.payments)
+    others = "Other payments can be refunded from Payments." if any(p.kind == "balance" and p.id not in gone for p in b.payments) else None
+    settle(b)
+    log(b, "status", "Booking cancelled", " ".join(x for x in (reason.strip(), advance, others) if x) or None, by)
+    return save(db, b)
+
+
+def _must_have_started(b: Booking) -> None:
+    if not b.date or not b.time or starts_at(b.date, b.time) > now():
+        raise HTTPException(status_code=409, detail="This appointment hasn't started yet. Mark it completed or a no-show once it has.")
+
+
+def _close(b: Booking, stage: str, by: str) -> None:
+    b.stage = stage
+    if stage == "no_show":
+        b.held = None  # the rest of its time is free again; the advance is kept and nothing more is owed
+    settle(b)
+    due = balance(b) if stage == "completed" else 0
+    log(b, "status", "Marked completed" if stage == "completed" else "Marked as no-show", f"{inr(due)} still to pay." if due else None, by)
 
 
 def close_visit(db: Session, b: Booking, stage: str, by: str) -> BookingOut:
     """Completed or no-show: staff decide once the appointment has started; nothing closes a visit by itself."""
     if b.stage != "confirmed":
         raise HTTPException(status_code=409, detail="Only confirmed bookings can be changed this way.")
-    if not b.date or not b.time or starts_at(b.date, b.time) > now():
-        raise HTTPException(status_code=409, detail="This appointment hasn't started yet. Mark it completed or a no-show once it has.")
-    b.stage = stage
-    if stage == "no_show":
-        b.held = None  # the rest of its time is free again
-    _settle(b)
-    due = balance(b) if stage == "completed" else 0
-    _log(b, "status", "Marked completed" if stage == "completed" else "Marked as no-show", f"{inr(due)} still to pay." if due else None, by)
-    return _save(db, b)
+    _must_have_started(b)
+    _close(b, stage, by)
+    return save(db, b)
+
+
+# ── Money on a booking ──
+
+
+def payment_link(db: Session, b: Booking, amount_type: str, by: str) -> BookingOut:
+    """Sends (or re-sends) a payment link. Before the booking is confirmed it asks for the advance (hold) or the full amount
+    and holds the slot; after, it asks for the balance."""
+    if b.stage not in ("draft", "awaiting_payment", "confirmed", "completed"):
+        raise HTTPException(status_code=409, detail="This booking doesn't need a payment link.")
+    if not (b.service_id and b.date and b.time and b.price_paise is not None):
+        raise HTTPException(status_code=400, detail="Pick a service and a slot first.")
+    settings = get_section(db, "payments")
+    before, link = b.stage in ("draft", "awaiting_payment"), open_link(b.links)
+    if before:
+        service = db.get(Service, b.service_id)
+        day = load_day(db, b.date, b.id)
+        station = free_station(day, b.time, service, b.duration_minutes)
+        if not station:
+            raise HTTPException(status_code=409, detail=TAKEN)
+        if b.stage != "awaiting_payment":
+            _apply_bill(b, quote_bill(db, b.customer_id, service, b.offer_code, with_advance=False, exclude_booking_id=b.id))
+        if not b.total_paise:
+            raise HTTPException(status_code=409, detail="Nothing to pay on this booking. Confirm it instead.")
+        # A re-sent link asks for the same as before.
+        kind = link.amount_type if b.stage == "awaiting_payment" and link else amount_type
+        amount = min(settings.slot_hold_paise, b.total_paise) if kind == "hold" else b.total_paise
+        _hold(b, station, day.rules.buffer_minutes)
+        b.stage = "awaiting_payment"
+    else:
+        kind, amount = "full", balance(b)
+        if not amount:
+            raise HTTPException(status_code=409, detail="Nothing left to pay on this booking.")
+    sent = dt.datetime.now(dt.timezone.utc)
+    _close_link(b)
+    # A demo address until the payment gateway is connected (Module 12).
+    url = f"https://pay.poshpaws.in/l/{b.id}" + (f"-{int(sent.timestamp()):x}" if link else "")
+    b.links.append(PaymentLink(customer_id=b.customer_id, amount_type=kind, amount_paise=amount, url=url, sent_at=sent,
+                               expires_at=sent + dt.timedelta(hours=settings.link_expiry_hours)))
+    settle(b)
+    title = "New payment link sent" if link else "Payment link sent on WhatsApp" if before else "Balance link sent on WhatsApp"
+    log(b, "payment", title, inr(amount), by)
+    return save(db, b)
+
+
+def pay_link(db: Session, b: Booking) -> BookingOut:
+    """Stands in for the customer paying the open link until the payment gateway is connected (Module 12): the admin's
+    "Demo: customer pays online". Paying before the visit confirms the booking."""
+    if get_section(db, "payments").provider:
+        raise HTTPException(status_code=409, detail="Online payments come from the payment gateway now.")
+    link = open_link(b.links)
+    if not link:
+        raise HTTPException(status_code=409, detail="There's no open payment link.")
+    confirming = b.stage == "awaiting_payment"
+    _close_link(b)
+    add_payment(b, "advance" if confirming else "balance", link.amount_paise, "online")
+    if confirming:
+        b.stage = "confirmed"
+        _reserve(db, b)
+    settle(b)
+    log(b, "payment", "Paid online", f"{inr(link.amount_paise)}{' · booking confirmed automatically' if confirming else ''}")
+    return save(db, b)
+
+
+def record_payment(db: Session, b: Booking, body: ShopPaymentIn, by: str) -> BookingOut:
+    """Money taken at the shop (shop UPI QR, cash or card), up to the balance. Taking it before the visit confirms the booking.
+    With `complete` (checkout), the visit is marked completed too."""
+    if b.stage not in ("awaiting_payment", "confirmed", "completed") or b.price_paise is None:
+        raise HTTPException(status_code=409, detail="Only booked or completed bookings take payments.")
+    due = balance(b)
+    if body.amount_paise > due:
+        raise HTTPException(status_code=400, detail=f"The balance is {inr(due)}. Enter that or less.")
+    if body.complete:
+        _must_have_started(b)
+    confirming = b.stage == "awaiting_payment"
+    add_payment(b, "advance" if confirming else "balance", body.amount_paise, body.method, by)
+    if confirming:
+        b.stage = "confirmed"
+        _close_link(b)
+        _reserve(db, b)
+    elif not balance(b):
+        _close_link(b)  # a balance link isn't needed any more
+    settle(b)
+    left = f" · {inr(balance(b))} still due" if balance(b) else " · paid in full"
+    log(b, "payment", "Payment taken at the shop", f"{inr(body.amount_paise)} by {METHOD_LABELS[body.method]}{left}", by)
+    if body.complete and b.stage == "confirmed":
+        _close(b, "completed", by)  # checkout: the pet came and is going home
+    return save(db, b)
 
 
 def add_note(db: Session, b: Booking, text: str, by: str) -> BookingOut:
     if not text.strip():
         raise HTTPException(status_code=400, detail="Write a note first.")
-    _log(b, "note", "Note", text.strip(), by)
-    return _save(db, b)
+    log(b, "note", "Note", text.strip(), by)
+    return save(db, b)
 

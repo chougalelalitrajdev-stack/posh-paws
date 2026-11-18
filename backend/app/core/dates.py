@@ -29,6 +29,23 @@ def starts_at(day: date, hhmm: str) -> datetime:
     return local(day, hhmm).replace(tzinfo=ZoneInfo(settings.timezone))
 
 
+def shop_date(moment: datetime) -> date:
+    """The shop's calendar day for a stored timestamp (a payment at 00:30 in Pune belongs to that day, not the day before in UTC)."""
+    return moment.astimezone(ZoneInfo(settings.timezone)).date()
+
+
+def age_label(moment: datetime) -> str:
+    """How long ago: "45 min", "3 h 20 min", "2 days"."""
+    minutes = max(0, round((now() - moment).total_seconds() / 60))
+    if minutes < 60:
+        return f"{minutes} min"
+    if minutes < 24 * 60:
+        hours, rest = divmod(minutes, 60)
+        return f"{hours} h {rest} min" if rest else f"{hours} h"
+    days = minutes // (24 * 60)
+    return f"{days} day{'s' if days > 1 else ''}"
+
+
 def short_date(day: date) -> str:
     """"Thu 19 Nov", as the apps show dates."""
     return f"{day:%a} {day.day} {day:%b}"

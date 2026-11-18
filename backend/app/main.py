@@ -6,6 +6,8 @@ from app.core.config import settings
 from app.core.errors import add_error_handlers
 from app.grooming.bookings import routes as booking_routes
 from app.grooming.catalog import routes as catalog_routes
+from app.grooming.dashboard import routes as dashboard_routes
+from app.grooming.money import routes as money_routes
 from app.grooming.offers import routes as offer_routes
 from app.grooming.plans import routes as plan_routes
 from app.grooming.slots import routes as slot_routes
@@ -43,3 +45,6 @@ app.include_router(slot_routes.board_router, prefix="/api")
 app.include_router(slot_routes.blocks_router, prefix="/api")
 app.include_router(booking_routes.router, prefix="/api")
 app.include_router(booking_routes.calendar_router, prefix="/api")
+app.include_router(money_routes.router, prefix="/api")
+app.include_router(money_routes.customer_router, prefix="/api")
+app.include_router(dashboard_routes.router, prefix="/api")

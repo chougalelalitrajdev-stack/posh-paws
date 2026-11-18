@@ -10,7 +10,9 @@ from app.core.database import get_db
 from app.core.dates import today
 from app.core.schemas import Paged
 from app.grooming.bookings import service
-from app.grooming.bookings.schemas import BookingBill, BookingDetailsIn, BookingOut, CalendarOut, CancelIn, NoteIn, QuoteIn, RescheduleIn
+from app.grooming.bookings.schemas import (
+    BookingBill, BookingDetailsIn, BookingOut, CalendarOut, CancelIn, NoteIn, PaymentLinkIn, QuoteIn, RescheduleIn, ShopPaymentIn,
+)
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import current_staff
 
@@ -86,6 +88,23 @@ def complete(booking_id: str, db: Session = Depends(get_db), me: StaffUser = Dep
 @router.post("/{booking_id}/no-show", response_model=BookingOut)
 def no_show(booking_id: str, db: Session = Depends(get_db), me: StaffUser = Depends(current_staff)) -> BookingOut:
     return service.close_visit(db, service.find_booking(db, booking_id), "no_show", me.name)
+
+
+@router.post("/{booking_id}/payment-link", response_model=BookingOut)
+def payment_link(booking_id: str, body: PaymentLinkIn, db: Session = Depends(get_db), me: StaffUser = Depends(current_staff)) -> BookingOut:
+    return service.payment_link(db, service.find_booking(db, booking_id), body.amount_type, me.name)
+
+
+@router.post("/{booking_id}/payments", response_model=BookingOut)
+def take_payment(booking_id: str, body: ShopPaymentIn, db: Session = Depends(get_db), me: StaffUser = Depends(current_staff)) -> BookingOut:
+    """Money taken at the shop; with complete=true it's checkout (paid and completed in one step)."""
+    return service.record_payment(db, service.find_booking(db, booking_id), body, me.name)
+
+
+@router.post("/{booking_id}/demo-pay", response_model=BookingOut)
+def demo_pay(booking_id: str, db: Session = Depends(get_db), _: StaffUser = Depends(current_staff)) -> BookingOut:
+    """Until the payment gateway is connected (Module 12): pretend the customer paid the open link."""
+    return service.pay_link(db, service.find_booking(db, booking_id))
 
 
 @router.post("/{booking_id}/notes", response_model=BookingOut)

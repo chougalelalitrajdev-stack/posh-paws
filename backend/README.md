@@ -46,7 +46,7 @@ backend/
 │   │                    HH:mm helpers (dates.py), health check
 │   ├── seed.py          demo data for your own Mac (python -m app.seed), with the admin demo's ids
 │   ├── shared/          used by every module: customers, pets, staff & roles, payments, notifications, settings, uploads
-│   ├── grooming/        catalog (services + stations), plans, offers; later slots, bookings, subscriptions
+│   ├── grooming/        catalog (services + stations), plans, offers, slots, bookings, money (the Payments page), dashboard (Today); later subscriptions
 │   ├── shop/            (later)
 │   └── vet/             (later)
 ├── alembic/             migrations: versions/ holds one file per database change
@@ -90,6 +90,7 @@ Later modules use their own URL prefix: `/api/admin/shop/orders`, `/api/admin/ve
 - A rule the database must guarantee even when two requests arrive at the same instant is a database constraint, not only a Python check: unique codes and phone numbers, and `no_double_booking` (an exclusion constraint on each booking's `held` time range per station). Python checks first to give a friendly message; the constraint is the safety net (`IntegrityError` → 409).
 - Times inside a day are shop-local: dates are `date`, times `"HH:mm"` strings, and a booking's held time is a `TSRANGE` without a timezone. Compare with "now" through `app.core.dates` (`starts_at(day, "10:30")` vs `now()`).
 - Migrations can need a hand-written line; Alembic doesn't write extensions or standalone sequences (see the bookings migration: `btree_gist`, `booking_number`). Run `alembic check` to confirm the models and migrations match.
+- Money in and out is one shared table, `payments` (`app/shared/payments`), with a column for what it was for (`booking_id` now; memberships, store orders and vet visits add theirs). Amounts are always positive; a refund is its own row pointing at the payment it gives back. Totals, balances and the payment status are worked out from those rows (`net_paid`, `settle`), never typed in.
 - Checks on the shape of a request (required fields, ranges, choices) live in `schemas.py` and answer 422; rules that need the database (a unique name or code, ids that exist, "keep one station in use") live in `service.py` and answer 400, 404 or 409.
 - Staff routes are protected with `Depends(require_roles(*SETTINGS_ROLES))` (or `current_staff` for any signed-in staff) from `app.shared.staff.service`, which also holds the permissions list. 401 = not signed in, 403 = signed in but not allowed.
 - Raise `HTTPException(status_code=..., detail="...")` for expected errors.
