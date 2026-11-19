@@ -1,3 +1,4 @@
+import { AppLink } from '../models/content.model';
 import { Highlight, ProcessStep, Testimonial } from '../models/catalog.model';
 
 // Marketing copy shown on several pages. Not from the API.
@@ -23,3 +24,12 @@ export const SERVICE_HIGHLIGHTS: Highlight[] = [
 ];
 
 export const TRUST_PILLS: string[] = ['Certified groomers', 'Imported products', 'Fear-free certified', 'Vet recommended'];
+
+/** App pages a banner's button can open. A banner can only point at these, never at an outside address. */
+const APP_LINK_PATHS: Record<AppLink, string> = {
+  home: '/', services: '/services', book: '/book', membership: '/membership', gallery: '/gallery', about: '/about',
+};
+
+export function appLinkPath(link: AppLink): string {
+  return APP_LINK_PATHS[link] ?? '/';
+}

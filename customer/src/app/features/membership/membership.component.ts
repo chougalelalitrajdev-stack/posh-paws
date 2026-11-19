@@ -5,7 +5,9 @@ import { LoginDialogService } from '../../core/services/login-dialog.service';
 import { SubscribeDialogService } from '../../core/services/subscribe-dialog.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { Highlight, PlanItem } from '../../core/models/catalog.model';
-import { AccordionComponent, AccordionItem } from '../../shared/components/accordion/accordion.component';
+import { ContentService } from '../../core/services/content.service';
+import { FaqSectionComponent } from '../../shared/components/faq-section/faq-section.component';
+import { PromoBannerComponent } from '../../shared/components/promo-banner/promo-banner.component';
 import { CtaBannerComponent } from '../../shared/components/cta-banner/cta-banner.component';
 import { FeatureCardComponent } from '../../shared/components/feature-card/feature-card.component';
 import { PageHeroComponent } from '../../shared/components/page-hero/page-hero.component';
@@ -35,30 +37,11 @@ const PERKS: Highlight[] = [
   },
 ];
 
-const FAQ: AccordionItem[] = [
-  {
-    question: 'Can I cancel or change my plan anytime?',
-    answer: 'Yes. You can upgrade, downgrade, or cancel your membership at any time before the next billing cycle. No lock-in, no penalties.',
-  },
-  {
-    question: 'Do unused sessions roll over to the next month?',
-    answer: 'Sessions are valid for the calendar month. They do not roll over, so we recommend booking early to make the most of your plan.',
-  },
-  {
-    question: 'Can I use my membership for both dogs and cats?',
-    answer: 'Absolutely. Your membership covers all pets linked to your profile. Add multiple pets and the sessions are shared across them.',
-  },
-  {
-    question: 'How does the ₹100 slot hold work for members?',
-    answer: 'Members still place a ₹100 refundable hold to confirm a booking. It is fully returned when you arrive for the appointment.',
-  },
-];
-
 @Component({
   selector: 'pp-membership',
   imports: [
     RouterLink, PageHeroComponent, SectionHeaderComponent, PlanCardComponent, FeatureCardComponent,
-    AccordionComponent, CtaBannerComponent,
+    FaqSectionComponent, PromoBannerComponent, CtaBannerComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './membership.component.html',
@@ -70,7 +53,11 @@ export class MembershipComponent {
 
   protected readonly plans = inject(CatalogService).plans;
   protected readonly perks = PERKS;
-  protected readonly faq = FAQ;
+  private readonly content = inject(ContentService);
+
+  // Questions and the banner come from the admin (Content › Pages & FAQs, Banners).
+  protected readonly faq = this.content.faqsFor('Membership');
+  protected readonly banner = this.content.banner('membership');
 
   subscribeToPlan(plan: PlanItem): void {
     this.login.ensureLoggedIn().pipe(filter(Boolean)).subscribe(() => this.subscribeDialog.open(plan));

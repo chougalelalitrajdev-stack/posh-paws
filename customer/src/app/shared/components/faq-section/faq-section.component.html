@@ -1,0 +1,14 @@
+@if (items().length) {
+  <section class="pp-faq section-pad" [class.is-tinted]="surface() === 'tinted'" id="faq">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <pp-section-header eyebrow="FAQ" align="center">
+            <span ppTitle>Common <em>questions</em></span>
+          </pp-section-header>
+          <pp-accordion [items]="items()" />
+        </div>
+      </div>
+    </div>
+  </section>
+}

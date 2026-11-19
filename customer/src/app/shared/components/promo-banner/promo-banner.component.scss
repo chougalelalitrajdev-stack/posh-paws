@@ -1,0 +1,49 @@
+pp-promo-banner { display: block; }
+
+.pp-promo { padding: var(--space-6) 0; }
+
+.pp-promo-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: var(--space-4);
+  overflow: hidden;
+  background: var(--pp-accent-light);
+  border: 1px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+
+  @media (min-width: 768px) {
+    grid-template-columns: 1fr auto;
+    padding: var(--space-8) var(--space-10);
+
+    &.has-picture { grid-template-columns: 160px 1fr auto; }
+  }
+}
+
+.pp-promo-picture img {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--radius);
+
+  @media (min-width: 768px) { height: 120px; }
+}
+
+.pp-promo-title {
+  font-family: var(--ff-serif);
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  color: var(--pp-text);
+  margin: 0 0 var(--space-2);
+}
+
+.pp-promo-text {
+  font-size: var(--fs-sm);
+  color: var(--pp-muted);
+  margin: 0;
+}
+
+.pp-promo-action { justify-self: start; }

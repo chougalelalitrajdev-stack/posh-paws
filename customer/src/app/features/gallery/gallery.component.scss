@@ -89,6 +89,10 @@
   }
 }
 
+.gallery-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.gallery-card { margin: 0; }
+
 .gallery-card-img {
   height: 200px;
   background: var(--pp-surface-2);

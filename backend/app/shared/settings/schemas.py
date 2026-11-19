@@ -259,9 +259,18 @@ def starts_in(h: DayHours, duration: int, step: int) -> list[str]:
     return starts
 
 
-class ShopOut(CamelModel):
-    """GET /shop: what the customer app needs to explain payments (and nothing else from Settings)."""
+class OpeningHours(CamelModel):
+    day: int  # 0 = Monday
+    open: bool
+    opens: str
+    closes: str
 
+
+class ShopOut(CamelModel):
+    """GET /shop: what the customer app shows from Settings (contact details, hours, how payments work), nothing else."""
+
+    business: BusinessSettings  # name, phone, WhatsApp, email, Instagram, map link, address: for the footer and Call buttons
+    hours: list[OpeningHours]  # the usual week (holidays come with the open times)
     advance_paise: int  # paid online to confirm an app booking
     free_cancellation_hours: int  # cancelled at least this long before: the advance is refunded
     upi_id: str

@@ -20,6 +20,14 @@ One git repo, three independent apps. Each app has its own dependencies, lock fi
 - **Front-ends talk to the backend only over HTTP.** API URLs come from each Angular app's `src/environments/`. No front-end imports code from another app.
 - **The backend owns the data and business rules** (prices, slot availability, booking rules). Front-ends display and submit.
 
+## Security (all apps follow it; every change ends with a security check)
+
+- **No raw HTML from data, ever.** Show text with `{{ }}`; never `[innerHTML]`, `bypassSecurityTrust*`, `DomSanitizer`, `eval` or DOM `innerHTML`. Admin-written content is plain text (a blank line = a new paragraph, `paragraphs()` in the customer app). Links built from data use digits or fixed app routes only (`telLink`, `whatsappLink`, `appLinkPath`).
+- **Sign-in travels in the `Authorization` header**, never in cookies, so other sites can't act as a signed-in user (no CSRF); CORS allows only the apps' addresses and no credentials. Customer and staff tokens are kept apart (`aud`).
+- **Browser safety headers**: each app's `public/_headers` (copied into the build; Netlify sends it) sets a strict Content-Security-Policy (only our own scripts, no inline code), no framing, nosniff, HTTPS. Production builds don't inline the stylesheet loader (`inlineCritical: false`) because the policy blocks inline code. Outside links open with `rel="noopener noreferrer"`.
+- **Dependencies**: keep Angular and the Python packages on patched versions (`npm audit --omit=dev` and `pip-audit -r requirements.txt` should report 0). npm 10.9's audit fix crashes on these projects; use `npx npm@11 install` after raising versions in `package.json`.
+- The backend side (limits on sign-in and codes, production mode, every admin route needs a staff token) is in `backend/README.md` and checked by `backend/tests/test_security.py`.
+
 ## API contract (all apps follow it)
 
 - JSON over REST, under `/api`. Routes are plural nouns: `/api/pets`, `/api/bookings/{id}`. Staff-only routes live under `/api/admin/...` and require a staff token (role checked server-side).

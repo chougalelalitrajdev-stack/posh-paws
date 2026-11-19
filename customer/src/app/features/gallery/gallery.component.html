@@ -24,45 +24,31 @@
 <section class="gallery-section section-pad" id="gallery">
   <div class="container">
 
-    <!-- Filter tabs -->
-    <div class="gallery-filters fade-in-up">
-      <button
-        class="gallery-tab"
-        [class.active]="activeFilter() === 'all'"
-        (click)="setFilter('all')">
-        🐾 All pets
-      </button>
-      <button
-        class="gallery-tab"
-        [class.active]="activeFilter() === 'dog'"
-        (click)="setFilter('dog')">
-        🐶 Dogs
-      </button>
-      <button
-        class="gallery-tab"
-        [class.active]="activeFilter() === 'cat'"
-        (click)="setFilter('cat')">
-        🐱 Cats
-      </button>
-    </div>
+    @if (categories().length > 1) {
+      <!-- Filter by the admin's categories -->
+      <div class="gallery-filters fade-in-up">
+        <button class="gallery-tab" type="button" [class.active]="!activeCategory()" (click)="setCategory(null)">🐾 All</button>
+        @for (c of categories(); track c.id) {
+          <button class="gallery-tab" type="button" [class.active]="activeCategory() === c.id" (click)="setCategory(c.id)">{{ c.name }}</button>
+        }
+      </div>
+    }
 
-    <!-- Grid -->
-    <div class="gallery-grid">
-      @for (item of filteredItems(); track item.label) {
-        <div class="gallery-card fade-in-up">
-          <div class="gallery-card-img">{{ item.emoji }}</div>
-          <div class="gallery-card-footer">
-            <span class="gallery-card-label">{{ item.label }}</span>
-            <span class="gallery-card-tag">{{ item.tag }}</span>
-          </div>
-        </div>
-      }
-    </div>
-
-    <!-- Upload nudge -->
-    <p class="gallery-note fade-in-up">
-      Placeholder photos — replace with real before/after grooming shots.
-    </p>
+    @if (loaded()) {
+      <div class="gallery-grid">
+        @for (photo of photos(); track photo.id) {
+          <figure class="gallery-card fade-in-up">
+            <div class="gallery-card-img"><img [src]="photo.imageUrl" [alt]="photo.caption" loading="lazy"></div>
+            <figcaption class="gallery-card-footer">
+              <span class="gallery-card-label">{{ photo.caption }}</span>
+              @if (photo.pet) { <span class="gallery-card-tag">{{ photo.pet }}</span> }
+            </figcaption>
+          </figure>
+        }
+      </div>
+    } @else {
+      <p class="gallery-note fade-in-up">New photos are on their way. Follow us on Instagram for the latest.</p>
+    }
 
   </div>
 </section>

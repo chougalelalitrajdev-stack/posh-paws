@@ -1,0 +1,17 @@
+<section class="pp-promo">
+  <div class="container">
+    <div class="pp-promo-card fade-in-up" [class.has-picture]="picture()">
+      @if (picture(); as src) {
+        <picture class="pp-promo-picture">
+          @if (banner().desktopImageUrl; as wide) { <source media="(min-width: 768px)" [attr.srcset]="wide"> }
+          <img [src]="src" alt="" loading="lazy">
+        </picture>
+      }
+      <div class="pp-promo-copy">
+        <h2 class="pp-promo-title">{{ banner().title }}</h2>
+        @if (banner().subtitle) { <p class="pp-promo-text">{{ banner().subtitle }}</p> }
+      </div>
+      <a class="btn-pp-accent pp-promo-action" [routerLink]="path()">{{ banner().buttonText }} →</a>
+    </div>
+  </div>
+</section>

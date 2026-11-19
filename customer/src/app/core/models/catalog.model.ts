@@ -52,8 +52,29 @@ export interface Highlight {
   description: string;
 }
 
-/** GET /shop: what the app needs from Settings to explain payments. */
+/** Settings › Business in the admin: shown in the footer and on Call / WhatsApp buttons. */
+export interface BusinessInfo {
+  name: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  instagram: string;
+  mapsLink: string;
+  address: string;
+}
+
+/** One weekday's usual hours (0 = Monday). */
+export interface OpeningHours {
+  day: number;
+  open: boolean;
+  opens: string;
+  closes: string;
+}
+
+/** GET /shop: what the app shows from Settings (contact details, hours, how payments work). */
 export interface ShopInfo {
+  business: BusinessInfo;
+  hours: OpeningHours[];
   /** Paid online to confirm an app booking. */
   advancePaise: Paise;
   /** Cancelling at least this many hours before refunds the advance. */

@@ -18,4 +18,8 @@ export const API = {
   bookingQuote: `${api}/bookings/quote`,
   subscriptions: `${api}/subscriptions`,
   currentSubscription: `${api}/subscriptions/current`,
+  banners: `${api}/banners`,
+  gallery: `${api}/gallery`,
+  pages: `${api}/pages`,
+  faqs: `${api}/faqs`,
 };

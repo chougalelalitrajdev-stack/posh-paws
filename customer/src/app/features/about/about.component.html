@@ -1,8 +1,5 @@
 <pp-page-hero eyebrow="Our story">
-  <span ppTitle>
-    <span>Six years of <em>caring</em></span>
-    <span>for Pune's pets.</span>
-  </span>
+  <span ppTitle>{{ intro()?.heading }}</span>
   <span ppLead>
     Born from a simple belief — that every pet deserves the same quality of
     care their owner gives themselves.
@@ -24,20 +21,12 @@
       <!-- Copy -->
       <div class="col-lg-7 fade-in-up delay-2">
         <pp-section-header eyebrow="Our story">
-          <span ppTitle>Six years of <em>caring</em><br>for Pune's pets</span>
+          <span ppTitle>{{ intro()?.heading }}</span>
         </pp-section-header>
 
-        <p class="story-body">
-          Posh Paws was born from a simple belief — that every pet deserves the
-          same quality of care their owner gives themselves. We started in a small
-          studio in Koregaon Park and have grown into Pune's most trusted grooming
-          sanctuary, one happy pet at a time.
-        </p>
-        <p class="story-body">
-          Our groomers are certified professionals who genuinely love animals.
-          We use only imported, pet-safe, sulphate-free products — nothing harsh,
-          nothing that doesn't belong near your beloved companion.
-        </p>
+        @for (p of paragraphs(intro()?.body); track $index) {
+          <p class="story-body">{{ p }}</p>
+        }
 
         <!-- Trust pills -->
         <div class="trust-pills-wrap">
@@ -61,16 +50,17 @@
   </div>
 </section>
 
-<!-- Values -->
+<!-- Values (each paragraph in the admin is a card) -->
+@if (values().length) {
 <section class="values-section section-pad" id="our-values">
   <div class="container">
 
     <pp-section-header eyebrow="What we stand for" align="center">
-      <span ppTitle>The values behind <em>every</em> session</span>
+      <span ppTitle>{{ valuesSection()?.heading }}</span>
     </pp-section-header>
 
     <div class="row g-4 pp-swipe">
-      @for (val of values; track val.title) {
+      @for (val of values(); track val.title) {
         <div class="col-md-6 col-lg-3 fade-in-up">
           <pp-feature-card [item]="val" />
         </div>
@@ -79,6 +69,21 @@
 
   </div>
 </section>
+}
+
+<!-- Team: only once staff show it (Pages & FAQs › About) -->
+@if (team(); as t) {
+  <section class="story-section section-pad" id="our-team">
+    <div class="container">
+      <pp-section-header eyebrow="Our team">
+        <span ppTitle>{{ t.heading }}</span>
+      </pp-section-header>
+      @for (p of paragraphs(t.body); track $index) {
+        <p class="story-body">{{ p }}</p>
+      }
+    </div>
+  </section>
+}
 
 <!-- Testimonials -->
 <section class="testimonials-section section-pad" id="testimonials">
@@ -98,6 +103,8 @@
 
   </div>
 </section>
+
+<pp-faq-section [items]="faq()" />
 
 <pp-cta-banner eyebrow="Ready to visit us?">
   <span ppTitle>Book a session and see the <em>difference</em></span>

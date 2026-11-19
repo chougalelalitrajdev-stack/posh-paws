@@ -1,0 +1,13 @@
+# Browser safety rules Netlify sends with every page (Netlify reads this file from the build output).
+# Content-Security-Policy: only our own scripts run (no inline code, nothing injected); styles may be inline (Angular adds them);
+#   fonts from Google Fonts; images from us, data: pictures and https sites (uploaded photos); calls only to our own address.
+#   At the deploy, if the API is on another address, add it to connect-src (backend/PLAN.md › The deploy).
+# X-Frame-Options / frame-ancestors: no other site may show these pages inside a frame (clickjacking).
+# The rest: files keep their type, addresses aren't leaked to other sites, no camera/mic/location, always HTTPS.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

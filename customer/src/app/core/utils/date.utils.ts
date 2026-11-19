@@ -51,6 +51,28 @@ export function timeLabel(time: string): string {
   return `${h % 12 || 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
+/** "09:00" -> "9 AM", "09:30" -> "9:30 AM" (for opening hours). */
+export function shortTimeLabel(time: string): string {
+  const minutes = minutesOfDay(time);
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+/** The usual week in a few lines, days in a row with the same hours together: ["Monday – Saturday: 9 AM – 7 PM", "Sunday: Closed"]. */
+export function hoursSummary(hours: { day: number; open: boolean; opens: string; closes: string }[]): string[] {
+  const label = (h: (typeof hours)[number]) => (h.open ? `${shortTimeLabel(h.opens)} – ${shortTimeLabel(h.closes)}` : 'Closed');
+  const lines: { from: number; to: number; text: string }[] = [];
+  for (const h of [...hours].sort((a, b) => a.day - b.day)) {
+    const last = lines.at(-1);
+    if (last && last.text === label(h) && last.to === h.day - 1) last.to = h.day;
+    else lines.push({ from: h.day, to: h.day, text: label(h) });
+  }
+  return lines.map(l => `${WEEKDAYS[l.from]}${l.to > l.from ? ` – ${WEEKDAYS[l.to]}` : ''}: ${l.text}`);
+}
+
 /** "2:30 PM – 4:00 PM". */
 export function timeRangeLabel(time: string, durationMinutes: number): string {
   return `${timeLabel(time)} – ${timeLabel(timeFromMinutes(minutesOfDay(time) + durationMinutes))}`;

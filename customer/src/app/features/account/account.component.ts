@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { PetDialogService } from '../../core/services/pet-dialog.service';
 import { PetService } from '../../core/services/pet.service';
 import { Pet } from '../../core/models/pet.model';
-import { BUSINESS_PHONE_TEL } from '../../core/constants/app.constants';
+import { telLink } from '../../core/utils/text.utils';
 import { PET_EMOJI } from '../../core/constants/pet.constants';
 import { petAgeLabel } from '../../core/utils/pet.utils';
 import { BookingService } from '../../core/services/booking.service';
@@ -80,7 +80,8 @@ export class AccountComponent {
   protected cancelling = signal<string | null>(null);
 
   protected readonly dateLongLabel = dateLongLabel;
-  protected readonly businessPhoneTel = BUSINESS_PHONE_TEL;
+  // The shop's phone from the admin (Settings › Business); digits only, so nothing else can get into the link.
+  protected readonly businessPhoneTel = computed(() => telLink(this.catalog.shop()?.business.phone));
 
   bookingMeta(b: Booking): string {
     return `${dateLongLabel(b.date)} · ${timeLabel(b.time)}`;

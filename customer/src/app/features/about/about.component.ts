@@ -1,8 +1,11 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
+import { ContentService } from '../../core/services/content.service';
+import { paragraphs } from '../../core/utils/text.utils';
 import { Highlight } from '../../core/models/catalog.model';
 import { CtaBannerComponent } from '../../shared/components/cta-banner/cta-banner.component';
+import { FaqSectionComponent } from '../../shared/components/faq-section/faq-section.component';
 import { FeatureCardComponent } from '../../shared/components/feature-card/feature-card.component';
 import { PageHeroComponent } from '../../shared/components/page-hero/page-hero.component';
 import { SectionHeaderComponent } from '../../shared/components/section-header/section-header.component';
@@ -13,28 +16,8 @@ interface Stat {
   label: string;
 }
 
-const VALUES: Highlight[] = [
-  {
-    icon: '🌿',
-    title: 'Only safe products',
-    description: 'Imported, organic, sulphate-free formulas. Nothing harsh, nothing that doesn\'t belong near your companion.',
-  },
-  {
-    icon: '👨‍⚕️',
-    title: 'Certified groomers',
-    description: 'Every groomer on our team is trained, certified, and genuinely passionate about animal welfare.',
-  },
-  {
-    icon: '🤝',
-    title: 'Fear-free approach',
-    description: 'We move at your pet\'s pace. Calm handling, gentle techniques — no stress, no rush.',
-  },
-  {
-    icon: '✨',
-    title: 'Honest pricing',
-    description: 'No hidden fees, no surprise add-ons. The price you see is what you pay — every time.',
-  },
-];
+/** Icons for the value cards, in order (the words come from the admin). */
+const VALUE_ICONS = ['🌿', '👨‍⚕️', '🤝', '✨'];
 
 const STATS: Stat[] = [
   { value: '500+', label: 'Happy pets' },
@@ -45,7 +28,7 @@ const STATS: Stat[] = [
 @Component({
   selector: 'pp-about',
   imports: [
-    PageHeroComponent, SectionHeaderComponent, FeatureCardComponent, TestimonialCardComponent, CtaBannerComponent,
+    PageHeroComponent, SectionHeaderComponent, FeatureCardComponent, TestimonialCardComponent, CtaBannerComponent, FaqSectionComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './about.component.html',
@@ -55,7 +38,25 @@ export class AboutComponent {
   private readonly router = inject(Router);
   private readonly catalog = inject(CatalogService);
 
-  protected readonly values = VALUES;
+  private readonly content = inject(ContentService);
+  private readonly page = this.content.page('about');
+
+  // The words come from the admin (Content › Pages & FAQs › About).
+  protected readonly intro = computed(() => this.content.section(this.page(), 'about-intro'));
+  protected readonly valuesSection = computed(() => this.content.section(this.page(), 'about-values'));
+  protected readonly team = computed(() => this.content.section(this.page(), 'about-team'));
+  protected readonly faq = this.content.faqsFor('About');
+  protected readonly paragraphs = paragraphs;
+
+  /** Each values paragraph is a card: "Only safe products. Imported, organic…" → title + description. */
+  protected readonly values = computed<Highlight[]>(() => paragraphs(this.valuesSection()?.body).map((text, i) => {
+    const stop = text.indexOf('. ');
+    return {
+      icon: VALUE_ICONS[i % VALUE_ICONS.length],
+      title: stop > 0 ? text.slice(0, stop) : text,
+      description: stop > 0 ? text.slice(stop + 2) : '',
+    };
+  }));
   protected readonly stats = STATS;
   protected readonly testimonials = this.catalog.testimonials;
   protected readonly trustPills = this.catalog.trustPills;

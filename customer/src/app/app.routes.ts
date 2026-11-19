@@ -28,6 +28,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/booking/booking.component').then(m => m.BookingComponent),
   },
   {
+    path: 'terms',
+    data: { page: 'terms' },
+    loadComponent: () => import('./features/text-page/text-page.component').then(m => m.TextPageComponent),
+  },
+  {
+    path: 'privacy',
+    data: { page: 'privacy' },
+    loadComponent: () => import('./features/text-page/text-page.component').then(m => m.TextPageComponent),
+  },
+  {
     path: 'account',
     canActivate: [authGuard],
     loadComponent: () => import('./features/account/account.component').then(m => m.AccountComponent),

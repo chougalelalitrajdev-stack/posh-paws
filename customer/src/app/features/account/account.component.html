@@ -160,7 +160,9 @@
               }
             </div>
 
-            <a class="membership-upgrade-link" [href]="'tel:' + businessPhoneTel">Want a different plan? Call us and we'll switch it.</a>
+            @if (businessPhoneTel(); as tel) {
+              <a class="membership-upgrade-link" [href]="tel">Want a different plan? Call us and we'll switch it.</a>
+            }
           } @else {
             <div class="membership-label">Membership</div>
             <div class="membership-tier">No plan yet</div>

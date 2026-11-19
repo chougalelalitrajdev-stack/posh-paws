@@ -25,7 +25,10 @@ def test_services_plans_and_shop_show_only_whats_public(client, signed_in):
     assert [p["name"] for p in plans] == ["Posh"] and plans[0]["badge"] == "Most popular"
     assert set(plans[0]) == {"id", "name", "tagline", "pricePaise", "billing", "featured", "badge", "features"}  # the session rules stay private
 
-    assert client.get("/api/shop").json() == {"advancePaise": 10_000, "freeCancellationHours": 24, "upiId": "", "qrImageUrl": None}
+    shop = client.get("/api/shop").json()
+    assert (shop["advancePaise"], shop["freeCancellationHours"], shop["upiId"], shop["qrImageUrl"]) == (10_000, 24, "", None)
+    assert shop["business"]["name"] == "Posh Paws Pet Grooming" and shop["hours"][0] == {"day": 0, "open": True, "opens": "09:00", "closes": "19:00"}
+    assert set(shop) == {"business", "hours", "advancePaise", "freeCancellationHours", "upiId", "qrImageUrl"}  # nothing staff-only (link expiry, gateway)
 
 
 def test_open_times_only_for_services_the_app_shows(client, signed_in):

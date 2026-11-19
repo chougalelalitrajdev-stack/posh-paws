@@ -43,7 +43,8 @@ async def safety_headers(request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,
+    # No cookies: sign-in travels in the Authorization header, which other sites can't make a browser send (no CSRF).
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -9,6 +9,8 @@
   </span>
 </pp-page-hero>
 
+@if (banner(); as b) { <pp-promo-banner [banner]="b" /> }
+
 <!-- Plans -->
 <section class="plans-section section-pad" id="plans">
   <div class="container">
@@ -48,22 +50,8 @@
   </div>
 </section>
 
-<!-- FAQ -->
-<section class="faq-section section-pad" id="faq">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-
-        <pp-section-header eyebrow="FAQ" align="center">
-          <span ppTitle>Common <em>questions</em></span>
-        </pp-section-header>
-
-        <pp-accordion [items]="faq" />
-
-      </div>
-    </div>
-  </div>
-</section>
+<!-- FAQ (from the admin) -->
+<pp-faq-section [items]="faq()" />
 
 <pp-cta-banner eyebrow="Start today" surface="tinted">
   <span ppTitle>Your pet's best grooming routine <em>awaits</em></span>

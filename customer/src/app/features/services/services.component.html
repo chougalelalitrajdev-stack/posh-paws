@@ -25,6 +25,8 @@
   </div>
 </pp-page-hero>
 
+@if (banner(); as b) { <pp-promo-banner [banner]="b" /> }
+
 <!-- Services list -->
 <section class="services-section section-pad" id="services-section">
   <div class="container">
@@ -67,7 +69,9 @@
   </div>
 </section>
 
-<pp-cta-banner eyebrow="Ready to book?" surface="tinted">
+<pp-faq-section [items]="faq()" />
+
+<pp-cta-banner eyebrow="Ready to book?">
   <span ppTitle>Give your pet the care they <em>deserve</em></span>
   <span ppText>Real-time slot booking · WhatsApp confirmation · ₹100 refundable hold</span>
   <button ppAction class="btn-pp-accent" type="button" (click)="startBooking()">Reserve a slot →</button>

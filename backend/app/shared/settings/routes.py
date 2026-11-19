@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.shared.settings import service
 from app.shared.settings.schemas import (
     AppSettings, BookingRules, BusinessSettings, ClosureIn, ClosureOut, NotificationSettings, PaymentSettings,
-    SettingsOut, ShopOut, WeekBoardOut, WeekSlotIn,
+    OpeningHours, SettingsOut, ShopOut, WeekBoardOut, WeekSlotIn,
 )
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import SETTINGS_ROLES, current_staff, require_roles
@@ -75,6 +75,8 @@ def set_week_slot(body: WeekSlotIn, weekday: int = Path(ge=0, le=6), db: Session
 
 @shop_router.get("", response_model=ShopOut)
 def shop(db: Session = Depends(get_db)) -> ShopOut:
-    """The advance, the free-cancellation window and the shop's UPI details (no login needed)."""
+    """Contact details, opening hours, the advance, the free-cancellation window and the shop's UPI details (no login needed)."""
     p = service.get_section(db, "payments")
-    return ShopOut(advance_paise=p.slot_hold_paise, free_cancellation_hours=p.free_cancellation_hours, upi_id=p.upi_id, qr_image_url=p.qr_image_url)
+    hours = [OpeningHours(day=h.day, open=h.open, opens=h.opens, closes=h.closes) for h in service.booking_rules(db).hours]
+    return ShopOut(business=service.get_section(db, "business"), hours=hours, advance_paise=p.slot_hold_paise,
+                   free_cancellation_hours=p.free_cancellation_hours, upi_id=p.upi_id, qr_image_url=p.qr_image_url)

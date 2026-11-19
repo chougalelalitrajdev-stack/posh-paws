@@ -51,6 +51,8 @@
 }
 
 .hero-img-inner   { font-size: 120px; line-height: 1; }
+.hero-img-photo   { width: 100%; height: 100%; object-fit: cover; }
+a.hero-float-card { text-decoration: none; }
 .hero-img-caption {
   font-size: var(--fs-xs);
   color: var(--pp-muted);
@@ -100,6 +102,8 @@
 // ── Gallery strip ─────────────────────────────────────────────
 
 .gallery-strip { background: var(--pp-primary); }
+
+.gallery-tile img { width: 100%; height: 100%; object-fit: cover; }
 
 .gallery-tile {
   background: var(--pp-surface);

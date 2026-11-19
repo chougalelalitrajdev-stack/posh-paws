@@ -82,5 +82,6 @@ Rules (same as customer): imports go `features → shared → core`, never backw
 - **Payments** are worked out from bookings and plan subscriptions (one list, also the customer's Payments tab): one row per payment entry, plus open links and balances still due ("Take payment"). Open money shows whatever the period. Refunds are per entry and only record the refund until a gateway is connected; the UI says so.
 - **Search**: `pp-global-search` in the top bar; "/" focuses it. Add new kinds of results in `mock-search.ts` / the search endpoint.
 - **WhatsApp**: until the backend can send messages, screens offer "Open WhatsApp" (wa.me link with the text filled in) and "Copy"; never claim a message was sent.
+- **Security**: see the root `CLAUDE.md` › Security (no raw HTML, header-based sign-in, `public/_headers` with a strict Content-Security-Policy plus `X-Robots-Tag: noindex`). After sign-in, only in-app return addresses are followed (`safeReturnUrl`).
 - **Libraries**: Bootstrap (only reboot, grid, dropdown, utilities are compiled in `styles.scss`), ng-bootstrap (dropdowns), Angular CDK (drag-drop). No rich-text editor: page text is plain text by decision.
 - **Layout**: sidebar from 992px; below that a dark header + bottom tab bar (Today, Bookings, Customers, Payments, More). Touch targets ≥ 44px. Verify at 390, 768, 1024, 1440.

@@ -1,0 +1,18 @@
+<pp-page-hero eyebrow="Posh Paws">
+  <span ppTitle>{{ page()?.title }}</span>
+</pp-page-hero>
+
+<section class="section-pad">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        @for (s of page()?.sections ?? []; track s.id) {
+          @if (s.heading && s.heading !== page()?.title) { <h2 class="text-page-heading">{{ s.heading }}</h2> }
+          @for (p of paragraphs(s.body); track $index) {
+            <p class="text-page-body">{{ p }}</p>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</section>

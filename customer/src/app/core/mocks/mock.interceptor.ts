@@ -8,7 +8,7 @@ import { Pet, PetDraft } from '../models/pet.model';
 import { NewUserProfile, User } from '../models/user.model';
 import { minutesOfDay, slotStart, timeFromMinutes, toIsoDate } from '../utils/date.utils';
 import { readJson, writeJson } from '../utils/storage.utils';
-import { MOCK_OTP, OFFERS, PLANS, PLAN_RULES, SERVICES, SHOP } from './mock-data';
+import { BANNERS, FAQS, GALLERY, MOCK_OTP, OFFERS, PAGES, PLANS, PLAN_RULES, SERVICES, SHOP } from './mock-data';
 
 // ─────────────────────────────────────────────────────────────
 //  TEMPORARY fake backend. While environment.useMocks is true it answers
@@ -81,6 +81,14 @@ function route(req: HttpRequest<any>, path: string): unknown {
   if (method === 'GET' && path === '/services') return SERVICES;
   if (method === 'GET' && path === '/plans') return PLANS;
   if (method === 'GET' && path === '/shop') return SHOP;
+  if (method === 'GET' && path === '/banners') return BANNERS;
+  if (method === 'GET' && path === '/gallery') return GALLERY;
+  if (method === 'GET' && path === '/faqs') return FAQS;
+  if (method === 'GET' && (match = path.match(/^\/pages\/([^/]+)$/))) {
+    const page = PAGES[match[1] as keyof typeof PAGES];
+    if (!page) throw new MockError(404, 'Page not found.');
+    return page;
+  }
   if (method === 'GET' && path === '/slots') return slotsFor(param('date'), serviceById(param('serviceId')).durationMinutes);
 
   // Logged in
