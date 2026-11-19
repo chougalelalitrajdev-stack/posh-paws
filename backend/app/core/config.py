@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     # Signs the sign-in tokens. Anyone who knows it could make tokens, so online it's a long random value set
     # in the host's settings (SECRET_KEY), never in the code. This default only works on your own Mac.
     secret_key: str = "dev-only-not-secret-use-a-long-random-key-online"
-    # How long a sign-in lasts before staff sign in again.
+    # How long a sign-in lasts before staff sign in again, and before customers log in again in the app.
     token_days: int = 7
+    customer_token_days: int = 30
     # The shop's timezone: "today", opening hours and slots are in Pune time, wherever the server runs.
     timezone: str = "Asia/Kolkata"
     # Front-ends allowed to call the API: customer (4200) and admin (4300) in development.

@@ -20,7 +20,10 @@ export class LoginDialogComponent {
   private auth = inject(AuthService);
 
   protected readonly otpLength = OTP_LENGTH;
-  protected readonly devHint = environment.useMocks ? `Demo mode — use code ${MOCK_OTP}.` : null;
+  // Demo data: a fixed code. Development with the real backend: the code is printed in the backend's terminal (no SMS yet).
+  protected readonly devHint = !environment.useMocks ? null
+    : environment.liveApi.includes('/auth') ? 'Development: the code is printed in the backend’s terminal.'
+    : `Demo mode — use code ${MOCK_OTP}.`;
 
   protected phoneInput = signal('');
   protected code = signal('');

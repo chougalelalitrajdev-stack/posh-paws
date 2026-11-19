@@ -35,15 +35,18 @@ def verify_password(password: str, stored: str | None) -> bool:
     return hmac.compare_digest(attempt, base64.b64decode(digest))
 
 
-def create_token(claims: dict) -> str:
-    """A signed token carrying `claims` (who, which role) that expires after TOKEN_DAYS."""
-    expires = datetime.now(timezone.utc) + timedelta(days=settings.token_days)
-    return jwt.encode({**claims, "exp": expires}, settings.secret_key, algorithm="HS256")
+def create_token(claims: dict, audience: str | None = None, days: int | None = None) -> str:
+    """A signed token carrying `claims` (who, which role) that expires after `days` (TOKEN_DAYS for staff).
+    `audience` says who it's for: customer tokens carry "customer", so the admin refuses them, and customer routes refuse
+    staff tokens (which carry none)."""
+    expires = datetime.now(timezone.utc) + timedelta(days=days or settings.token_days)
+    return jwt.encode({**claims, "exp": expires, **({"aud": audience} if audience else {})}, settings.secret_key, algorithm="HS256")
 
 
-def read_token(token: str) -> dict | None:
-    """The claims of a genuine, unexpired token; None if it was changed, signed with another key or has expired."""
+def read_token(token: str, audience: str | None = None) -> dict | None:
+    """The claims of a genuine, unexpired token meant for `audience`; None if it was changed, signed with another key,
+    has expired, or is meant for someone else."""
     try:
-        return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        return jwt.decode(token, settings.secret_key, algorithms=["HS256"], audience=audience)
     except jwt.PyJWTError:
         return None

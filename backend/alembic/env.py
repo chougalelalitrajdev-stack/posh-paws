@@ -26,6 +26,7 @@ import app.grooming.plans.models  # noqa: E402,F401
 import app.grooming.slots.models  # noqa: E402,F401
 import app.grooming.subscriptions.models  # noqa: E402,F401
 import app.shared.content.models  # noqa: E402,F401
+import app.shared.customer_login.models  # noqa: E402,F401
 import app.shared.customers.models  # noqa: E402,F401
 import app.shared.payments.models  # noqa: E402,F401
 import app.shared.settings.models  # noqa: E402,F401

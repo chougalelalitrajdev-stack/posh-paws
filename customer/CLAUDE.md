@@ -24,7 +24,7 @@ npm run lint:styles     # Style guard rails (see "Styles"); add -- --update to l
 
 ```
 src/
-  environments/        environment.ts (prod) / environment.development.ts (ng serve): apiUrl, useMocks
+  environments/        environment.ts (prod) / environment.development.ts (ng serve) / environment.testing.ts (npm test): apiUrl, useMocks, liveApi
   app/
     core/              app-wide logic, no UI. Grouped by file type.
       constants/       api-endpoints.ts (every API URL), app.constants.ts, storage-keys.ts, pet.constants.ts, content.constants.ts
@@ -69,6 +69,7 @@ Rules:
 - **Services call the API directly** with `HttpClient`, return `Observable`s (cache updates in `tap`), use URLs from `core/constants/api-endpoints.ts`, and hold results in signals (expose with `.asReadonly()`, or `toSignal` for load-once data). Components never call `HttpClient`. An Observable does nothing until subscribed: every call site subscribes.
 - **API contract** (camelCase JSON, money in paise, `{ "detail": "..." }` errors) is in the root `../CLAUDE.md`. Models in `core/models` mirror it.
 - **Mocks:** while `environment.useMocks` is true, `core/mocks/mock.interceptor.ts` answers every API call from localStorage (demo OTP `123456`). Add a mock route whenever you add an endpoint. When the FastAPI endpoint exists, nothing in services or pages changes.
+- **Moving to the real backend, area by area** (like the admin): `environment.liveApi` (development only) lists the areas the FastAPI backend serves (`/auth` after backend Module 9: the login code is printed in the backend's terminal until an SMS provider is connected); the mock interceptor passes those through and answers the rest, trusting the backend's customer token (it reads who it names). Unit tests always run on mocks (`npm test` uses the `test` build configuration → `environment.testing.ts`). Production lists nothing until the backend is deployed.
 - **Errors:** the error interceptor turns every failed request into a toast (`AlertService`) and logs the user out on 401. If a screen shows the error itself, the service passes `{ context: withoutErrorAlert() }` and the component shows `errorMessage(e)` inline. `GlobalErrorHandler` toasts anything uncaught (it ignores HTTP errors, already reported).
 - **State:** global state in root services (user, alerts, loading, catalog), feature state in the domain service (my pets, my bookings), screen state in component signals. No NgRx.
 - **Loading:** the loading interceptor drives the top progress bar (`pp-loader`); components use their own `loading` signals for inline spinners.

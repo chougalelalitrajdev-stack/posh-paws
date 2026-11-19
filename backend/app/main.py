@@ -16,6 +16,7 @@ from app.grooming.plans import routes as plan_routes
 from app.grooming.slots import routes as slot_routes
 from app.grooming.subscriptions import routes as subscription_routes
 from app.shared.content import routes as content_routes
+from app.shared.customer_login import routes as customer_login_routes
 from app.shared.customers import routes as customer_routes
 from app.shared.settings import routes as settings_routes
 from app.shared.staff import routes as staff_routes
@@ -57,6 +58,9 @@ app.include_router(money_routes.customer_router, prefix="/api")
 app.include_router(dashboard_routes.router, prefix="/api")
 app.include_router(subscription_routes.router, prefix="/api")
 app.include_router(upload_routes.router, prefix="/api")
+
+# The customer app (no /admin in the address).
+app.include_router(customer_login_routes.router, prefix="/api")
 app.include_router(content_routes.banner_router, prefix="/api")
 app.include_router(content_routes.gallery_router, prefix="/api")
 app.include_router(content_routes.page_router, prefix="/api")

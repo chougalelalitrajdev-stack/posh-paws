@@ -92,7 +92,7 @@ Every request goes **route → service → database**: the route receives it, th
 - [x] **8. Content & photos:** banners, gallery, pages & FAQs, photo uploads (a folder on the Mac for now). With this the whole admin runs on the backend.
 
 ### Phase 1: customer side (reuses most of the admin work)
-- [ ] **9. Customer login:** phone + OTP code, registration.
+- [x] **9. Customer login:** phone + OTP code, registration. Until an SMS or WhatsApp provider is connected, codes are printed in the backend's terminal (`deliver()` in `app/shared/customer_login/service.py` is the one place that changes).
 - [ ] **10. Public data:** services, plans, open slots, shop info, content.
 - [ ] **11. Customer bookings, pets, membership:** book, cancel, My bookings, the plan card.
 - [ ] **12. Payment gateway (Razorpay):** real advance payments, payment links, refunds, webhooks (Razorpay telling us a payment went through). Until then, payment links stay demo links.

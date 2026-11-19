@@ -51,8 +51,11 @@ class MockError {
   constructor(readonly status: number, readonly detail: string) {}
 }
 
+/** Areas the real backend serves (environment.liveApi): those requests go straight through to it. */
+const isLive = (url: string) => environment.liveApi.some(area => url.slice(environment.apiUrl.length).startsWith(area));
+
 export const mockInterceptor: HttpInterceptorFn = (req, next) => {
-  if (!req.url.startsWith(environment.apiUrl)) return next(req);
+  if (!req.url.startsWith(environment.apiUrl) || isLive(req.url)) return next(req);
   return timer(LATENCY_MS).pipe(mergeMap(() => respond(req)));
 };
 
@@ -114,9 +117,24 @@ function register({ phone, name, email }: { phone: string } & NewUserProfile) {
 
 function currentUser(req: HttpRequest<unknown>): User {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
-  const user = token.startsWith('mock-token:') ? users()[token.slice('mock-token:'.length)] : undefined;
+  const user = token.startsWith('mock-token:') ? users()[token.slice('mock-token:'.length)] : userFromToken(token);
   if (!user) throw new MockError(401, 'Please log in.');
   return user;
+}
+
+/**
+ * Once login is live, tokens come from the real backend (a JWT). Its middle part names the customer;
+ * the backend checks the signature, and these demo screens simply trust it.
+ */
+function userFromToken(token: string): User | undefined {
+  const claims = token.split('.')[1];
+  if (!claims) return undefined;
+  try {
+    const c = JSON.parse(atob(claims.replace(/-/g, '+').replace(/_/g, '/')));
+    return c.sub && c.aud === 'customer' ? { id: c.sub, name: c.name, phone: c.phone } : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 // ── Pets ──────────────────────────────────────────────────────
