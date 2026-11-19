@@ -11,7 +11,8 @@ from app.core.dates import today
 from app.shared.content.models import Banner, Faq, FaqGroup, GalleryCategory, GalleryPhoto, SitePage
 from app.shared.content.schemas import (
     BannerIn, BannerOut, BulkIn, CategoryIn, FaqData, FaqGroupOut, FaqIn, FaqOut, GalleryCategoryOut, GalleryOut, GalleryPhotoOut,
-    NewPhotoIn, PageSection, PhotoIn, SitePageOut,
+    NewPhotoIn, PageSection, PhotoIn, PublicBannerOut, PublicCategory, PublicFaqs, PublicGallery, PublicPage, PublicPhoto, PublicSection,
+    SitePageOut,
 )
 
 LIST_CHANGED = "The list changed. Reload and try again."
@@ -347,3 +348,30 @@ def reorder_faqs(db: Session, group_id: str, ids: list[str]) -> FaqData:
     _reorder_subset(list(db.scalars(select(Faq).where(Faq.group_id == group_id))), ids)
     db.commit()
     return faq_data(db)
+
+
+# ── The customer app (public) ──
+
+
+def public_banners(db: Session) -> list[PublicBannerOut]:
+    """The banner each placement shows now (live ones only; scheduled, paused and ended ones stay private)."""
+    return [PublicBannerOut.model_validate(b) for b in shown_banners(db)]
+
+
+def public_gallery(db: Session) -> PublicGallery:
+    """Shown photos only (hidden ones are still waiting for a caption), and the categories that have some."""
+    data = gallery(db)
+    photos = [PublicPhoto.model_validate(p.model_dump()) for p in data.photos if p.visible]
+    used = {p.category_id for p in photos}
+    return PublicGallery(categories=[PublicCategory(id=c.id, name=c.name) for c in data.categories if c.id in used], photos=photos)
+
+
+def public_page(db: Session, key: str) -> PublicPage:
+    p = find_page(db, key)
+    return PublicPage(key=p.key, title=p.title,
+                      sections=[PublicSection(id=s["id"], heading=s["heading"], body=s["body"]) for s in p.sections if s["visible"]])
+
+
+def public_faqs(db: Session) -> PublicFaqs:
+    data = faq_data(db)
+    return PublicFaqs(groups=data.groups, faqs=data.faqs)

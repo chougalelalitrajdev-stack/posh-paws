@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core import health
-from app.core.config import settings
+from app.core.config import production_problems, settings
 from app.core.errors import add_error_handlers
 from app.grooming.bookings import routes as booking_routes
 from app.grooming.catalog import routes as catalog_routes
@@ -23,8 +23,22 @@ from app.shared.staff import routes as staff_routes
 from app.shared.templates import routes as template_routes
 from app.shared.uploads import routes as upload_routes
 
-app = FastAPI(title=settings.app_name)
+if settings.production and (problems := production_problems(settings)):
+    raise RuntimeError("Not starting: " + " ".join(problems))
+
+# Online, the interactive /docs page is off: it would show anyone every address the API has.
+app = FastAPI(title=settings.app_name, **({"docs_url": None, "redoc_url": None, "openapi_url": None} if settings.production else {}))
 add_error_handlers(app)
+
+
+@app.middleware("http")
+async def safety_headers(request, call_next):
+    """Standard browser safety settings on every reply: files keep the type we say (no guessing a photo is a page),
+    the API can't be framed inside another site, and addresses aren't passed on to other sites."""
+    response = await call_next(request)
+    response.headers.update({"X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "no-referrer"})
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,6 +75,11 @@ app.include_router(upload_routes.router, prefix="/api")
 
 # The customer app (no /admin in the address).
 app.include_router(customer_login_routes.router, prefix="/api")
+app.include_router(catalog_routes.public_router, prefix="/api")
+app.include_router(plan_routes.public_router, prefix="/api")
+app.include_router(settings_routes.shop_router, prefix="/api")
+app.include_router(slot_routes.public_router, prefix="/api")
+app.include_router(content_routes.public_router, prefix="/api")
 app.include_router(content_routes.banner_router, prefix="/api")
 app.include_router(content_routes.gallery_router, prefix="/api")
 app.include_router(content_routes.page_router, prefix="/api")

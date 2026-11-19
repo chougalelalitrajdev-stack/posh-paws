@@ -1,7 +1,8 @@
 """Customer login with a one-time code (OTP): send a code, check it, then log in or sign up. The same customer accounts as the
 admin's Customers (a customer staff added by phone logs straight in).
 
-Limits against abuse: one code every 30 seconds and 5 an hour per number, 5 wrong tries per code, codes last 10 minutes.
+Limits against abuse: one code every 30 seconds and 5 an hour per number, 20 an hour from one place (so nobody can send
+codes to thousands of numbers), 5 wrong tries per code and 10 a day per number, codes last 10 minutes.
 """
 
 import datetime as dt
@@ -11,6 +12,7 @@ from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import rate_limit
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_token, hash_password, read_token, verify_password
@@ -31,12 +33,16 @@ def _utc_now() -> dt.datetime:
 
 
 def deliver(phone: str, code: str) -> None:
-    """Sends the code. Until an SMS or WhatsApp provider is connected (before launch), it's printed in the server's terminal."""
+    """Sends the code. Until an SMS or WhatsApp provider is connected (before launch), it's printed in the server's terminal,
+    on your Mac only: online, codes must never end up in the server's logs."""
+    if settings.production:
+        raise HTTPException(status_code=503, detail="We can't send login codes right now. Please call the shop to book.")
     print(f"\n  Login code for {phone}: {code}   (shown here because no SMS provider is connected yet)\n", flush=True)
 
 
-def send_code(db: Session, phone: str) -> None:
+def send_code(db: Session, phone: str, ip: str) -> None:
     now = _utc_now()
+    rate_limit.check(db, f"otp-send-ip:{ip}", 20, dt.timedelta(hours=1), "Too many codes asked for from here. Try again in an hour.")
     recent = list(db.scalars(select(LoginCode).where(LoginCode.phone == phone, LoginCode.created_at > now - dt.timedelta(hours=1))
                              .order_by(LoginCode.created_at.desc())))
     if recent and now - recent[0].created_at < dt.timedelta(seconds=RESEND_SECONDS):
@@ -45,6 +51,7 @@ def send_code(db: Session, phone: str) -> None:
         raise HTTPException(status_code=429, detail="Too many codes for this number. Try again in an hour.")
     code = f"{secrets.randbelow(1_000_000):06d}"  # secrets, not random: codes nobody can predict
     db.add(LoginCode(phone=phone, code_hash=hash_password(code), expires_at=now + dt.timedelta(minutes=CODE_MINUTES)))
+    rate_limit.count(db, f"otp-send-ip:{ip}")
     db.commit()
     deliver(phone, code)
 
@@ -61,8 +68,11 @@ def verify_code(db: Session, phone: str, code: str) -> VerifyOut:
         raise HTTPException(status_code=400, detail="That code has expired. Ask for a new one.")
     if latest.attempts >= MAX_TRIES:
         raise HTTPException(status_code=400, detail="Too many wrong tries. Ask for a new code.")
+    # New codes give 5 more tries each, so wrong codes are also capped per number per day.
+    rate_limit.check(db, f"otp-wrong:{phone}", 10, dt.timedelta(days=1), "Too many wrong codes today. Try again tomorrow, or call the shop.")
     if not verify_password(code, latest.code_hash):
         latest.attempts += 1
+        rate_limit.count(db, f"otp-wrong:{phone}")
         db.commit()
         raise HTTPException(status_code=400, detail="That code is incorrect. Please try again.")
     latest.verified_at = _utc_now()

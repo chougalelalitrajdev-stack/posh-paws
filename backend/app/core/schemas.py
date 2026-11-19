@@ -1,5 +1,6 @@
 """The base for every request and response shape, and the page shape every long list uses."""
 
+import re
 from typing import Generic, TypeVar, get_args
 
 from pydantic import BaseModel, ConfigDict
@@ -22,6 +23,14 @@ def one_of(value, choices, message: str):
     if value not in get_args(choices):
         raise ValueError(message)
     return value
+
+
+def image_address(value: str | None) -> str | None:
+    """A photo's address: a web address (https://, or http:// on the Mac) or a picture written into the address
+    (data:image/...). Anything else, like a javascript: link, is refused."""
+    if value and not re.match(r"^(https?://|data:image/(png|jpeg|webp|svg\+xml)[;,])", value):
+        raise ValueError("That photo address doesn't look right. Upload the photo again.")
+    return value or None
 
 
 class Paged(CamelModel, Generic[T]):

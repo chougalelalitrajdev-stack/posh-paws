@@ -11,6 +11,8 @@ export interface ServiceItem {
   description: string;
   pricePaise: Paise;
   durationMinutes: number;
+  /** The service's photo (Catalog › Services in the admin), when it has one. */
+  imageUrl?: string | null;
 }
 
 export interface PlanFeature {

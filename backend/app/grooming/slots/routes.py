@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dates import today
 from app.grooming.slots import service
-from app.grooming.slots.schemas import DayAvailability, SlotBoardOut, TimeBlockIn, TimeBlockOut
+from app.grooming.slots.schemas import DayAvailability, SlotBoardOut, TimeBlockIn, TimeBlockOut, TimeSlot
 from app.shared.settings.schemas import WeekSlotIn
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import current_staff
@@ -17,6 +17,7 @@ from app.shared.staff.service import current_staff
 slots_router = APIRouter(prefix="/admin/slots", tags=["availability"])
 board_router = APIRouter(prefix="/admin/slot-board", tags=["availability"])
 blocks_router = APIRouter(prefix="/admin/blocks", tags=["availability"])
+public_router = APIRouter(prefix="/slots", tags=["customer app"])
 
 
 @slots_router.get("", response_model=list[DayAvailability])
@@ -52,3 +53,9 @@ def add_block(body: TimeBlockIn, db: Session = Depends(get_db), _: StaffUser = D
 def remove_block(block_id: str, db: Session = Depends(get_db), _: StaffUser = Depends(current_staff)) -> Response:
     service.remove_block(db, block_id)
     return Response(status_code=204)
+
+
+@public_router.get("", response_model=list[TimeSlot])
+def public_slots(date: dt.date, service_id: str = Query(alias="serviceId"), db: Session = Depends(get_db)) -> list[TimeSlot]:
+    """One day's start times for a service the app shows (no login needed): /slots?date=2026-11-20&serviceId=dog-signature-bath"""
+    return service.public_slots(db, service_id, date)

@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.grooming.catalog import service
 from app.grooming.catalog.models import Service, Station
-from app.grooming.catalog.schemas import ServiceIn, ServiceOrderIn, ServiceOut, StationIn, StationOut
+from app.grooming.catalog.schemas import PublicServiceOut, ServiceIn, ServiceOrderIn, ServiceOut, StationIn, StationOut
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import CATALOG_EDIT_ROLES, SETTINGS_ROLES, current_staff, require_roles
 
 router = APIRouter(prefix="/admin/services", tags=["services"])
 station_router = APIRouter(prefix="/admin/stations", tags=["stations"])
+public_router = APIRouter(prefix="/services", tags=["customer app"])
 
 editors = require_roles(*CATALOG_EDIT_ROLES)
 admins = require_roles(*SETTINGS_ROLES)  # stations are shop setup
@@ -67,3 +68,9 @@ def edit_station(station_id: str, body: StationIn, db: Session = Depends(get_db)
 def remove_station(station_id: str, db: Session = Depends(get_db), _: StaffUser = Depends(admins)) -> Response:
     service.remove_station(db, service.find_station(db, station_id))
     return Response(status_code=204)
+
+
+@public_router.get("", response_model=list[PublicServiceOut])
+def public_services(db: Session = Depends(get_db)) -> list[PublicServiceOut]:
+    """The customer app's services (no login needed)."""
+    return service.public_services(db)

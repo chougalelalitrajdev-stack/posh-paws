@@ -421,7 +421,7 @@ def _empty(db, model) -> bool:
 
 
 def seed() -> None:
-    if "localhost" not in settings.database_url and "127.0.0.1" not in settings.database_url:
+    if settings.production or ("localhost" not in settings.database_url and "127.0.0.1" not in settings.database_url):
         raise SystemExit("Seeding is only for the local development database.")
     with SessionLocal() as db:
         if _empty(db, StaffUser):

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.dates import today
 from app.grooming.bookings.models import Booking
 from app.grooming.catalog.models import Service, Station
-from app.grooming.catalog.schemas import ServiceIn, StationIn
+from app.grooming.catalog.schemas import ICONS, PublicServiceOut, ServiceIn, StationIn
 
 # ── Services ──
 
@@ -15,6 +15,12 @@ from app.grooming.catalog.schemas import ServiceIn, StationIn
 def list_services(db: Session) -> list[Service]:
     """Every service, archived ones included: cats then dogs, each in its display order."""
     return list(db.scalars(select(Service).order_by(Service.pet_type, Service.sort_order, Service.name)))
+
+
+def public_services(db: Session) -> list[PublicServiceOut]:
+    """What the customer app lists: visible, not archived, in display order."""
+    shown = [s for s in list_services(db) if s.visible and not s.archived]
+    return [PublicServiceOut.model_validate(s).model_copy(update={"icon": ICONS.get(s.category, "🐾")}) for s in shown]
 
 
 def find_service(db: Session, service_id: str) -> Service:

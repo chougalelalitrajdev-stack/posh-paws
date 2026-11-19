@@ -93,7 +93,8 @@ Every request goes **route → service → database**: the route receives it, th
 
 ### Phase 1: customer side (reuses most of the admin work)
 - [x] **9. Customer login:** phone + OTP code, registration. Until an SMS or WhatsApp provider is connected, codes are printed in the backend's terminal (`deliver()` in `app/shared/customer_login/service.py` is the one place that changes).
-- [ ] **10. Public data:** services, plans, open slots, shop info, content.
+- [x] **10. Public data:** services, plans, open slots, shop info and content, with no login (`/api/services`, `/plans`, `/shop`, `/slots`, `/banners`, `/gallery`, `/pages/{key}`, `/faqs`); only what customers may see. The customer app takes services, plans and shop info from them; open slots switch with bookings (Module 11).
+- [ ] **10b. Content in the customer app:** the home and page banners, gallery photos (by the admin's categories), the pages' words and the FAQs come from the admin instead of being written into the app's pages; services show their photos.
 - [ ] **11. Customer bookings, pets, membership:** book, cancel, My bookings, the plan card.
 - [ ] **12. Payment gateway (Razorpay):** real advance payments, payment links, refunds, webhooks (Razorpay telling us a payment went through). Until then, payment links stay demo links.
 - [ ] **13. WhatsApp sending** (after launch is fine): messages go out automatically instead of through "Open WhatsApp".
@@ -113,7 +114,7 @@ Every request goes **route → service → database**: the route receives it, th
 
 **The deploy** (once, after the modules; about a day, plus time to fix what only shows up online):
 - [ ] **Supabase** (database and photos): an account (sign in with GitHub), a project in the **Singapore** region with a strong database password you keep safe. The app connects through the **Session pooler** address (Render can't reach the direct address). A public **Storage bucket** for photos; `store()` in `app/shared/uploads/service.py` changes to put photos there (it speaks the S3 protocol, so AWS S3 or Cloudflare R2 would work the same way).
-- [ ] **Render** (API): an account (sign in with GitHub) with access to the `posh-paws` repo, a web service from `backend/`, Singapore region (next to the database). Its environment variables: `DATABASE_URL` (pasted by you from Supabase; nobody else needs to see it), `SECRET_KEY` (a long random value), `CORS_ORIGINS` (the admin's and customer app's Netlify addresses). Migrations run when the service starts.
+- [ ] **Render** (API): an account (sign in with GitHub) with access to the `posh-paws` repo, a web service from `backend/`, Singapore region (next to the database). Its environment variables: `APP_ENV=production`, `DATABASE_URL` (pasted by you from Supabase; nobody else needs to see it), `SECRET_KEY` (a long random value), `PUBLIC_URL` (the API's https:// address), `CORS_ORIGINS` (the admin's and customer app's https:// addresses). The API refuses to start in production until these are right. Start command: `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"` (so limits see each visitor's real address, not Render's). Production turns off `/docs`, demo payments and login codes in the logs.
 - [ ] **The first Super Admin** account created with a small command (your real email and a password you choose); everyone else is added from Team & roles.
 - [ ] **Both apps** rebuilt with the real `apiUrl` and uploaded to Netlify.
 

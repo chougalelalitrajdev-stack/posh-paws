@@ -1,9 +1,10 @@
 """Customer login for the app (/auth/...): public, no token needed. Staff sign in at /admin/auth instead."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rate_limit import client_ip
 from app.shared.customer_login import service
 from app.shared.customer_login.schemas import CodeIn, PhoneIn, SessionOut, SignUpIn, VerifyOut
 
@@ -11,9 +12,9 @@ router = APIRouter(prefix="/auth", tags=["customer login"])
 
 
 @router.post("/otp/send")
-def send_code(body: PhoneIn, db: Session = Depends(get_db)) -> dict:
+def send_code(body: PhoneIn, request: Request, db: Session = Depends(get_db)) -> dict:
     """Sends a 6-digit code to the number (answers the same whether or not it has an account)."""
-    service.send_code(db, body.phone)
+    service.send_code(db, body.phone, client_ip(request))
     return {}
 
 

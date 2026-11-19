@@ -6,11 +6,18 @@ from sqlalchemy.orm import Session
 
 from app.grooming.catalog.service import known_service_ids
 from app.grooming.plans.models import Plan
-from app.grooming.plans.schemas import PlanIn
+from app.grooming.plans.schemas import PlanIn, PublicPlanOut
 
 
 def list_plans(db: Session) -> list[Plan]:
     return list(db.scalars(select(Plan).order_by(Plan.sort_order)))
+
+
+def public_plans(db: Session) -> list[PublicPlanOut]:
+    """The plans customers can join in the app."""
+    return [PublicPlanOut(id=p.id, name=p.name, tagline=p.tagline, price_paise=p.price_paise, billing=p.billing, featured=p.featured,
+                          badge="Most popular" if p.featured else None, features=p.benefits)
+            for p in list_plans(db) if p.subscribable]
 
 
 def find_plan(db: Session, plan_id: str) -> Plan:

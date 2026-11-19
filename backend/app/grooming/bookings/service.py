@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import settings
 from app.core.dates import now, short_date, starts_at, today
 from app.core.money import inr
 from app.core.schemas import Paged
@@ -455,8 +456,8 @@ def payment_link(db: Session, b: Booking, amount_type: str, by: str) -> BookingO
 def pay_link(db: Session, b: Booking) -> BookingOut:
     """Stands in for the customer paying the open link until the payment gateway is connected (Module 12): the admin's
     "Demo: customer pays online". Paying before the visit confirms the booking."""
-    if get_section(db, "payments").provider:
-        raise HTTPException(status_code=409, detail="Online payments come from the payment gateway now.")
+    if settings.production or get_section(db, "payments").provider:  # a stand-in for your Mac only
+        raise HTTPException(status_code=409, detail="Online payments come from the payment gateway.")
     link = open_link(b.links)
     if not link:
         raise HTTPException(status_code=409, detail="There's no open payment link.")

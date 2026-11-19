@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
+import app.core.rate_limit  # noqa: E402,F401
 import app.grooming.bookings.models  # noqa: E402,F401  (registers the tables)
 import app.grooming.catalog.models  # noqa: E402,F401
 import app.grooming.offers.models  # noqa: E402,F401

@@ -7,13 +7,14 @@ from app.core.database import get_db
 from app.shared.settings import service
 from app.shared.settings.schemas import (
     AppSettings, BookingRules, BusinessSettings, ClosureIn, ClosureOut, NotificationSettings, PaymentSettings,
-    SettingsOut, WeekBoardOut, WeekSlotIn,
+    SettingsOut, ShopOut, WeekBoardOut, WeekSlotIn,
 )
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import SETTINGS_ROLES, current_staff, require_roles
 
 router = APIRouter(prefix="/admin/settings", tags=["settings"])
 week_router = APIRouter(prefix="/admin/slot-board/week", tags=["availability"])
+shop_router = APIRouter(prefix="/shop", tags=["customer app"])
 
 admins = require_roles(*SETTINGS_ROLES)
 
@@ -70,3 +71,10 @@ def week(db: Session = Depends(get_db), _: StaffUser = Depends(current_staff)) -
 def set_week_slot(body: WeekSlotIn, weekday: int = Path(ge=0, le=6), db: Session = Depends(get_db), me: StaffUser = Depends(admins)) -> WeekBoardOut:
     """The usual week is the business's hours: Admin and Super Admin."""
     return service.set_week_slot(db, weekday, body.time, body.open, me.name)
+
+
+@shop_router.get("", response_model=ShopOut)
+def shop(db: Session = Depends(get_db)) -> ShopOut:
+    """The advance, the free-cancellation window and the shop's UPI details (no login needed)."""
+    p = service.get_section(db, "payments")
+    return ShopOut(advance_paise=p.slot_hold_paise, free_cancellation_hours=p.free_cancellation_hours, upi_id=p.upi_id, qr_image_url=p.qr_image_url)

@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.shared.content import service
 from app.shared.content.schemas import (
     BannerIn, BannerOrderIn, BannerOut, BulkIn, CategoriesIn, DraftIn, FaqData, FaqIn, FaqOrderIn, FaqOut, GalleryOut, GalleryPhotoOut,
-    NewPhotoIn, OrderIn, PhotoIn, SitePageOut,
+    NewPhotoIn, OrderIn, PhotoIn, PublicBannerOut, PublicFaqs, PublicGallery, PublicPage, SitePageOut,
 )
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import CATALOG_EDIT_ROLES, current_staff, require_roles
@@ -17,6 +17,7 @@ banner_router = APIRouter(prefix="/admin/banners", tags=["content"])
 gallery_router = APIRouter(prefix="/admin/gallery", tags=["content"])
 page_router = APIRouter(prefix="/admin/pages", tags=["content"])
 faq_router = APIRouter(prefix="/admin/faqs", tags=["content"])
+public_router = APIRouter(tags=["customer app"])
 
 editors = require_roles(*CATALOG_EDIT_ROLES)
 
@@ -144,3 +145,26 @@ def edit_faq(faq_id: str, body: FaqIn, db: Session = Depends(get_db), _: StaffUs
 def remove_faq(faq_id: str, db: Session = Depends(get_db), _: StaffUser = Depends(editors)) -> Response:
     service.remove_faq(db, service.find_faq(db, faq_id))
     return Response(status_code=204)
+
+
+# ── The customer app (no login needed) ──
+
+
+@public_router.get("/banners", response_model=list[PublicBannerOut])
+def public_banners(db: Session = Depends(get_db)) -> list[PublicBannerOut]:
+    return service.public_banners(db)
+
+
+@public_router.get("/gallery", response_model=PublicGallery)
+def public_gallery(db: Session = Depends(get_db)) -> PublicGallery:
+    return service.public_gallery(db)
+
+
+@public_router.get("/pages/{key}", response_model=PublicPage)
+def public_page(key: str, db: Session = Depends(get_db)) -> PublicPage:
+    return service.public_page(db, key)
+
+
+@public_router.get("/faqs", response_model=PublicFaqs)
+def public_faqs(db: Session = Depends(get_db)) -> PublicFaqs:
+    return service.public_faqs(db)

@@ -257,3 +257,12 @@ def starts_in(h: DayHours, duration: int, step: int) -> list[str]:
         starts.append(time_from_minutes(t))
         t += step
     return starts
+
+
+class ShopOut(CamelModel):
+    """GET /shop: what the customer app needs to explain payments (and nothing else from Settings)."""
+
+    advance_paise: int  # paid online to confirm an app booking
+    free_cancellation_hours: int  # cancelled at least this long before: the advance is refunded
+    upi_id: str
+    qr_image_url: str | None

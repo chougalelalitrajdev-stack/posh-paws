@@ -85,3 +85,16 @@ class PlanOut(CamelModel):
     subscribable: bool
     # Members on the plan: counted once subscriptions live in the backend (Module 7).
     active_subscribers: int = 0
+
+
+class PublicPlanOut(CamelModel):
+    """A plan customers can join, as the app shows it. Session and discount rules stay on the server."""
+
+    id: str
+    name: str
+    tagline: str
+    price_paise: int
+    billing: Billing
+    featured: bool
+    badge: str | None = None  # "Most popular" on the featured plan
+    features: list[Benefit]

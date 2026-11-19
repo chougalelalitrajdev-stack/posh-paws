@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import ConfigDict, Field, field_validator
 
-from app.core.schemas import CamelModel, one_of
+from app.core.schemas import CamelModel, image_address, one_of
 
 PetType = Literal["dog", "cat"]
 Category = Literal["Bath", "Haircut", "Package", "Add-on", "Treatment"]
@@ -69,8 +69,8 @@ class ServiceIn(CamelModel):
 
     @field_validator("image_url")
     @classmethod
-    def no_empty_image(cls, v: str | None) -> str | None:
-        return v or None
+    def image_looks_right(cls, v: str | None) -> str | None:
+        return image_address(v)
 
 
 class ServiceOut(CamelModel):
@@ -128,3 +128,21 @@ class StationOut(CamelModel):
     active: bool
     can_do: StationScope
     service_ids: list[str]
+
+
+# ── The customer app (public: only what customers may see) ──
+
+ICONS = {"Bath": "🛁", "Haircut": "✂️", "Package": "👑", "Add-on": "💅", "Treatment": "🌿"}
+
+
+class PublicServiceOut(CamelModel):
+    """A service on the customer app: visible, not archived. No internal fields (order, counts, archived)."""
+
+    id: str
+    pet_type: PetType
+    icon: str = ""  # from the category
+    name: str
+    description: str
+    price_paise: int
+    duration_minutes: int
+    image_url: str | None

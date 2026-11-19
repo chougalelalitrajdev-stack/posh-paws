@@ -172,6 +172,14 @@ def open_slots(db: Session, service_id: str, start: dt.date, days: int, exclude_
     return result
 
 
+def public_slots(db: Session, service_id: str, date: dt.date) -> list[TimeSlot]:
+    """The customer app's start times for one day: only for services the app shows."""
+    service = db.get(Service, service_id)
+    if not service or not service.visible or service.archived:
+        raise HTTPException(status_code=404, detail="Service not found.")
+    return open_slots(db, service_id, date, 1)[0].slots
+
+
 # ── The day's slot board (Availability › Day) ──
 
 

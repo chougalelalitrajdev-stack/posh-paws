@@ -5,7 +5,7 @@ from typing import Literal
 
 from pydantic import ConfigDict, field_validator, model_validator
 
-from app.core.schemas import CamelModel, one_of
+from app.core.schemas import CamelModel, image_address, one_of
 
 Placement = Literal["home_hero", "home_promo", "services", "membership"]
 AppLink = Literal["home", "services", "book", "membership", "gallery", "about"]
@@ -66,6 +66,11 @@ class BannerIn(CamelModel):
     @classmethod
     def empty_is_missing(cls, v):
         return v or None
+
+    @field_validator("image_url", "desktop_image_url")
+    @classmethod
+    def image_looks_right(cls, v: str | None) -> str | None:
+        return image_address(v)
 
     @model_validator(mode="after")
     def dates_in_order(self) -> "BannerIn":
@@ -129,6 +134,11 @@ class NewPhotoIn(CamelModel):
     image_url: str = ""
     category_id: str = ""
     caption: str = ""
+
+    @field_validator("image_url")
+    @classmethod
+    def image_looks_right(cls, v: str) -> str:
+        return image_address(v) or ""
 
 
 class PhotoIn(CamelModel):
@@ -237,3 +247,54 @@ class FaqIn(CamelModel):
 class FaqOrderIn(CamelModel):
     group_id: str
     ids: list[str]
+
+
+# ── The customer app (public: only what customers may see) ──
+
+
+class PublicBannerOut(CamelModel):
+    id: str
+    placement: Placement
+    title: str
+    subtitle: str
+    button_text: str
+    link: AppLink
+    image_url: str | None
+    desktop_image_url: str | None
+
+
+class PublicCategory(CamelModel):
+    id: str
+    name: str
+
+
+class PublicPhoto(CamelModel):
+    id: str
+    image_url: str
+    caption: str
+    category_id: str
+    pet: str
+
+
+class PublicGallery(CamelModel):
+    categories: list[PublicCategory]  # only those with photos to show
+    photos: list[PublicPhoto]
+
+
+class PublicSection(CamelModel):
+    id: str
+    heading: str
+    body: str
+
+
+class PublicPage(CamelModel):
+    """A page's published words: visible sections only, never the draft or who wrote it."""
+
+    key: str
+    title: str
+    sections: list[PublicSection]
+
+
+class PublicFaqs(CamelModel):
+    groups: list[FaqGroupOut]
+    faqs: list[FaqOut]

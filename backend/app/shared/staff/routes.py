@@ -1,9 +1,10 @@
 """Sign-in (/admin/auth) and Settings › Team & roles (/admin/team). Thin: check the shape, call service.py, return a shape."""
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rate_limit import client_ip
 from app.shared.staff import service
 from app.shared.staff.models import StaffUser
 from app.shared.staff.schemas import ForgotPasswordIn, InviteIn, LoginIn, LoginOut, RoleIn, StaffOut, TeamMemberOut
@@ -15,8 +16,8 @@ owner = service.require_roles(*service.OWNER_ROLES)
 
 
 @auth_router.post("/login", response_model=LoginOut)
-def login(body: LoginIn, db: Session = Depends(get_db)) -> LoginOut:
-    staff, token = service.sign_in(db, body.email, body.password)
+def login(body: LoginIn, request: Request, db: Session = Depends(get_db)) -> LoginOut:
+    staff, token = service.sign_in(db, body.email, body.password, client_ip(request))
     return LoginOut(user=StaffOut.model_validate(staff), token=token)
 
 

@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.config import settings
 from app.core.dates import add_months, short_date, today
 from app.core.money import inr
 from app.core.schemas import Paged
@@ -150,8 +151,8 @@ def payment_link(db: Session, s: Subscription) -> SubscriptionOut:
 def pay_link(db: Session, s: Subscription) -> SubscriptionOut:
     """The open link is paid: the first period starts, or the next one does (a waiting downgrade starts now, sessions start
     again, the price becomes the plan's). Until the payment gateway is connected (Module 12) the demo route calls this."""
-    if get_section(db, "payments").provider:
-        raise HTTPException(status_code=409, detail="Online payments come from the payment gateway now.")
+    if settings.production or get_section(db, "payments").provider:  # a stand-in for your Mac only
+        raise HTTPException(status_code=409, detail="Online payments come from the payment gateway.")
     link = open_link(s.links)
     if not link:
         raise HTTPException(status_code=409, detail="There's no open payment link.")

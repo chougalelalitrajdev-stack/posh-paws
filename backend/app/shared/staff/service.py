@@ -1,15 +1,18 @@
 """Who is signed in, what each role may do, and the team rules."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import rate_limit
 from app.core.database import get_db
 from app.core.security import create_token, hash_password, read_token, verify_password
 from app.shared.staff.models import StaffUser
 from app.shared.staff.schemas import InviteIn
+
+STAND_IN_HASH = hash_password("not-anyone's-password")  # checked when the email is unknown (see sign_in)
 
 # ── The permissions list: which roles may do what. Same groups as the admin app (core/constants/app.constants.ts). ──
 SETTINGS_ROLES = ("super_admin", "admin")  # Settings, the usual week, stations
@@ -23,11 +26,20 @@ WRONG_LOGIN = "That email and password don't match. Check them and try again, or
 # ── Signing in ──
 
 
-def sign_in(db: Session, email: str, password: str) -> tuple[StaffUser, str]:
-    """The account and a fresh token. A wrong email and a wrong password get the same answer, so emails can't be probed."""
-    staff = db.scalar(select(StaffUser).where(StaffUser.email == email.strip().lower()))
-    if not staff or staff.status != "active" or not verify_password(password, staff.password_hash):
+def sign_in(db: Session, email: str, password: str, ip: str) -> tuple[StaffUser, str]:
+    """The account and a fresh token. A wrong email and a wrong password get the same answer, and take the same time, so
+    emails can't be probed. After 5 wrong tries for an email (or 30 from one place) in 15 minutes, sign-in waits."""
+    email = email.strip().lower()
+    for key, limit in ((f"staff-login:{email}", 5), (f"staff-login-ip:{ip}", 30)):
+        rate_limit.check(db, key, limit, timedelta(minutes=15), "Too many sign-in attempts. Wait 15 minutes, or reset your password.")
+    staff = db.scalar(select(StaffUser).where(StaffUser.email == email))
+    # An unknown email is still checked against a stand-in fingerprint, so it takes as long as a wrong password.
+    right = verify_password(password, staff.password_hash if staff else STAND_IN_HASH)
+    if not staff or staff.status != "active" or not right:
+        rate_limit.count(db, f"staff-login:{email}", f"staff-login-ip:{ip}")
+        db.commit()
         raise HTTPException(status_code=401, detail=WRONG_LOGIN)
+    rate_limit.forget(db, f"staff-login:{email}")
     staff.last_seen_at = datetime.now(timezone.utc)
     db.commit()
     return staff, create_token({"sub": staff.id, "name": staff.name, "email": staff.email, "role": staff.role})
