@@ -12,7 +12,7 @@ from app.core.schemas import Paged
 from app.shared.customers import overview
 from app.shared.customers.models import Customer, Pet
 from app.shared.customers.schemas import (
-    CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOwner, PetOut, PetRecordOut, PetSummaryOut, StaffNote,
+    AppPetIn, AppPetOut, CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOwner, PetOut, PetRecordOut, PetSummaryOut, StaffNote,
     phone_digits,
 )
 from app.shared.customers.overview import in_segment, on_plan, sort_order
@@ -155,3 +155,60 @@ def update_pet(db: Session, pet: Pet, body: PetIn) -> Pet:
         setattr(pet, field, value)
     db.commit()
     return pet
+
+
+# ── The customer app: a customer's own pets ──
+
+SIZES = ("small", "medium", "large")
+COATS = ("short", "medium", "long", "curly", "double")
+TEMPERAMENTS = {"calm": "Calm", "friendly": "Friendly", "playful": "Playful", "anxious": "Anxious", "shy-with-strangers": "Shy with strangers"}
+
+
+def app_pet(p: Pet) -> AppPetOut:
+    """The shared pet record in the app's words: "Small · long" → size small, coat long; "Calm, shy with strangers" → two choices."""
+    parts = [part.strip().lower() for part in (p.coat or "").split("·")]
+    temperament = (p.temperament or "").lower()
+    return AppPetOut(
+        id=p.id, name=p.name, type=p.type, breed=p.breed, birth_date=p.birth_date, gender=p.gender,
+        size=next((x for x in parts if x in SIZES), None), coat=next((x for x in parts if x in COATS), None),
+        temperament=[key for key, label in TEMPERAMENTS.items() if label.lower() in temperament],
+        vaccination=p.vaccination.replace("_", "-"), notes=p.notes,
+    )
+
+
+def _app_fields(body: AppPetIn) -> dict:
+    """The app's choices as the shared record keeps them (weight and health notes are staff's, so they stay as they are)."""
+    return {
+        "name": body.name, "type": body.type, "breed": body.breed, "birth_date": body.birth_date, "gender": body.gender,
+        "coat": " · ".join(x for x in (body.size and body.size.capitalize(), body.coat) if x) or None,
+        "temperament": ", ".join(TEMPERAMENTS[t] for t in body.temperament) or None,
+        "vaccination": body.vaccination.replace("-", "_"), "notes": body.notes,
+    }
+
+
+def my_pets(db: Session, c: Customer) -> list[AppPetOut]:
+    return [app_pet(p) for p in c.pets]
+
+
+def my_pet(db: Session, c: Customer, pet_id: str) -> Pet:
+    """One of this customer's pets. Anyone else's pet is "not found", the same as a pet that doesn't exist."""
+    pet = db.get(Pet, pet_id)
+    if not pet or pet.customer_id != c.id:
+        raise HTTPException(status_code=404, detail="Pet not found.")
+    return pet
+
+
+def add_my_pet(db: Session, c: Customer, body: AppPetIn) -> AppPetOut:
+    if len(c.pets) >= 10:
+        raise HTTPException(status_code=409, detail="You can add up to 10 pets. Call us if you have more.")
+    pet = Pet(customer_id=c.id, **_app_fields(body))
+    db.add(pet)
+    db.commit()
+    return app_pet(pet)
+
+
+def update_my_pet(db: Session, pet: Pet, body: AppPetIn) -> AppPetOut:
+    for field, value in _app_fields(body).items():
+        setattr(pet, field, value)
+    db.commit()
+    return app_pet(pet)

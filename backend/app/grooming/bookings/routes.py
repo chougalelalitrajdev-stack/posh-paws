@@ -11,13 +11,16 @@ from app.core.dates import today
 from app.core.schemas import Paged
 from app.grooming.bookings import service
 from app.grooming.bookings.schemas import (
-    BookingBill, BookingDetailsIn, BookingOut, CalendarOut, CancelIn, NoteIn, PaymentLinkIn, QuoteIn, RescheduleIn, ShopPaymentIn,
+    AppBookingIn, AppBookingOut, AppQuoteIn, BookingBill, BookingDetailsIn, BookingOut, CalendarOut, CancelIn, NoteIn, PaymentLinkIn, QuoteIn, RescheduleIn, ShopPaymentIn,
 )
+from app.shared.customer_login.service import current_customer
+from app.shared.customers.models import Customer
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import current_staff
 
 router = APIRouter(prefix="/admin/bookings", tags=["bookings"])
 calendar_router = APIRouter(prefix="/admin/calendar", tags=["bookings"])
+app_router = APIRouter(prefix="/bookings", tags=["customer app"])
 
 
 @router.get("", response_model=Paged[BookingOut])
@@ -120,3 +123,27 @@ def calendar(
     _: StaffUser = Depends(current_staff),
 ) -> CalendarOut:
     return service.calendar(db, start or today(), days)
+
+
+# ── The customer app: the logged-in customer's own bookings ──
+
+
+@app_router.get("", response_model=list[AppBookingOut])
+def my_bookings(db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> list[AppBookingOut]:
+    return service.my_bookings(db, me)
+
+
+@app_router.post("/quote", response_model=BookingBill)
+def my_quote(body: AppQuoteIn, db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> BookingBill:
+    """The bill before booking: a plan session, the member discount or an offer, and the advance."""
+    return service.app_quote(db, me, body)
+
+
+@app_router.post("", response_model=AppBookingOut)
+def book(body: AppBookingIn, db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> AppBookingOut:
+    return service.book_in_app(db, me, body)
+
+
+@app_router.post("/{booking_id}/cancel", response_model=AppBookingOut)
+def cancel_mine(booking_id: str, db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> AppBookingOut:
+    return service.cancel_in_app(db, service.my_booking(db, me, booking_id))

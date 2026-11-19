@@ -9,6 +9,7 @@ import datetime as dt
 
 from fastapi import HTTPException
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import settings
@@ -17,9 +18,9 @@ from app.core.money import inr
 from app.core.schemas import Paged
 from app.grooming.plans.models import Plan
 from app.grooming.plans.service import list_plans
-from app.grooming.subscriptions.models import PlanChange, Subscription
+from app.grooming.subscriptions.models import SUBSCRIPTION_NUMBER, PlanChange, Subscription
 from app.grooming.subscriptions.schemas import (
-    NextPlan, PlanChangeIn, PlanChangeOut, PlanCount, PlanLinkOut, PlanOption, SubscriptionCustomer, SubscriptionOut,
+    AppMembershipOut, NextPlan, PlanChangeIn, PlanChangeOut, PlanCount, PlanLinkOut, PlanOption, SubscriptionCustomer, SubscriptionOut,
     SubscriptionSummary,
 )
 from app.shared.customers.schemas import CustomerPlan
@@ -232,3 +233,51 @@ def change_text(c: PlanChange, renews_on: dt.date | None) -> tuple[str, str]:
     if c.kind == "switch":
         return f"Plan changed from {c.from_plan} to {c.to_plan}", "Before the first payment"
     return f"Staying on {c.from_plan}", f"The move to {c.to_plan} was called off"
+
+
+# ── The customer app: a customer's own membership ──
+
+
+def _app_membership(s: Subscription) -> AppMembershipOut:
+    return AppMembershipOut(
+        plan_id=s.plan_id, plan_name=s.plan_name, price_paise=s.price_paise, status=s.status, sessions_total=s.sessions_total,
+        sessions_used=s.sessions_used, sessions_left=sessions_left(s), discount_percent=s.plan.discount_percent, renews_on=s.renews_on,
+        next_plan_name=s.next_plan.name if s.next_plan else None,
+    )
+
+
+def _running(db: Session, customer_id: str) -> Subscription | None:
+    return db.scalar(select(Subscription).where(Subscription.customer_id == customer_id, Subscription.status.in_(RUNNING))
+                     .options(selectinload(Subscription.plan), selectinload(Subscription.next_plan)))
+
+
+def my_membership(db: Session, customer_id: str) -> AppMembershipOut | None:
+    s = _running(db, customer_id)
+    return _app_membership(s) if s else None
+
+
+def join_in_app(db: Session, customer_id: str, plan_id: str) -> AppMembershipOut:
+    """The app takes the first period's payment (a stand-in until the payment gateway, Module 12), so the plan starts now.
+    Online joining is closed in production until then. Changing plans is done by staff."""
+    if settings.production and not get_section(db, "payments").provider:
+        raise HTTPException(status_code=503, detail="Joining online opens soon. Please call us to join.")
+    plan = db.get(Plan, plan_id)
+    if not plan or not plan.subscribable:
+        raise HTTPException(status_code=404, detail="Plan not found.")
+    already = HTTPException(status_code=409, detail="You're on a plan already. To change it, call us and we'll switch it for you.")
+    if current := _running(db, customer_id):
+        already.detail = f"You're on the {current.plan_name} plan. To change it, call us and we'll switch it for you."
+        raise already
+    number = db.scalar(select(SUBSCRIPTION_NUMBER.next_value()))
+    t = today()
+    s = Subscription(id=f"SUB-{number}", customer_id=customer_id, plan_id=plan.id, plan=plan, plan_name=plan.name, price_paise=plan.price_paise,
+                     sessions_total=plan.sessions_per_period, sessions_used=0, started_on=t, renews_on=add_months(t, MONTHS[plan.billing]),
+                     status="active")
+    s.payments.append(Payment(id=f"PAY-{s.id}-1", customer_id=customer_id, kind="plan", amount_paise=plan.price_paise, method="online"))
+    db.add(s)
+    try:
+        db.commit()
+    except IntegrityError as e:  # joined twice at the same moment: the database keeps one running membership
+        db.rollback()
+        raise already from e
+    return _app_membership(s)

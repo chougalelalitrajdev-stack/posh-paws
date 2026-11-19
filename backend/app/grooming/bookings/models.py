@@ -68,6 +68,7 @@ class Booking(Base):
     total_paise: Mapped[int | None]
     advance_paise: Mapped[int] = mapped_column(default=0)  # asked for online when booked in the app
     offer_code: Mapped[str | None] = mapped_column(String(20))  # the code the customer gave, if any
+    customer_note: Mapped[str | None] = mapped_column(Text)  # what the customer told the groomer when booking in the app
 
     customer: Mapped[Customer] = relationship()
     pet: Mapped[Pet | None] = relationship()

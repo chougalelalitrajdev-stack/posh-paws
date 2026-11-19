@@ -262,3 +262,72 @@ class SearchResults(CamelModel):
     customers: list[SearchCustomer]
     pets: list[SearchPet]
     bookings: list[SearchBooking]
+
+
+# ── The customer app: a customer's own pets (customer app: core/models/pet.model.ts) ──
+# The app picks size, coat and temperament from lists; the shared pet record keeps them as text the admin also edits.
+
+AppSize = Literal["small", "medium", "large"]
+AppCoat = Literal["short", "medium", "long", "curly", "double"]
+AppTemperament = Literal["calm", "friendly", "playful", "anxious", "shy-with-strangers"]
+AppVaccination = Literal["up-to-date", "due-soon", "not-vaccinated", "unknown"]
+
+
+class AppPetIn(CamelModel):
+    """Body of POST /pets and PUT /pets/{id} in the customer app."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    name: str = Field(max_length=40)
+    type: PetType
+    breed: str | None = Field(default=None, max_length=60)
+    birth_date: dt.date | None = None
+    gender: Literal["male", "female"] | None = None
+    size: AppSize | None = None
+    coat: AppCoat | None = None
+    temperament: list[AppTemperament] = []
+    vaccination: AppVaccination = "unknown"
+    notes: str | None = Field(default=None, max_length=500)
+
+    @field_validator("name")
+    @classmethod
+    def name_given(cls, v: str) -> str:
+        if not v:
+            raise ValueError("Enter your pet's name.")
+        return v
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def type_known(cls, v):
+        if v not in ("dog", "cat"):
+            raise ValueError("Is it a dog or a cat?")
+        return v
+
+    @field_validator("birth_date", "gender", "size", "coat", mode="before")
+    @classmethod
+    def empty_is_missing(cls, v):
+        return v or None
+
+    @field_validator("vaccination", mode="before")
+    @classmethod
+    def unknown_when_missing(cls, v):
+        return v or "unknown"
+
+    @field_validator("breed", "notes")
+    @classmethod
+    def blank_is_missing(cls, v: str | None) -> str | None:
+        return v or None
+
+
+class AppPetOut(CamelModel):
+    id: str
+    name: str
+    type: PetType
+    breed: str | None
+    birth_date: dt.date | None
+    gender: Literal["male", "female"] | None
+    size: AppSize | None
+    coat: AppCoat | None
+    temperament: list[AppTemperament]
+    vaccination: AppVaccination
+    notes: str | None

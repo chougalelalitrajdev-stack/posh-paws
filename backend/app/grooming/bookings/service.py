@@ -16,11 +16,11 @@ from app.core.money import inr
 from app.core.schemas import Paged
 from app.grooming.bookings.models import BOOKING_NUMBER, HOLDS_SLOT, STAGES, Booking, BookingActivity
 from app.grooming.bookings.schemas import (
-    ActivityEntry, BillDiscount, BookingBill, BookingCustomer, BookingDetailsIn, BookingOut, BookingPet, BookingService, CalendarOut,
+    ActivityEntry, AppBookingIn, AppBookingOut, AppQuoteIn, BillDiscount, BookingBill, BookingCustomer, BookingDetailsIn, BookingOut, BookingPet, BookingService, CalendarOut,
     PaymentEntry, PaymentLinkOut, QuoteIn, ShopPaymentIn,
 )
 from app.grooming.catalog.models import Service, Station
-from app.grooming.catalog.schemas import StationOut
+from app.grooming.catalog.schemas import ICONS, StationOut
 from app.grooming.offers.models import Offer
 from app.grooming.offers.service import status_of
 from app.grooming.slots.models import TimeBlock
@@ -34,6 +34,7 @@ from app.shared.settings.service import get_section
 COUNTED = ("awaiting_payment", "confirmed", "completed", "no_show")  # a customer's bookings, for offer limits
 BOOKED = (*HOLDS_SLOT, "cancelled", "no_show")
 TAKEN = "That slot was just taken. Pick another time."
+APP_TAKEN = "Sorry, that time was just booked by someone else. Please pick another slot."
 # What a booking reply needs from other tables, loaded for a whole list in one query each.
 WITH_DETAILS = (selectinload(Booking.customer), selectinload(Booking.pet), selectinload(Booking.activity),
                 selectinload(Booking.payments), selectinload(Booking.links))
@@ -125,7 +126,8 @@ def calendar(db: Session, start: dt.date, days: int) -> CalendarOut:
 # ── The bill ──
 
 
-def _offer_discount(db: Session, customer_id: str, service: Service, code: str | None, exclude_booking_id: str | None) -> BillDiscount | None:
+def _offer_discount(db: Session, customer_id: str, service: Service, code: str | None, exclude_booking_id: str | None,
+                    in_app: bool = False) -> BillDiscount | None:
     """What an offer takes off this service for this customer. A typed code that can't be used is refused with the reason."""
     price = service.price_paise
     # The offers on this customer's other bookings (one entry per booking; None where no offer was used).
@@ -141,9 +143,9 @@ def _offer_discount(db: Session, customer_id: str, service: Service, code: str |
         if o.applies_to == "plans" or (o.applies_to == "some_services" and service.id not in o.service_ids):
             return f"{name} doesn't apply to {service.name}."
         if o.new_customers_only and theirs:
-            return f"{name} is for a customer's first booking only."
+            return f"{name} is for your first booking only." if in_app else f"{name} is for a customer's first booking only."
         if o.per_customer is not None and theirs.count(o.id) >= o.per_customer:
-            return f"This customer has already used {name}."
+            return f"You've already used {name}." if in_app else f"This customer has already used {name}."
         return None
 
     def discount(o: Offer) -> BillDiscount:
@@ -183,7 +185,7 @@ def quote_bill(db: Session, customer_id: str, service: Service, offer_code: str 
     if member and member.plan.discount_percent:
         percent = member.plan.discount_percent
         options.append(BillDiscount(kind="membership", label=f"{member.plan.name} member {percent}% off", amount_paise=(price * percent + 50) // 100))
-    if offer := _offer_discount(db, customer_id, service, offer_code, exclude_booking_id):
+    if offer := _offer_discount(db, customer_id, service, offer_code, exclude_booking_id, in_app=with_advance):
         options.append(offer)
     return _bill(db, price, max(options, key=lambda d: d.amount_paise, default=None), with_advance)
 
@@ -504,3 +506,104 @@ def add_note(db: Session, b: Booking, text: str, by: str) -> BookingOut:
     log(b, "note", "Note", text.strip(), by)
     return save(db, b)
 
+
+# ── The customer app: a customer's own bookings ──
+
+APP_STAGES = ("confirmed", "completed", "cancelled", "no_show")  # drafts and links waiting to be paid aren't the customer's to see yet
+UPCOMING_LIMIT = 5
+
+
+def app_booking_out(b: Booking, icon: str) -> AppBookingOut:
+    out = booking_out(b)
+    return AppBookingOut(
+        id=b.id, service_id=b.service_id, service_name=b.service_name, service_icon=icon, pet_id=b.pet_id, pet_name=b.pet.name,
+        pet_type=b.pet.type, date=b.date, time=b.time, duration_minutes=b.duration_minutes, bill=out.bill, payments=out.payments,
+        payment_status=b.payment_status, offer_code=b.offer_code, notes=b.customer_note, status=b.stage, created_at=b.created_at,
+    )
+
+
+def _icon(db: Session, b: Booking) -> str:
+    service = db.get(Service, b.service_id)
+    return ICONS.get(service.category, "🐾") if service else "🐾"
+
+
+def my_bookings(db: Session, c: Customer) -> list[AppBookingOut]:
+    """Newest appointment first."""
+    rows = db.scalars(select(Booking).where(Booking.customer_id == c.id, Booking.stage.in_(APP_STAGES), Booking.pet_id.is_not(None))
+                      .order_by(Booking.date.desc(), Booking.time.desc()).options(*WITH_DETAILS))
+    return [app_booking_out(b, _icon(db, b)) for b in rows]
+
+
+def _bookable_service(db: Session, service_id: str) -> Service:
+    """Customers can book only what the app shows."""
+    service = db.get(Service, service_id)
+    if not service or not service.visible or service.archived:
+        raise HTTPException(status_code=404, detail="Service not found.")
+    return service
+
+
+def app_quote(db: Session, c: Customer, body: AppQuoteIn) -> BookingBill:
+    return quote_bill(db, c.id, _bookable_service(db, body.service_id), body.offer_code, with_advance=True)
+
+
+def book_in_app(db: Session, c: Customer, body: AppBookingIn) -> AppBookingOut:
+    """The customer books and pays the advance, which confirms the booking (a ₹0 plan session needs no advance).
+    Until the payment gateway is connected (Module 12) the advance is a stand-in, so online booking is closed in production."""
+    if settings.production and not get_section(db, "payments").provider:
+        raise HTTPException(status_code=503, detail="Online booking opens soon. Please call us to book.")
+    service = _bookable_service(db, body.service_id)
+    pet = db.get(Pet, body.pet_id)
+    if not pet or pet.customer_id != c.id:
+        raise HTTPException(status_code=404, detail="Pet not found.")
+    if service.pet_type != pet.type:
+        raise HTTPException(status_code=400, detail=f"{service.name} is for {service.pet_type}s.")
+    upcoming = db.scalar(select(func.count()).select_from(Booking).where(
+        Booking.customer_id == c.id, Booking.stage.in_(("awaiting_payment", "confirmed")), Booking.date >= today()))
+    if upcoming >= UPCOMING_LIMIT:
+        raise HTTPException(status_code=409, detail=f"You already have {UPCOMING_LIMIT} upcoming bookings. Call us to book more.")
+    day = load_day(db, body.date)
+    station = free_station(day, body.time, service, service.duration_minutes)
+    if not station:
+        raise HTTPException(status_code=409, detail=APP_TAKEN)
+    bill = quote_bill(db, c.id, service, body.offer_code, with_advance=True)
+
+    number = db.scalar(select(BOOKING_NUMBER.next_value()))
+    b = Booking(id=f"PP-{number}", source="app", stage="confirmed", customer_id=c.id, customer=c, pet_id=pet.id, pet=pet,
+                service_id=service.id, service_name=service.name,
+                duration_minutes=service.duration_minutes, date=body.date, time=body.time, offer_code=body.offer_code if bill.discount and
+                bill.discount.kind == "offer" else None, customer_note=body.notes)
+    db.add(b)
+    _apply_bill(b, bill)
+    _hold(b, station, day.rules.buffer_minutes)
+    _reserve(db, b)
+    log(b, "created", "Booked in the app", f"{service.name} · {short_date(body.date)} {body.time}")
+    if body.notes:
+        log(b, "note", "Note from the customer", body.notes)
+    if b.advance_paise:
+        add_payment(b, "advance", b.advance_paise, "online")
+        log(b, "payment", "Advance paid in the app", inr(b.advance_paise))
+    settle(b)
+    try:
+        db.commit()
+    except IntegrityError as e:
+        db.rollback()
+        if "no_double_booking" in str(e.orig):
+            raise HTTPException(status_code=409, detail=APP_TAKEN) from e
+        raise
+    return app_booking_out(b, ICONS.get(service.category, "🐾"))
+
+
+def my_booking(db: Session, c: Customer, booking_id: str) -> Booking:
+    """One of this customer's bookings. Anyone else's booking is "not found", the same as one that doesn't exist."""
+    b = db.get(Booking, booking_id)
+    if not b or b.customer_id != c.id or b.stage not in APP_STAGES:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    return b
+
+
+def cancel_in_app(db: Session, b: Booking) -> AppBookingOut:
+    """Before the appointment starts. The advance follows the refund rule (24 h or more before: refunded)."""
+    if b.stage != "confirmed" or starts_at(b.date, b.time) <= now():
+        raise HTTPException(status_code=409, detail="This booking can't be cancelled any more.")
+    cancel(db, b, "Cancelled by the customer in the app.", None)
+    return app_booking_out(b, _icon(db, b))

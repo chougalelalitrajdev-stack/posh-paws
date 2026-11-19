@@ -15,14 +15,17 @@ from app.shared.customers import overview, service
 from app.shared.customers.overview import ActivityEntry
 from app.shared.customers.models import Pet
 from app.shared.customers.schemas import (
-    CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOut, PetRecordOut, PetSummaryOut, SearchResults, Segment,
+    AppPetIn, AppPetOut, CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOut, PetRecordOut, PetSummaryOut, SearchResults, Segment,
 )
+from app.shared.customer_login.service import current_customer
+from app.shared.customers.models import Customer
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import current_staff
 
 router = APIRouter(prefix="/admin/customers", tags=["customers"])
 pet_router = APIRouter(prefix="/admin/pets", tags=["pets"])
 search_router = APIRouter(prefix="/admin/search", tags=["search"])
+my_pets_router = APIRouter(prefix="/pets", tags=["customer app"])
 
 
 @router.get("", response_model=Paged[CustomerSummaryOut])
@@ -116,3 +119,21 @@ def edit_pet(pet_id: str, body: PetIn, db: Session = Depends(get_db), _: StaffUs
 @search_router.get("", response_model=SearchResults)
 def search(q: str = "", db: Session = Depends(get_db), _: StaffUser = Depends(current_staff)) -> SearchResults:
     return overview.search(db, q)
+
+
+# ── The customer app: the logged-in customer's own pets ──
+
+
+@my_pets_router.get("", response_model=list[AppPetOut])
+def my_pets(db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> list[AppPetOut]:
+    return service.my_pets(db, me)
+
+
+@my_pets_router.post("", response_model=AppPetOut)
+def add_my_pet(body: AppPetIn, db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> AppPetOut:
+    return service.add_my_pet(db, me, body)
+
+
+@my_pets_router.put("/{pet_id}", response_model=AppPetOut)
+def edit_my_pet(pet_id: str, body: AppPetIn, db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> AppPetOut:
+    return service.update_my_pet(db, service.my_pet(db, me, pet_id), body)

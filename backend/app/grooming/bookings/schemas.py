@@ -3,7 +3,7 @@
 import datetime as dt
 from typing import Literal
 
-from pydantic import ConfigDict, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from app.core.dates import TIME
 from app.core.schemas import CamelModel
@@ -195,3 +195,62 @@ class CalendarOut(CamelModel):
     blocks: list[TimeBlockOut]
     opens: str  # earliest opening and latest closing in the week, HH:mm
     closes: str
+
+
+# ── The customer app (customer app: core/models/booking.model.ts) ──
+
+
+class AppBookingOut(CamelModel):
+    """A customer's own booking, as the app shows it (no staff-only details: station, history, who booked it)."""
+
+    id: str
+    service_id: str
+    service_name: str
+    service_icon: str
+    pet_id: str
+    pet_name: str
+    pet_type: Literal["dog", "cat"]
+    date: dt.date
+    time: str
+    duration_minutes: int
+    bill: BookingBill
+    payments: list[PaymentEntry]
+    payment_status: PaymentStatus
+    offer_code: str | None
+    notes: str | None
+    status: Literal["confirmed", "completed", "cancelled", "no_show"]
+    created_at: dt.datetime
+
+
+class AppBookingIn(CamelModel):
+    """POST /bookings from the app: the customer picked a service, a time and their pet, and pays the advance."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    service_id: str
+    pet_id: str
+    date: dt.date
+    time: str
+    notes: str | None = Field(default=None, max_length=500)
+    offer_code: str | None = None
+
+    @field_validator("time")
+    @classmethod
+    def time_looks_right(cls, v: str) -> str:
+        if not TIME.match(v):
+            raise ValueError("Pick a time like 10:30.")
+        return v
+
+    @field_validator("notes", "offer_code")
+    @classmethod
+    def blank_is_missing(cls, v: str | None) -> str | None:
+        return v or None
+
+
+class AppQuoteIn(CamelModel):
+    """POST /bookings/quote from the app: the bill before booking (it depends on the customer's plan and offers)."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    service_id: str
+    offer_code: str | None = None

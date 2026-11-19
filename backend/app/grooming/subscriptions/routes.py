@@ -8,11 +8,14 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.schemas import Paged
 from app.grooming.subscriptions import service
-from app.grooming.subscriptions.schemas import PlanChangeIn, PlanOption, SubscriptionOut, SubscriptionSummary
+from app.grooming.subscriptions.schemas import AppJoinIn, AppMembershipOut, PlanChangeIn, PlanOption, SubscriptionOut, SubscriptionSummary
+from app.shared.customer_login.service import current_customer
+from app.shared.customers.models import Customer
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import PLAN_CHANGE_ROLES, current_staff, require_roles
 
 router = APIRouter(prefix="/admin/subscriptions", tags=["memberships"])
+app_router = APIRouter(prefix="/subscriptions", tags=["customer app"])
 
 
 @router.get("", response_model=Paged[SubscriptionOut])
@@ -51,3 +54,16 @@ def plan_options(subscription_id: str, db: Session = Depends(get_db), _: StaffUs
 def change_plan(subscription_id: str, body: PlanChangeIn, db: Session = Depends(get_db),
                 me: StaffUser = Depends(require_roles(*PLAN_CHANGE_ROLES))) -> SubscriptionOut:
     return service.change_plan(db, service.find_subscription(db, subscription_id), body, me.name)
+
+
+# ── The customer app: the logged-in customer's own plan ──
+
+
+@app_router.get("/current", response_model=AppMembershipOut | None)
+def my_membership(db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> AppMembershipOut | None:
+    return service.my_membership(db, me.id)
+
+
+@app_router.post("", response_model=AppMembershipOut)
+def join(body: AppJoinIn, db: Session = Depends(get_db), me: Customer = Depends(current_customer)) -> AppMembershipOut:
+    return service.join_in_app(db, me.id, body.plan_id)

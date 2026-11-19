@@ -87,7 +87,7 @@ Every request goes **route → service → database**: the route receives it, th
 - [x] **6. Money:** payment records on bookings (advance, links, shop payments, checkout, refunds, payment status), Payments, Today dashboard. Backend and tests only, like Module 5; Today's membership numbers come with Module 7 and its content reminders with Module 8.
 - [x] **7. Subscriptions:** memberships, plan sessions and member discounts on bills, plan changes and renewal links.
   Then the admin switched **Bookings, Availability › Day, the calendar, Payments, Subscriptions, Today and search** to the backend together (with a demo bookings seed), and customer numbers, pet visits and a holiday's "bookings to move" are worked out from bookings.
-  Still to come: joining a plan (customers, in the app: Module 11), and paying plan links for real plus the daily job that ends unpaid memberships (Module 12).
+  Joining a plan in the app came with Module 11. Still to come: paying plan links for real and the daily job that ends unpaid memberships (Module 12).
   *Why together:* a booking's bill depends on the customer's membership, and paying or cancelling changes both, so switching one of them alone would show wrong bills.
 - [x] **8. Content & photos:** banners, gallery, pages & FAQs, photo uploads (a folder on the Mac for now). With this the whole admin runs on the backend.
 
@@ -95,7 +95,7 @@ Every request goes **route → service → database**: the route receives it, th
 - [x] **9. Customer login:** phone + OTP code, registration. Until an SMS or WhatsApp provider is connected, codes are printed in the backend's terminal (`deliver()` in `app/shared/customer_login/service.py` is the one place that changes).
 - [x] **10. Public data:** services, plans, open slots, shop info and content, with no login (`/api/services`, `/plans`, `/shop`, `/slots`, `/banners`, `/gallery`, `/pages/{key}`, `/faqs`); only what customers may see. The customer app takes services, plans and shop info from them; open slots switch with bookings (Module 11).
 - [x] **10b. Content in the customer app:** the home and page banners, gallery photos (by the admin's categories), the pages' words and the FAQs come from the admin instead of being written into the app's pages; services show their photos. Also: the footer's contact details and hours from Settings, `/terms` and `/privacy` pages, and a frontend security pass (no raw HTML, a strict Content-Security-Policy in each app's `public/_headers`, Angular updated to a patched 21.2.x).
-- [ ] **11. Customer bookings, pets, membership:** book, cancel, My bookings, the plan card.
+- [x] **11. Customer bookings, pets, membership:** in the app a customer adds and edits their pets, books an open slot (paying the ₹100 advance, which confirms it), sees My bookings with the bill and payments, cancels (refunded 24 h or more before), and joins a plan. A customer only ever sees and changes their own; at most 5 upcoming bookings and 10 pets. Until Module 12 the advance and the plan price are stand-in payments, so online booking and joining are closed in production.
 - [ ] **12. Payment gateway (Razorpay):** real advance payments, payment links, refunds, webhooks (Razorpay telling us a payment went through). Until then, payment links stay demo links.
 - [ ] **13. WhatsApp sending** (after launch is fine): messages go out automatically instead of through "Open WhatsApp".
 

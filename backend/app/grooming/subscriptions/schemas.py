@@ -102,3 +102,24 @@ class SubscriptionSummary(CamelModel):
     cancelled_this_month: int
     counts: dict[str, int]  # per tab: all, active, renewing, pending, ended
 
+
+# ── The customer app (customer app: core/models/membership.model.ts) ──
+
+
+class AppMembershipOut(CamelModel):
+    """GET /subscriptions/current: the customer's own plan (staff change plans in the admin)."""
+
+    plan_id: str
+    plan_name: str
+    price_paise: int
+    status: Literal["active", "payment_pending"]
+    sessions_total: int | None
+    sessions_used: int
+    sessions_left: int | None
+    discount_percent: int
+    renews_on: dt.date | None
+    next_plan_name: str | None  # a move at renewal
+
+
+class AppJoinIn(CamelModel):
+    plan_id: str
