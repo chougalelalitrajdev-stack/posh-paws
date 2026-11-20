@@ -128,3 +128,57 @@ def test_limits_and_production(client, shop, ananya, monkeypatch):
     monkeypatch.setattr(settings, "app_env", "production")  # no payment gateway yet: no stand-in payments online
     assert client.post("/api/bookings", json=book_body(shop, day=3), headers=ananya).json()["detail"] == "Online booking opens soon. Please call us to book."
     assert client.get("/api/bookings", headers=shop.staff).status_code == 401  # a staff token isn't a customer's
+
+
+def test_a_held_back_station_is_the_customers_only_at_the_times_opened(client, shop, book, ananya):
+    """Stations › "Only times I open": staff can always book it (it's used last); customers get it only at the times opened on Day."""
+    reserve = client.post("/api/admin/stations", json={"name": "Reserve table", "canDo": "all", "heldBack": True}, headers=shop.admin).json()
+    station_1 = next(s["id"] for s in client.get("/api/admin/stations", headers=shop.staff).json() if s["name"] == "Station 1")
+    day = str(shop.tomorrow)
+    board_url = f"/api/admin/slot-board/{day}/stations"
+
+    def app_times():
+        return {s["time"]: s["available"] for s in client.get("/api/slots", params={"date": day, "serviceId": shop.bath}).json()}
+
+    def board_at(time):
+        board = client.get("/api/admin/slot-board", params={"date": day}, headers=shop.staff).json()
+        return next(s for s in board["slots"] if s["time"] == time), board["heldBack"]
+
+    assert book("10:00")["stationId"] == station_1  # staff bookings fill the usual stations first
+    assert not app_times()["10:00"] and app_times()["11:00"]  # Station 1 is taken at 10:00; the reserve table isn't offered
+    slot, held = board_at("10:00")
+    assert slot["freeStations"] == 0 and held == [{"id": reserve["id"], "name": "Reserve table", "opened": [], "free": held[0]["free"], "busy": held[0]["busy"]}]
+    assert "10:00" in held[0]["free"]
+
+    def open_it(time, open=True, who=shop.admin, station=reserve["id"]):
+        return client.put(f"{board_url}/{station}", json={"time": time, "open": open}, headers=who)
+
+    assert open_it("10:00", who=shop.staff).status_code == 403  # Admin and Super Admin only
+    assert open_it("10:00", station=station_1).json()["detail"] == "Customers can always book Station 1. Hold it back in Stations first."
+    assert open_it("14:00").json()["detail"] == "That isn't a start time on this day."  # the break
+    opened = open_it("10:00").json()
+    assert opened["heldBack"][0]["opened"] == ["10:00"] and app_times()["10:00"]
+
+    booked = client.post("/api/bookings", json=book_body(shop, time="10:00"), headers=ananya).json()
+    assert client.get(f"/api/admin/bookings/{booked['id']}", headers=shop.staff).json()["stationId"] == reserve["id"]
+    assert open_it("10:00", open=False).json()["heldBack"][0]["opened"] == []  # held back again (the booking stays)
+
+    # The two are separate: closing 11:00 for the usual stations leaves the held-back station's own 11:00 alone, and the other way round.
+    open_it("11:00")
+    closed = client.put(f"/api/admin/slot-board/{day}", json={"time": "11:00", "open": False}, headers=shop.staff).json()
+    slot, held = board_at("11:00")
+    assert slot["state"] == "closed" and held[0]["opened"] == ["11:00"] and "11:00" in held[0]["free"]
+    assert app_times()["11:00"]  # customers get the held-back station, and only it
+    eleven = client.post("/api/bookings", json=book_body(shop, pet=shop.coco, time="11:00"), headers=ananya).json()
+    assert client.get(f"/api/admin/bookings/{eleven['id']}", headers=shop.staff).json()["stationId"] == reserve["id"]
+    assert "12:00" in app_times() and closed["slots"]
+    open_it("12:00")
+    client.put(f"/api/admin/slot-board/{day}", json={"time": "12:00", "open": False}, headers=shop.staff)
+    assert open_it("12:00", open=False).json()["heldBack"][0]["opened"] == ["11:00"]
+    assert "12:00" not in app_times()  # closed for the usual stations and held back: customers don't see it at all
+
+    # Why a time is busy: a booking (with its cleaning time), blocked time, or the visit running into the break.
+    client.post("/api/admin/blocks", json={"stationId": reserve["id"], "date": day, "time": "16:00", "durationMinutes": 60}, headers=shop.staff)
+    busy = board_at("10:00")[1][0]["busy"]
+    assert (busy["10:00"], busy["16:00"], busy["13:30"]) == ("Booked", "Blocked", "Runs into break") and "15:00" not in busy
+    assert board_at("13:30")[0]["fullReason"] == "Runs into break" and board_at("09:00")[0]["fullReason"] is None

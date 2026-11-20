@@ -1,8 +1,10 @@
 import { Component, ChangeDetectionStrategy, computed, inject, model, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
-import { BoardSlot, SlotBoard } from '../../../core/models/calendar.model';
+import { SETTINGS_ROLES } from '../../../core/constants/app.constants';
+import { BoardSlot, HeldBackStation, SlotBoard } from '../../../core/models/calendar.model';
 import { AlertService } from '../../../core/services/alert.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 import { SettingsService } from '../../../core/services/settings.service';
@@ -13,6 +15,7 @@ import { HolidayDialogComponent } from '../holiday-dialog/holiday-dialog.compone
 /**
  * Availability › Day: one date's start times. Staff close a time or open an extra one for this date only,
  * or close the whole day. The weekly pattern (Week tab) shows through; a change here wins for this date.
+ * Held-back stations (Stations tab) get a row of their own: Admins open their start times to customers, one by one.
  */
 @Component({
   selector: 'pp-day',
@@ -26,6 +29,7 @@ export class DayComponent {
   private settingsService = inject(SettingsService);
   private confirm = inject(ConfirmService);
   private alert = inject(AlertService);
+  private auth = inject(AuthService);
 
   /** YYYY-MM-DD; kept by the page so it stays when switching tabs. */
   readonly date = model.required<string>();
@@ -35,6 +39,11 @@ export class DayComponent {
   protected extraTime = signal('');
   protected error = signal<string | null>(null);
   protected closingDay = signal(false);
+  protected heldError = signal<string | null>(null);
+  /** Opening a held-back station's times is shop setup: Admin and Super Admin. */
+  protected canOpen = computed(() => this.auth.hasRole(...SETTINGS_ROLES));
+  /** The day's start times a held-back station can be opened at: closing one above (usual stations) doesn't remove it here. */
+  protected heldTimes = computed(() => (this.board()?.slots ?? []).filter(s => !s.blockedBy));
 
   protected title = computed(() => `${dayLabel(this.date())}${dayLabel(this.date()) === shortDate(this.date()) ? '' : ` · ${shortDate(this.date())}`}`);
   protected isToday = computed(() => this.date() === today());
@@ -92,9 +101,24 @@ export class DayComponent {
   protected label(s: BoardSlot): string {
     if (s.state === 'closed') return s.weekly === 'closed' ? 'Closed weekly' : 'Closed';
     if (s.blockedBy) return s.blockedBy;
-    const free = s.freeStations ? `${s.freeStations} free` : 'Full';
+    const free = s.freeStations ? `${s.freeStations} free` : (s.fullReason ?? 'Full');
     if (s.state === 'extra') return `${s.weekly === 'extra' ? 'Weekly' : 'Extra'} · ${free}`;
     return s.weekly === 'closed' ? `Today · ${free}` : free;
+  }
+
+  protected heldLabel(st: HeldBackStation, time: string): string {
+    const state = st.opened.includes(time) ? 'Open' : 'Staff only';
+    const why = st.busy[time];
+    return why ? `${state} · ${why.toLowerCase()}` : state;
+  }
+
+  toggleHeld(st: HeldBackStation, time: string): void {
+    this.busyTime.set(`${st.id} ${time}`);
+    this.heldError.set(null);
+    this.bookingService.openStationTime(this.date(), st.id, time, !st.opened.includes(time)).pipe(finalize(() => this.busyTime.set(null))).subscribe({
+      next: board => this.board.set(board),
+      error: e => this.heldError.set(errorMessage(e)),
+    });
   }
 
   toggle(s: BoardSlot): void {

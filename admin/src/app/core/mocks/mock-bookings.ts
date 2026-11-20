@@ -1,7 +1,7 @@
 import { SETTINGS_ROLES } from '../constants/app.constants';
 import { PAYMENT_METHODS, STAGES } from '../constants/status.constants';
 import { ActivityEntry, AmountType, Booking, BookingDetails, BookingStage, NewShopPayment, QuoteRequest, StageCounts } from '../models/booking.model';
-import { BoardSlot, CalendarData, DayAvailability, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock, WeekBoard, WeekSlot } from '../models/calendar.model';
+import { BoardSlot, CalendarData, DayAvailability, HeldBackStation, NewTimeBlock, SlotBoard, SlotChanges, TimeBlock, WeekBoard, WeekSlot } from '../models/calendar.model';
 import { DayHours } from '../models/settings.model';
 import { Station } from '../models/catalog.model';
 import { Paged } from '../models/paged.model';
@@ -29,6 +29,10 @@ export function handleBookings(r: MockRequest): unknown {
   }
   if ((m = route(r, 'GET', /^\/slot-board$/))) return slotBoard(r.param('date') || today());
   if ((m = route(r, 'PUT', /^\/slot-board\/(\d{4}-\d{2}-\d{2})$/))) return setSlot(m[0], r.body);
+  if ((m = route(r, 'PUT', /^\/slot-board\/(\d{4}-\d{2}-\d{2})\/stations\/([^/]+)$/))) {
+    requireRole(r, SETTINGS_ROLES); // opening a held-back station is shop setup: Admin and Super Admin
+    return openStationTime(m[0], m[1], r.body);
+  }
   if ((m = route(r, 'POST', /^\/blocks$/))) return addBlock(r.body);
   if ((m = route(r, 'DELETE', /^\/blocks\/([^/]+)$/))) return removeBlock(m[0]);
 
@@ -151,7 +155,6 @@ const rules = () => db().settings.booking;
 export function freeStation(date: string, time: string, service: { id: string; durationMinutes: number }, excludeId?: string): string | null {
   const durationMinutes = service.durationMinutes;
   const { closed, extra } = changesOn(date);
-  if (closed.includes(time)) return null;
   // Staff opened extra times on purpose, so opening hours, breaks and closures don't apply to them.
   const isExtra = extra.includes(time);
   const hours = dayHours(date);
@@ -160,7 +163,8 @@ export function freeStation(date: string, time: string, service: { id: string; d
   if (!isExtra && (!hours.open || start < minutesOfDay(hours.opens) || end > minutesOfDay(hours.closes))) return null;
   if (slotStart(date, time).getTime() - Date.now() < rules().minNoticeMinutes * 60_000) return null;
   if (date > addDays(today(), rules().bookAheadDays)) return null;
-  return freeStations(date, start, end, isExtra, excludeId, service.id)[0] ?? null;
+  // A closed time shuts the usual stations only; a held-back station follows its own times.
+  return freeStations(date, start, end, isExtra, excludeId, service.id).find(id => !closed.includes(time) || heldBack(id)) ?? null;
 }
 
 /** Whether a station can do a service: every service, every dog or cat service, or the chosen ones. */
@@ -170,7 +174,8 @@ export function canDo(st: Station, serviceId: string): boolean {
   return db().services.find(s => s.id === serviceId)?.petType === (st.canDo === 'dogs' ? 'dog' : 'cat');
 }
 
-/** How many services a station can do; the most specialised free station is used first, keeping all-rounders free. */
+/** How many services a station can do; the most specialised free station is used first, keeping all-rounders free
+ * (held-back stations come last, kept for when staff need them). */
 const breadth = (st: Station) => db().services.filter(s => !s.archived && canDo(st, s.id)).length;
 
 /** Stations in use with [start, end) and the cleaning buffer free; with a service, only those that can do it, most specialised first. */
@@ -179,7 +184,7 @@ function freeStations(date: string, start: number, end: number, ignoreFixed: boo
   return db().stations
     .filter(st => st.active && (!serviceId || canDo(st, serviceId)))
     .filter(st => busy(date, st.id, excludeId, ignoreFixed).every(([from, to]) => end + buffer <= from || start >= to))
-    .sort((a, b) => (serviceId ? breadth(a) - breadth(b) : 0))
+    .sort((a, b) => (serviceId ? Number(!!a.heldBack) - Number(!!b.heldBack) || breadth(a) - breadth(b) : 0))
     .map(st => st.id);
 }
 
@@ -208,8 +213,10 @@ function slots(serviceId: string, from: string, days: number, excludeId?: string
   if (!service) throw new MockError(404, 'Service not found.');
   return dateRange(from, Math.min(days, 14)).map(date => {
     const { closed, extra } = changesOn(date);
-    const starts = [...new Set([...usualStarts(date, service.durationMinutes).filter(t => !closed.includes(t)), ...extra])].sort();
-    return { date, slots: starts.map(time => ({ time, available: freeStation(date, time, service, excludeId) !== null })) };
+    const starts = [...new Set([...usualStarts(date, service.durationMinutes), ...extra])].sort();
+    const slots = starts.map(time => ({ time, available: freeStation(date, time, service, excludeId) !== null }));
+    // A closed time is listed only where a held-back station can still take the visit.
+    return { date, slots: slots.filter(s => s.available || !closed.includes(s.time)) };
   });
 }
 
@@ -259,15 +266,45 @@ function slotBoard(date: string): SlotBoard {
     const past = slotStart(date, time).getTime() < Date.now();
     return {
       time, state: closed.includes(time) ? 'closed' : isExtra ? 'extra' : 'open',
-      freeStations: past || blocked ? 0 : freeStations(date, start, start + step, opened).length,
+      // What customers can get: a held-back station only at the times opened for it.
+      freeStations: past || blocked ? 0 : freeStations(date, start, start + step, opened)
+        .filter(id => (heldBack(id) ? openedFor(id, date).includes(time) : !closed.includes(time))).length,
       blockedBy: past ? 'Past' : blocked?.reason ?? null,
       weekly: hours.closedStarts.includes(time) ? 'closed' : hours.extraStarts.includes(time) ? 'extra' : null,
     };
   };
+  const slots = times.map(slot);
+  const held: HeldBackStation[] = db().stations.filter(st => st.active && st.heldBack).map(st => ({
+    id: st.id, name: st.name, opened: openedFor(st.id, date),
+    free: slots.filter(s => !s.blockedBy && freeStations(date, minutesOfDay(s.time), minutesOfDay(s.time) + step, s.state === 'extra').includes(st.id)).map(s => s.time),
+    busy: {}, // filled below: the demo doesn't work out reasons
+  }));
+  for (const h of held) h.busy = Object.fromEntries(slots.filter(s => !s.blockedBy && !h.free.includes(s.time)).map(s => [s.time, 'Busy']));
   return {
     date, hours, closure: closure ? { name: closure.name, closesAt: closure.closesAt } : null,
-    stepMinutes: step, stations: db().stations.filter(st => st.active).length, slots: times.map(slot),
+    stepMinutes: step, stations: db().stations.filter(st => st.active).length, slots, heldBack: held,
   };
+}
+
+const heldBack = (stationId: string) => !!db().stations.find(st => st.id === stationId)?.heldBack;
+const openedFor = (stationId: string, date: string) => db().stationOpenings.find(o => o.stationId === stationId && o.date === date)?.times ?? [];
+
+/** Open a held-back station's start time to customers on one date, or hold it back again. */
+function openStationTime(date: string, stationId: string, body: { time?: string; open?: boolean }): SlotBoard {
+  const st = db().stations.find(x => x.id === stationId);
+  if (!st) throw new MockError(404, 'Station not found.');
+  if (!st.heldBack) throw new MockError(400, `Customers can always book ${st.name}. Hold it back in Stations first.`);
+  const time = body?.time ?? '';
+  if (!TIME.test(time)) throw new MockError(400, 'Enter a time like 18:30.');
+  if (slotStart(date, time).getTime() < Date.now()) throw new MockError(400, 'That time has passed.');
+  if (body.open && !slotBoard(date).slots.some(s => s.time === time && !s.blockedBy)) {
+    throw new MockError(404, 'That isn’t a start time on this day.');
+  }
+  const before = openedFor(stationId, date);
+  const times = body.open ? add(before, time) : without(before, time);
+  db().stationOpenings = [...db().stationOpenings.filter(o => !(o.stationId === stationId && o.date === date)), ...(times.length ? [{ stationId, date, times }] : [])];
+  save();
+  return slotBoard(date);
 }
 
 /** Open or close one start time on one day. Closing stops new bookings starting then; bookings already made stay. */

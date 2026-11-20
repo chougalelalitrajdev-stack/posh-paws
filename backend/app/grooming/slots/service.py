@@ -1,6 +1,8 @@
 """When customers can book: open start times, a free station for a visit, the day's slot board, and block time.
 
 Strongest first (root CLAUDE.md › Slots): a holiday, that day's changes, the weekly pattern, the opening hours.
+A held-back station is the customers' only at the start times staff open for it; staff can always book it, and get it last.
+Closing or opening a start time for the day (or every week) changes only the usual stations; a held-back station follows its own times.
 Inside a day, times are minutes from midnight ("09:30" = 570), in the shop's timezone.
 """
 
@@ -15,8 +17,10 @@ from app.core.dates import TIME, local, minutes_of_day, now, starts_at, time_fro
 from app.grooming.bookings.models import Booking
 from app.grooming.catalog.models import Service, Station
 from app.grooming.catalog.service import list_stations
-from app.grooming.slots.models import DayChanges, TimeBlock
-from app.grooming.slots.schemas import BoardSlot, ClosureNote, DayAvailability, SlotBoardOut, TimeBlockIn, TimeBlockOut, TimeSlot
+from app.grooming.slots.models import DayChanges, StationOpening, TimeBlock
+from app.grooming.slots.schemas import (
+    BoardSlot, ClosureNote, DayAvailability, HeldBackStation, SlotBoardOut, TimeBlockIn, TimeBlockOut, TimeSlot,
+)
 from app.shared.settings.models import Closure
 from app.shared.settings.schemas import BookingRules, DayHours, starts_in
 from app.shared.settings.service import booking_rules
@@ -39,6 +43,8 @@ class Day:
     services: list[Service]  # bookable ones, to compare how specialised stations are
     fixed: list[tuple[int, int, str]]  # breaks and holiday closing, the same on every station: (from, to, reason)
     taken: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # per station: bookings (cleaning included) and blocks
+    blocks: dict[str, list[tuple[int, int]]] = field(default_factory=dict)  # per station: just the blocks (to say why it's busy)
+    opened: dict[str, list[str]] = field(default_factory=dict)  # per held-back station: start times opened to customers
 
 
 def opening_span(rules: BookingRules) -> tuple[str, str]:
@@ -63,6 +69,7 @@ def load_days(db: Session, dates: list[dt.date], exclude_booking_id: str | None 
     changes = {c.date: c for c in db.scalars(select(DayChanges).where(DayChanges.date.in_(dates)))}
     bookings = db.scalars(select(Booking).where(Booking.date.in_(dates), Booking.held.is_not(None), Booking.id != exclude_booking_id))
     blocks = db.scalars(select(TimeBlock).where(TimeBlock.date.in_(dates)))
+    openings = db.scalars(select(StationOpening).where(StationOpening.date.in_(dates)))
     opens, closes = opening_span(rules)
 
     days: dict[dt.date, Day] = {}
@@ -90,6 +97,9 @@ def load_days(db: Session, dates: list[dt.date], exclude_booking_id: str | None 
     for blk in blocks:
         start = minutes_of_day(blk.time)
         days[blk.date].taken.setdefault(blk.station_id, []).append((start, start + blk.duration_minutes))
+        days[blk.date].blocks.setdefault(blk.station_id, []).append((start, start + blk.duration_minutes))
+    for o in openings:
+        days[o.date].opened[o.station_id] = o.times
     return [days[d] for d in dates]
 
 
@@ -111,7 +121,8 @@ def can_do(st: Station, service: Service) -> bool:
 
 def free_stations(day: Day, start: int, end: int, ignore_fixed: bool, service: Service | None = None) -> list[Station]:
     """Stations in use that are free from `start` to `end` plus the cleaning buffer. With a service: only the ones that can do it,
-    the most specialised first (a cats-only corner before an all-round table), so the all-rounders stay free longest."""
+    the most specialised first (a cats-only corner before an all-round table), so the all-rounders stay free longest; held-back
+    stations come last, so they stay free for when staff need them."""
     buffer = day.rules.buffer_minutes
     fixed = [] if ignore_fixed else [(a, b) for a, b, _ in day.fixed]
     free = [
@@ -120,14 +131,36 @@ def free_stations(day: Day, start: int, end: int, ignore_fixed: bool, service: S
         and all(end + buffer <= a or start >= b for a, b in day.taken.get(st.id, []) + fixed)
     ]
     if service:
-        free.sort(key=lambda st: sum(can_do(st, s) for s in day.services))
+        free.sort(key=lambda st: (st.held_back, sum(can_do(st, s) for s in day.services)))
     return free
 
 
-def free_station(day: Day, time: str, service: Service, duration: int) -> Station | None:
-    """The station a visit starting at `time` would take, or None if that start time can't be booked."""
-    if time in day.closed:
-        return None
+def for_customers(day: Day, time: str, stations: list[Station]) -> list[Station]:
+    """The ones customers may get at `time`: a held-back station only at the times staff opened for it."""
+    return [st for st in stations if not st.held_back or time in day.opened.get(st.id, [])]
+
+
+def why_busy(day: Day, st: Station, start: int, end: int, ignore_fixed: bool) -> str | None:
+    """Why a station can't take a visit from `start` to `end` plus cleaning, in the words the Day tab shows; None if it can."""
+    buffer = day.rules.buffer_minutes
+
+    def clash(spans) -> bool:
+        return any(not (end + buffer <= a or start >= b) for a, b in spans)
+
+    if clash(day.blocks.get(st.id, [])):
+        return "Blocked"
+    if clash([span for span in day.taken.get(st.id, []) if span not in day.blocks.get(st.id, [])]):
+        return "Booked"
+    if not ignore_fixed:
+        for a, b, reason in day.fixed:
+            if clash([(a, b)]):
+                return "Runs into break" if reason == "Break" else "Runs past closing"
+    return None
+
+
+def free_station(day: Day, time: str, service: Service, duration: int, customer: bool = False) -> Station | None:
+    """The station a visit starting at `time` would take, or None if that start time can't be booked.
+    customer: booked in the customer app, so held-back stations count only at the times opened for them."""
     # Staff opened extra times on purpose, so opening hours, breaks and holidays don't apply to them.
     is_extra = time in day.extra
     start, h = minutes_of_day(time), day.hours
@@ -138,6 +171,10 @@ def free_station(day: Day, time: str, service: Service, duration: int) -> Statio
     if day.date > today() + dt.timedelta(days=day.rules.book_ahead_days):
         return None
     stations = free_stations(day, start, start + duration, is_extra, service)
+    if time in day.closed:
+        stations = [st for st in stations if st.held_back]  # a closed time shuts the usual stations only
+    if customer:
+        stations = for_customers(day, time, stations)
     return stations[0] if stations else None
 
 
@@ -157,18 +194,20 @@ def _usual_starts(day: Day, duration: int) -> list[str]:
     return starts_in(day.hours, duration, day.rules.slot_step_minutes)
 
 
-def open_slots(db: Session, service_id: str, start: dt.date, days: int, exclude_booking_id: str | None = None) -> list[DayAvailability]:
-    """GET /admin/slots: each day's start times for a service (usual ones minus closed, plus extra) and whether a station is free."""
+def open_slots(db: Session, service_id: str, start: dt.date, days: int, exclude_booking_id: str | None = None,
+               customer: bool = False) -> list[DayAvailability]:
+    """GET /admin/slots: each day's start times for a service (usual ones minus closed, plus extra) and whether a station is free.
+    customer: for the customer app (see free_station)."""
     service = db.get(Service, service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found.")
     dates = [start + dt.timedelta(days=i) for i in range(min(days, MAX_DAYS))]
     result = []
     for day in load_days(db, dates, exclude_booking_id):
-        starts = sorted({t for t in _usual_starts(day, service.duration_minutes) if t not in day.closed} | set(day.extra))
-        result.append(DayAvailability(date=day.date, slots=[
-            TimeSlot(time=t, available=free_station(day, t, service, service.duration_minutes) is not None) for t in starts
-        ]))
+        starts = sorted({*_usual_starts(day, service.duration_minutes), *day.extra})
+        slots = [TimeSlot(time=t, available=free_station(day, t, service, service.duration_minutes, customer) is not None) for t in starts]
+        # A closed time is listed only where a held-back station can still take the visit.
+        result.append(DayAvailability(date=day.date, slots=[s for s in slots if s.available or s.time not in day.closed]))
     return result
 
 
@@ -177,7 +216,7 @@ def public_slots(db: Session, service_id: str, date: dt.date) -> list[TimeSlot]:
     service = db.get(Service, service_id)
     if not service or not service.visible or service.archived:
         raise HTTPException(status_code=404, detail="Service not found.")
-    return open_slots(db, service_id, date, 1)[0].slots
+    return open_slots(db, service_id, date, 1, customer=True)[0].slots
 
 
 # ── The day's slot board (Availability › Day) ──
@@ -189,6 +228,7 @@ def slot_board(db: Session, date: dt.date) -> SlotBoardOut:
     usual = _usual_starts(day, step)
     # Weekly extra times stay listed when closed for the day, so they can be opened again.
     times = sorted({*usual, *day.extra, *day.weekly_extra})
+    free: dict[str, list[Station]] = {}  # per start time: every station free then, held-back ones included, closed or not
 
     def slot(time: str) -> BoardSlot:
         start = minutes_of_day(time)
@@ -198,15 +238,34 @@ def slot_board(db: Session, date: dt.date) -> SlotBoardOut:
         is_extra = opened and not (time in usual and not fixed)
         blocked = None if is_extra else fixed
         past = starts_at(date, time) < now()
+        free[time] = [] if past or blocked else free_stations(day, start, start + step, opened)
+        bookable = [st for st in free[time] if st.held_back or time not in day.closed]  # a closed time shuts the usual stations only
+        count = len(for_customers(day, time, bookable))
+        full_reason = None
+        if not (past or blocked or count or time in day.closed):
+            # The stations customers could get then, and why none of them can take the visit.
+            candidates = for_customers(day, time, [st for st in day.stations if st.active])
+            reasons = {why_busy(day, st, start, start + step, opened) for st in candidates} - {None}
+            full_reason = ("No station open" if not candidates else "Fully booked" if len(reasons) != 1 or reasons == {"Booked"}
+                           else reasons.pop())
         return BoardSlot(
             time=time, state="closed" if time in day.closed else "extra" if is_extra else "open",
-            free_stations=0 if past or blocked else len(free_stations(day, start, start + step, opened)),
+            free_stations=count,  # what customers can get; held-back stations only where opened
+            full_reason=full_reason,
             blocked_by="Past" if past else blocked,
             weekly="closed" if time in day.hours.closed_starts else "extra" if time in day.hours.extra_starts else None,
         )
 
+    slots = [slot(t) for t in times]
+    held_back = [
+        HeldBackStation(id=st.id, name=st.name, opened=[t for t in day.opened.get(st.id, []) if t in free],
+                        free=[t for t in times if st in free[t]],
+                        busy={s.time: why_busy(day, st, minutes_of_day(s.time), minutes_of_day(s.time) + step, s.time in day.extra) or "Busy"
+                              for s in slots if not s.blocked_by and st not in free[s.time]})
+        for st in day.stations if st.active and st.held_back
+    ]
     return SlotBoardOut(
-        date=date, hours=day.hours, step_minutes=step, stations=sum(st.active for st in day.stations), slots=[slot(t) for t in times],
+        date=date, hours=day.hours, step_minutes=step, stations=sum(st.active for st in day.stations), slots=slots, held_back=held_back,
         closure=ClosureNote(name=day.closure.name, closes_at=day.closure.closes_at) if day.closure else None,
     )
 
@@ -240,6 +299,33 @@ def set_slot(db: Session, date: dt.date, time: str, open: bool) -> SlotBoardOut:
             changes.closed = sorted({*changes.closed, time})
     if not changes.closed and not changes.extra:
         db.delete(changes)  # nothing changed on this day any more
+    db.commit()
+    return slot_board(db, date)
+
+
+def open_station_time(db: Session, date: dt.date, station_id: str, time: str, open: bool) -> SlotBoardOut:
+    """Open one start time of a held-back station to customers on one date, or hold it back again.
+    It must be one of the day's start times (not in the break or after a holiday's closing, unless opened as an extra time), but
+    closing that time for the usual stations doesn't matter. Bookings, blocks, buffer and notice still apply."""
+    st = db.get(Station, station_id)
+    if not st:
+        raise HTTPException(status_code=404, detail="Station not found.")
+    if not st.held_back:
+        raise HTTPException(status_code=400, detail=f"Customers can always book {st.name}. Hold it back in Stations first.")
+    if not TIME.match(time):
+        raise HTTPException(status_code=400, detail="Enter a time like 18:30.")
+    if starts_at(date, time) < now():
+        raise HTTPException(status_code=400, detail="That time has passed.")
+    if open and not any(s.time == time and not s.blocked_by for s in slot_board(db, date).slots):
+        raise HTTPException(status_code=404, detail="That isn't a start time on this day.")
+    row = db.get(StationOpening, (station_id, date))
+    times = sorted({*(row.times if row else []), time} if open else {t for t in (row.times if row else []) if t != time})
+    if times:
+        row = row or StationOpening(station_id=station_id, date=date)
+        row.times = times
+        db.add(row)
+    elif row:
+        db.delete(row)  # nothing opened on this day any more
     db.commit()
     return slot_board(db, date)
 

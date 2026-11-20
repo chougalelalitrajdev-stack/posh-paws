@@ -12,7 +12,7 @@ from app.grooming.slots import service
 from app.grooming.slots.schemas import DayAvailability, SlotBoardOut, TimeBlockIn, TimeBlockOut, TimeSlot
 from app.shared.settings.schemas import WeekSlotIn
 from app.shared.staff.models import StaffUser
-from app.shared.staff.service import current_staff
+from app.shared.staff.service import SETTINGS_ROLES, current_staff, require_roles
 
 slots_router = APIRouter(prefix="/admin/slots", tags=["availability"])
 board_router = APIRouter(prefix="/admin/slot-board", tags=["availability"])
@@ -42,6 +42,14 @@ def board(date: dt.date | None = None, db: Session = Depends(get_db), _: StaffUs
 @board_router.put("/{date}", response_model=SlotBoardOut)
 def set_slot(date: dt.date, body: WeekSlotIn, db: Session = Depends(get_db), _: StaffUser = Depends(current_staff)) -> SlotBoardOut:
     return service.set_slot(db, date, body.time, body.open)
+
+
+@board_router.put("/{date}/stations/{station_id}", response_model=SlotBoardOut)
+def open_station_time(
+    date: dt.date, station_id: str, body: WeekSlotIn, db: Session = Depends(get_db), _: StaffUser = Depends(require_roles(*SETTINGS_ROLES)),
+) -> SlotBoardOut:
+    """Open a held-back station's start time to customers, or hold it back again (Admin and Super Admin)."""
+    return service.open_station_time(db, date, station_id, body.time, body.open)
 
 
 @blocks_router.post("", response_model=TimeBlockOut)

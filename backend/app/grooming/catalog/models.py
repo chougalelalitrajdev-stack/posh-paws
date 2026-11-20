@@ -3,7 +3,7 @@
 import datetime as dt
 from uuid import uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, String, Text, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, String, Text, false, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -44,5 +44,7 @@ class Station(Base):
     can_do: Mapped[str] = mapped_column(String(4))
     # can_do = 'some': the services it can do. ARRAY is a list inside one column; services are never deleted, so the ids stay valid.
     service_ids: Mapped[list[str]] = mapped_column(ARRAY(String(40)), default=list)
+    # Held back: staff can always book it; customers only get it at the start times staff open for it (Availability › Day).
+    held_back: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     sort_order: Mapped[int]  # calendar column order
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

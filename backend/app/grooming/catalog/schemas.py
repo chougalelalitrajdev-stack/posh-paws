@@ -108,6 +108,7 @@ class StationIn(CamelModel):
     active: bool = True
     can_do: StationScope
     service_ids: list[str] = []
+    held_back: bool = False  # customers only get it at the times staff open for it
 
     @field_validator("name")
     @classmethod
@@ -128,6 +129,7 @@ class StationOut(CamelModel):
     active: bool
     can_do: StationScope
     service_ids: list[str]
+    held_back: bool
 
 
 # ── The customer app (public: only what customers may see) ──

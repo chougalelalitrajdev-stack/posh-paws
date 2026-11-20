@@ -29,12 +29,23 @@ class BoardSlot(CamelModel):
     state: Literal["open", "closed", "extra"]  # a usual time · closed by staff · opened by staff
     free_stations: int  # stations free for a visit starting then (one slot step long)
     blocked_by: str | None  # why it can't be booked whatever its state: "Past", "Break", "Closed · Diwali"
+    full_reason: str | None = None  # open but no station customers can get: Fully booked, Blocked, Runs into break, ...
     weekly: Literal["closed", "extra"] | None  # what the usual week says about it; the day's own change wins
 
 
 class ClosureNote(CamelModel):
     name: str
     closes_at: str | None
+
+
+class HeldBackStation(CamelModel):
+    """A station customers only get at the times staff open for it, and how it stands on this day."""
+
+    id: str
+    name: str
+    opened: list[str]  # start times opened to customers
+    free: list[str]  # start times it's free for a visit starting then (one slot step long)
+    busy: dict[str, str] = {}  # the other start times, and why: Booked, Blocked, Runs into break, Runs past closing
 
 
 class SlotBoardOut(CamelModel):
@@ -46,6 +57,7 @@ class SlotBoardOut(CamelModel):
     step_minutes: int
     stations: int
     slots: list[BoardSlot]
+    held_back: list[HeldBackStation] = []
 
 
 class TimeBlockOut(CamelModel):

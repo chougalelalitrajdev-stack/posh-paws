@@ -44,6 +44,8 @@ export interface Station {
   canDo: StationScope;
   /** canDo = 'some': the services it can do. */
   serviceIds: string[];
+  /** Held back: staff can always book it (it's used last); customers only get it at the start times opened on Availability › Day. */
+  heldBack: boolean;
 }
 
 /** Body of POST /admin/stations and PUT /admin/stations/{id}. */

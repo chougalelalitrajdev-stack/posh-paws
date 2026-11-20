@@ -121,7 +121,7 @@ function cleanStation(body: StationDraft, id?: string): StationDraft {
   if (!['all', 'dogs', 'cats', 'some'].includes(body.canDo)) throw new MockError(400, 'Pick what the station can do.');
   const serviceIds = body.canDo === 'some' ? [...new Set(body.serviceIds ?? [])].filter(sid => db().services.some(sv => sv.id === sid)) : [];
   if (body.canDo === 'some' && !serviceIds.length) throw new MockError(400, 'Pick at least one service it can do.');
-  return { name, active: body.active !== false, canDo: body.canDo, serviceIds };
+  return { name, active: body.active !== false, canDo: body.canDo, serviceIds, heldBack: body.heldBack === true };
 }
 
 /** Keep at least one station in use, or nobody could book. */

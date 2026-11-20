@@ -23,7 +23,7 @@ import {
 // It is reseeded each new day, so the demo's "today" always looks like today.
 
 const KEY = 'ppa_mock_db';
-const VERSION = 12;
+const VERSION = 13;
 
 /** Browsers keep about 5 million characters per site; uploads are refused past this, so the demo keeps saving. */
 export const STORAGE_LIMIT = 4_000_000;
@@ -49,6 +49,8 @@ export interface MockDb {
   stations: Station[];
   /** Slot board: start times staff closed or opened, per day. */
   slotChanges: SlotChanges[];
+  /** Start times opened to customers for held-back stations, per station and day. */
+  stationOpenings: { stationId: string; date: string; times: string[] }[];
   subscriptions: Subscription[];
   services: StoredService[];
   plans: StoredPlan[];
@@ -101,7 +103,7 @@ function seed(): MockDb {
   const customers = seedCustomers();
   return {
     version: VERSION, seededOn: today(), nextId: 1060, customers,
-    bookings: seedBookings(customers), blocks: [], stations: structuredClone(STATIONS), slotChanges: seedSlotChanges(), subscriptions: seedSubscriptions(customers),
+    bookings: seedBookings(customers), blocks: [], stations: structuredClone(STATIONS), slotChanges: seedSlotChanges(), stationOpenings: [], subscriptions: seedSubscriptions(customers),
     services: structuredClone(SERVICES), plans: structuredClone(PLANS), offers: seedOffers(),
     banners: seedBanners(), galleryCategories: structuredClone(GALLERY_CATEGORIES), gallery: seedGallery(), pages: seedPages(),
     faqGroups: structuredClone(FAQ_GROUPS), faqs: structuredClone(FAQS),

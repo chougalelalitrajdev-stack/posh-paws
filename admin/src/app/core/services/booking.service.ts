@@ -124,6 +124,11 @@ export class BookingService {
     return this.http.put<SlotBoard>(`${API.slotBoard}/${date}`, { time, open }, { context: withoutErrorAlert() });
   }
 
+  /** Open a held-back station's start time to customers on one date, or hold it back again (Admin and Super Admin). */
+  openStationTime(date: string, stationId: string, time: string, open: boolean): Observable<SlotBoard> {
+    return this.http.put<SlotBoard>(`${API.slotBoard}/${date}/stations/${stationId}`, { time, open }, { context: withoutErrorAlert() });
+  }
+
   /** The usual week's start times (Availability › Week). */
   weekBoard(): Observable<WeekBoard> {
     return this.http.get<WeekBoard>(API.weekBoard);

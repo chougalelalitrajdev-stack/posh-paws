@@ -59,6 +59,7 @@ export class StationsComponent {
     name: ['', Validators.required],
     active: [true],
     canDo: ['all' as StationScope],
+    heldBack: [false],
   });
   protected serviceIds = signal<string[]>([]);
   protected saving = signal(false);
@@ -81,7 +82,7 @@ export class StationsComponent {
   }
 
   openEditor(st: Station | null): void {
-    this.form.reset({ name: st?.name ?? '', active: st?.active ?? true, canDo: st?.canDo ?? 'all' });
+    this.form.reset({ name: st?.name ?? '', active: st?.active ?? true, canDo: st?.canDo ?? 'all', heldBack: st?.heldBack ?? false });
     this.serviceIds.set(st?.serviceIds ?? []);
     this.error.set(null);
     this.editing.set(st);
@@ -89,6 +90,10 @@ export class StationsComponent {
 
   setActive(active: boolean): void {
     this.form.controls.active.setValue(active);
+  }
+
+  setHeldBack(heldBack: boolean): void {
+    this.form.controls.heldBack.setValue(heldBack);
   }
 
   toggleService(id: string): void {

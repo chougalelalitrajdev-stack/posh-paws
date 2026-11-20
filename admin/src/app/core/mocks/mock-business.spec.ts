@@ -180,6 +180,44 @@ describe('mock settings, templates, payments and team', () => {
     expect(off).toMatchObject({ time: '09:00', durationMinutes: 600, reason: 'Day off' });
   }, 15000);
 
+  it('keeps a held-back station for staff, and Admins open its times to customers one by one', async () => {
+    const day = addDays(today(), 3);
+    const stations = await get<Station[]>(API.stations);
+    await send('PUT', `${API.stations}/st2`, { ...stations[1], heldBack: true });
+    const board = () => get<SlotBoard>(API.slotBoard, { date: day });
+    const at = (b: SlotBoard, time: string) => b.slots.find(s => s.time === time)!;
+
+    // Customers can only get Station 1 at noon (the cat corner can't do dogs, but counts for cats): 2 of 3.
+    const before = await board();
+    expect(at(before, '12:00').freeStations).toBe(2);
+    expect(before.heldBack).toEqual([expect.objectContaining({ id: 'st2', opened: [] })]);
+    expect(before.heldBack[0].free).toContain('12:00');
+
+    const open = (time: string, isOpen = true, headers = admin) =>
+      send<SlotBoard>('PUT', `${API.slotBoard}/${day}/stations/st2`, { time, open: isOpen }, headers);
+    expect(await statusOf(open('12:00', true, staff))).toBe(403);
+    expect(await statusOf(send('PUT', `${API.slotBoard}/${day}/stations/st1`, { time: '12:00', open: true }))).toBe(400);
+    const opened = await open('12:00');
+    expect(opened.heldBack[0].opened).toEqual(['12:00']);
+    expect(at(opened, '12:00').freeStations).toBe(3);
+    expect((await open('12:00', false)).heldBack[0].opened).toEqual([]);
+
+    // Closing 12:00 for the usual stations leaves the held-back station's own 12:00 alone; staff can still book it then.
+    await open('12:00');
+    const closed = await send<SlotBoard>('PUT', `${API.slotBoard}/${day}`, { time: '12:00', open: false });
+    expect(at(closed, '12:00').state).toBe('closed');
+    expect(closed.heldBack[0].opened).toEqual(['12:00']);
+    expect(closed.heldBack[0].free).toContain('12:00');
+    expect((await slotsOn(day)).find(s => s.time === '12:00')?.available).toBe(true);
+
+    // Staff bookings fill the usual stations first and use the held-back one last.
+    const book = (customerId: string, petId: string) =>
+      send<Booking>('POST', API.bookings, { customerId, petId, serviceId: 'dog-signature-bath', date: day, time: '10:00' })
+        .then(b => send<Booking>('POST', `${API.bookings}/${b.id}/confirm`));
+    expect((await book('c1', 'p1')).stationId).toBe('st1');
+    expect((await book('c10', 'p12')).stationId).toBe('st2');
+  });
+
   it('uses the hold amount and link expiry from Settings › Payments', async () => {
     const s = await get<Settings>(API.settings);
     await send('PUT', `${API.settings}/payments`, { ...s.payments, slotHoldPaise: 20000, linkExpiryHours: 12 });

@@ -62,9 +62,9 @@ export const SERVICES: StoredService[] = [
 
 /** Stations seed (Availability › Stations): two all-round tables and a corner for cats only. */
 export const STATIONS: Station[] = [
-  { id: 'st1', name: 'Station 1', active: true, canDo: 'all', serviceIds: [] },
-  { id: 'st2', name: 'Station 2', active: true, canDo: 'all', serviceIds: [] },
-  { id: 'st3', name: 'Cat corner', active: true, canDo: 'cats', serviceIds: [] },
+  { id: 'st1', name: 'Station 1', active: true, canDo: 'all', serviceIds: [], heldBack: false },
+  { id: 'st2', name: 'Station 2', active: true, canDo: 'all', serviceIds: [], heldBack: false },
+  { id: 'st3', name: 'Cat corner', active: true, canDo: 'cats', serviceIds: [], heldBack: false },
 ];
 
 /** Settings seed. The booking rules are the ones the app has used so far (09:00–19:00, lunch 14:00–14:30, 15 min buffer). */

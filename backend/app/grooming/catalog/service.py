@@ -105,7 +105,7 @@ def _checked(db: Session, body: StationIn, station_id: str | None = None) -> dic
     service_ids = known_service_ids(db, body.service_ids) if body.can_do == "some" else []
     if body.can_do == "some" and not service_ids:
         raise HTTPException(status_code=400, detail="Pick at least one service it can do.")
-    return {"name": body.name, "active": body.active, "can_do": body.can_do, "service_ids": service_ids}
+    return {"name": body.name, "active": body.active, "can_do": body.can_do, "service_ids": service_ids, "held_back": body.held_back}
 
 
 def _keep_one_in_use(db: Session, changing_id: str, active: bool) -> None:

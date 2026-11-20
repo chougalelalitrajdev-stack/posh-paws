@@ -13,6 +13,7 @@
     @for (st of catalog.stations(); track st.id) {
       <div class="pp-st-row" [class.is-off]="!st.active">
         <span class="pp-st-text"><strong>{{ st.name }}</strong><span>Can do: {{ scopeText(st) }}</span></span>
+        @if (st.heldBack) { <pp-status-pill label="Customers: times you open" tone="warn" /> }
         <pp-status-pill [label]="st.active ? 'In use' : 'Off'" [tone]="st.active ? 'success' : 'neutral'" />
         <button *ppHasRole="editors" class="pp-btn pp-btn-sm" type="button" (click)="openEditor(st)">Edit</button>
       </div>
@@ -38,6 +39,10 @@
       <div class="pp-field pp-span pp-st-switch">
         <pp-switch label="In use" [checked]="form.controls.active.value" (checkedChange)="setActive($event)" />
         <span><strong>In use</strong><span class="pp-hint">Switch off for repairs or while short of a groomer. Bookings already on it stay.</span></span>
+      </div>
+      <div class="pp-field pp-span pp-st-switch">
+        <pp-switch label="Hold back from customers" [checked]="form.controls.heldBack.value" (checkedChange)="setHeldBack($event)" />
+        <span><strong>Customers only get the times you open</strong><span class="pp-hint">Staff can always book it, and it's filled last. Customers get it only at the times you open for it on Availability › Day.</span></span>
       </div>
       <fieldset class="pp-field pp-span pp-radio-row">
         <legend class="pp-label">Can do</legend>

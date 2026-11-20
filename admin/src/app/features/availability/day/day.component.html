@@ -25,7 +25,7 @@
       }
     </div>
   }
-  <p class="pp-hint">Tap a time to close it or open it again for this date only. Times closed or added every week come from the Week tab. Closing a time stops new bookings starting then; bookings already made stay.</p>
+  <p class="pp-hint">Tap a time to close it or open it again for this date only. Times closed or added every week come from the Week tab. Closing a time stops new bookings starting then on the usual stations; bookings already made stay.</p>
 
   @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
 
@@ -60,6 +60,33 @@
     <p class="pp-muted">Loading start times…</p>
   }
 </section>
+
+@if (board()?.heldBack?.length) {
+  <section class="pp-card pp-day-card" aria-labelledby="held-title">
+    <div class="pp-card-head"><h2 id="held-title" class="pp-card-title">Held-back stations</h2></div>
+    <p class="pp-hint">Customers only get these stations at the times you open here, for this date. Staff can always book them. Closing or opening times above doesn't change these.@if (!canOpen()) { Only Admins open times. }</p>
+    @if (heldError()) { <div class="pp-alert pp-alert-error" role="alert">{{ heldError() }}</div> }
+    @for (st of board()!.heldBack; track st.id) {
+      <div class="pp-field">
+        <span class="pp-label">{{ st.name }} · {{ st.opened.length }} open to customers</span>
+        @if (heldTimes().length) {
+          <div class="pp-slot-grid" role="group" [attr.aria-label]="st.name + ' start times'">
+            @for (s of heldTimes(); track s.time) {
+              <button class="pp-slot-chip" type="button" [class.is-blocked]="!st.opened.includes(s.time)" [class.is-full]="!st.free.includes(s.time)"
+                [attr.aria-pressed]="st.opened.includes(s.time)" [attr.aria-label]="s.time + ', ' + heldLabel(st, s.time)"
+                [disabled]="!canOpen() || busyTime() === st.id + ' ' + s.time" (click)="toggleHeld(st, s.time)">
+                <strong>{{ s.time }}</strong>
+                <span>{{ heldLabel(st, s.time) }}</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <p class="pp-muted pp-small">No start times left on this day.</p>
+        }
+      </div>
+    }
+  </section>
+}
 
 <div class="pp-slot-legend" aria-label="Legend">
   <span><span class="pp-slot-key"></span>Open</span>

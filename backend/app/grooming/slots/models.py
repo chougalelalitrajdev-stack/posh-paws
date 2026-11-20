@@ -1,4 +1,5 @@
-"""Block time (one station, a period) and one day's changes to the start times (Availability › Day)."""
+"""Block time (one station, a period), one day's changes to the start times, and the times a held-back station is opened to customers
+(Availability › Day)."""
 
 import datetime as dt
 from uuid import uuid4
@@ -33,3 +34,13 @@ class DayChanges(Base):
     date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
     closed: Mapped[list[str]] = mapped_column(ARRAY(String(5)), default=list)  # no new bookings start then
     extra: Mapped[list[str]] = mapped_column(ARRAY(String(5)), default=list)  # opened after hours, in the break or off the step
+
+
+class StationOpening(Base):
+    """Start times a held-back station is opened to customers on one date. A row exists only while some are open."""
+
+    __tablename__ = "station_openings"
+
+    station_id: Mapped[str] = mapped_column(ForeignKey("stations.id", ondelete="CASCADE"), primary_key=True)
+    date: Mapped[dt.date] = mapped_column(Date, primary_key=True)
+    times: Mapped[list[str]] = mapped_column(ARRAY(String(5)), default=list)

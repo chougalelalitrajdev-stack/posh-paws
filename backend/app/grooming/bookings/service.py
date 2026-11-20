@@ -562,7 +562,7 @@ def book_in_app(db: Session, c: Customer, body: AppBookingIn) -> AppBookingOut:
     if upcoming >= UPCOMING_LIMIT:
         raise HTTPException(status_code=409, detail=f"You already have {UPCOMING_LIMIT} upcoming bookings. Call us to book more.")
     day = load_day(db, body.date)
-    station = free_station(day, body.time, service, service.duration_minutes)
+    station = free_station(day, body.time, service, service.duration_minutes, customer=True)
     if not station:
         raise HTTPException(status_code=409, detail=APP_TAKEN)
     bill = quote_bill(db, c.id, service, body.offer_code, with_advance=True)
