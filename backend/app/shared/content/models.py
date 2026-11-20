@@ -69,7 +69,8 @@ class SitePage(Base):
     key: Mapped[str] = mapped_column(String(12), primary_key=True)  # home | about | terms | privacy
     title: Mapped[str] = mapped_column(String(40))
     sections: Mapped[list[dict]] = mapped_column(JSONB)
-    draft: Mapped[list[dict] | None] = mapped_column(JSONB)
+    # none_as_null: no draft is stored as SQL NULL, not JSON null (which "draft IS NOT NULL" would count as a draft).
+    draft: Mapped[list[dict] | None] = mapped_column(JSONB(none_as_null=True))
     published_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
     published_by: Mapped[str] = mapped_column(String(80))
     draft_saved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))

@@ -119,6 +119,8 @@ def test_pages_and_faqs(client, signed_in):
     published = client.post(f"{url}/publish", headers=admin).json()
     assert (published["draft"], published["publishedBy"], len(published["sections"])) == (None, "Meera K.", 4)
     assert client.post(f"{url}/publish", headers=admin).json()["detail"] == "There are no draft changes to publish."
+    today = client.get("/api/admin/dashboard", headers=staff).json()  # Today's content list has no draft left behind
+    assert [row for row in today["content"] if row["status"] == "Draft"] == []
 
     data = client.get("/api/admin/faqs", headers=staff).json()
     assert [g["name"] for g in data["groups"]] == ["Booking", "Membership", "Pets and safety"] and data["faqs"] == []
