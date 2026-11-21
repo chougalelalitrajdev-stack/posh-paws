@@ -10,7 +10,7 @@ import { Paged } from '../models/paged.model';
 import { Payment, PaymentSummary } from '../models/payment.model';
 import { PlanOption, Subscription } from '../models/subscription.model';
 import { addDays, today } from '../utils/date.utils';
-import { resetDb } from './mock-db';
+import { db, resetDb } from './mock-db';
 import { mockInterceptor } from './mock.interceptor';
 
 const admin = new HttpHeaders({ Authorization: 'Bearer mock-staff:st-2' }); // Meera K., Admin
@@ -24,7 +24,11 @@ describe('booking money rules (mock backend)', () => {
   const post = <T>(url: string, body: object = {}, headers = admin) => firstValueFrom(http.post<T>(url, body, { headers }));
   const put = <T>(url: string, body: object) => firstValueFrom(http.put<T>(url, body, { headers: admin }));
   const statusOf = (p: Promise<unknown>) => p.then(() => 200, (e: HttpErrorResponse) => e.status);
-  const quote = (customerId: string, serviceId: string, offerCode?: string) => post<BookingBill>(`${API.bookings}/quote`, { customerId, serviceId, offerCode });
+  /** The customer's first pet of the kind the service is for. */
+  const petOf = (customerId: string, serviceId: string) =>
+    db().customers.find(c => c.id === customerId)!.pets.find(p => p.type === (serviceId.startsWith('cat') ? 'cat' : 'dog'))!.id;
+  const quote = (customerId: string, serviceId: string, offerCode?: string) =>
+    post<BookingBill>(`${API.bookings}/quote`, { customerId, petId: petOf(customerId, serviceId), serviceId, offerCode });
   const book = async (id: string, customerId: string, petId: string, serviceId: string, offerCode?: string) => {
     await put(`${API.bookings}/${id}`, { customerId, petId, serviceId, date: addDays(today(), 2), time: '10:00', offerCode });
     return post<Booking>(`${API.bookings}/${id}/confirm`);
@@ -34,11 +38,24 @@ describe('booking money rules (mock backend)', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 27, 8, 0)); // Tue 27 Oct 2026, 8 am
     resetDb();
+    // These tests are about the bill's discounts; pet extras (Pet pricing) have their own test.
+    for (const p of Object.values(db().petPricing)) [...p.breeds, ...p.weightBands, ...p.coats].forEach(x => (x.extraPaise = 0));
     TestBed.configureTestingModule({ providers: [provideHttpClient(withInterceptors([mockInterceptor]))] });
     http = TestBed.inject(HttpClient);
   });
 
   afterEach(() => vi.useRealTimers());
+
+  it("adds the pet's breed, weight and coat extras (Pet pricing) before the discount", async () => {
+    resetDb(); // the demo extras: 10–25 kg +₹150, double coat +₹150
+    const bill = await post<BookingBill>(`${API.bookings}/quote`, { customerId: 'c4', petId: 'p5', serviceId: 'dog-signature-bath' });
+    expect(bill.extras).toEqual([{ label: '10–25 kg', amountPaise: 15000 }, { label: 'Double coat', amountPaise: 15000 }]);
+    expect(bill.subtotalPaise).toBe(150000);
+    const trim = await post<BookingBill>(`${API.bookings}/quote`, { customerId: 'c4', petId: 'p5', serviceId: 'dog-nail-trim-filing' });
+    expect(trim.extras).toEqual([]); // an add-on costs the same for any pet
+    // Sheru was added before breed, weight and coat were required: he can't be priced until they're filled in.
+    expect(await statusOf(post(`${API.bookings}/quote`, { customerId: 'c17', petId: 'p19', serviceId: 'dog-signature-bath' }))).toBe(400);
+  });
 
   it('confirms a phone booking with no advance, then takes the balance at the shop', async () => {
     // Arjun (no plan) books a Signature Bath by phone.

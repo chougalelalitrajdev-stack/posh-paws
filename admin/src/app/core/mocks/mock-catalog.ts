@@ -1,5 +1,5 @@
 import { CATALOG_EDIT_ROLES, SETTINGS_ROLES } from '../constants/app.constants';
-import { PetType, Service, ServiceCategory, ServiceDraft, Station, StationDraft } from '../models/catalog.model';
+import { PetPricing, PetType, Service, ServiceCategory, ServiceDraft, Station, StationDraft } from '../models/catalog.model';
 import { today } from '../utils/date.utils';
 import { MockError, MockRequest, NO_ROUTE, STORAGE_LIMIT, StoredService, db, requireRole, route, save, storageUsed } from './mock-db';
 
@@ -16,6 +16,11 @@ export function handleCatalog(r: MockRequest): unknown {
   if ((m = route(r, 'PUT', /^\/services\/([^/]+)$/))) return update(find(m[0]), r.body);
   if ((m = route(r, 'POST', /^\/services\/([^/]+)\/archive$/))) return setArchived(find(m[0]), true);
   if ((m = route(r, 'POST', /^\/services\/([^/]+)\/restore$/))) return setArchived(find(m[0]), false);
+  if ((m = route(r, 'GET', /^\/pet-pricing$/))) return db().petPricing;
+  if ((m = route(r, 'PUT', /^\/pet-pricing$/))) {
+    requireRole(r, CATALOG_EDIT_ROLES);
+    return savePetPricing(r.body);
+  }
   if ((m = route(r, 'GET', /^\/stations$/))) return db().stations;
   if (r.method !== 'GET' && /^\/stations\b/.test(r.path)) requireRole(r, SETTINGS_ROLES); // shop setup: Admin and Super Admin
   if ((m = route(r, 'POST', /^\/stations$/))) return createStation(r.body);
@@ -51,7 +56,7 @@ function clean(body: ServiceDraft): ServiceDraft {
   if (!body.durationMinutes || body.durationMinutes < 5) throw new MockError(400, 'Pick a duration.');
   const description = body.description?.trim() ?? '';
   if (description.length > MAX_DESCRIPTION) throw new MockError(400, `Keep the description under ${MAX_DESCRIPTION} characters.`);
-  return { name, petType: body.petType, category: body.category, description, durationMinutes: body.durationMinutes, pricePaise: body.pricePaise, imageUrl: body.imageUrl || undefined, visible: !!body.visible };
+  return { name, petType: body.petType, category: body.category, description, durationMinutes: body.durationMinutes, pricePaise: body.pricePaise, imageUrl: body.imageUrl || undefined, visible: !!body.visible, petPricing: body.petPricing !== false };
 }
 
 function create(body: ServiceDraft): Service {
@@ -154,4 +159,27 @@ function removeStation(st: Station): object {
   db().blocks = db().blocks.filter(b => b.stationId !== st.id);
   save();
   return {};
+}
+
+// ── Pet pricing (Catalog › Pet pricing) ───────────────────────
+
+/** Saves both pet types; new breeds get an id. Pets keep the breed name they have if their breed is taken off the list. */
+function savePetPricing(body: PetPricing): PetPricing {
+  for (const type of ['dog', 'cat'] as PetType[]) {
+    const doc = body?.[type];
+    if (!doc?.breeds?.length) throw new MockError(400, 'Keep at least one breed, such as Other.');
+    const names = doc.breeds.map(b => b.name?.trim().toLowerCase());
+    if (names.some(n => !n)) throw new MockError(400, 'Name every breed, or remove the empty row.');
+    if (new Set(names).size !== names.length) throw new MockError(400, 'Each breed can be listed once.');
+    const limits = doc.weightBands.slice(0, -1).map(b => b.upToKg);
+    if (doc.weightBands.at(-1)?.upToKg !== null || limits.some((kg, i) => kg === null || kg <= 0 || (i > 0 && kg <= limits[i - 1]!))) {
+      throw new MockError(400, 'Each weight band must go higher than the one before.');
+    }
+    const extras = [...doc.breeds, ...doc.weightBands, ...doc.coats].map(x => x.extraPaise);
+    if (extras.some(x => !Number.isInteger(x) || x < 0 || x > 1_000_000)) throw new MockError(400, 'Enter each extra in whole rupees, from ₹0 to ₹10,000.');
+    doc.breeds = doc.breeds.map((b, i) => ({ ...b, name: b.name.trim(), id: b.id ?? `${type}-b${Date.now().toString(36)}${i}` }));
+  }
+  db().petPricing = structuredClone(body);
+  save();
+  return db().petPricing;
 }

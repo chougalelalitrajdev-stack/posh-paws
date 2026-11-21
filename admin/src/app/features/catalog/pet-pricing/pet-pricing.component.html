@@ -1,0 +1,91 @@
+<pp-page-header title="Pet pricing">
+  <pp-segmented ppActions label="Pet type" [options]="types" [(value)]="type" />
+</pp-page-header>
+<p class="pp-intro">
+  What a pet's breed, weight and coat add to the price of every service with "Price depends on breed, weight and coat" on
+  (<a routerLink="/services">Services</a>). Discounts come after: a member's % and offers are taken from the price for the pet, and a plan session covers it all.
+</p>
+
+@if (catalog.petPricing()) {
+<form class="pp-pp" [formGroup]="current()" (ngSubmit)="save()" novalidate>
+  @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
+
+  <div class="pp-pp-grid">
+    <section class="pp-card pp-pp-card" aria-labelledby="bands-title">
+      <h2 id="bands-title" class="pp-card-title">Weight</h2>
+      <p class="pp-hint">The band the pet's weight falls in. A weight exactly on a limit counts in the lower band.</p>
+      <div formArrayName="weightBands" class="pp-pp-rows">
+        @for (b of bands().controls; track b; let i = $index, last = $last) {
+          <div class="pp-pp-row" [formGroupName]="i">
+            <span class="pp-pp-what">
+              {{ bandLabel(i) }}
+              @if (!last) {
+                <input class="pp-input pp-pp-kg" type="number" min="0.1" step="0.5" formControlName="upToKg" [attr.aria-label]="'Band ' + (i + 1) + ' up to kg'"> kg
+              }
+            </span>
+            <label class="pp-pp-extra"><span>+ ₹</span>
+              <input class="pp-input" type="number" min="0" step="10" formControlName="extra" [attr.aria-label]="'Extra for band ' + (i + 1) + ' in rupees'"></label>
+            @if (canEdit() && !last && bands().length > 2) {
+              <button class="pp-icon-btn" type="button" [attr.aria-label]="'Remove band ' + (i + 1)" (click)="removeBand(i)">✕</button>
+            } @else { <span class="pp-pp-spacer"></span> }
+          </div>
+        }
+      </div>
+      @if (canEdit()) { <button class="pp-link pp-small" type="button" (click)="addBand()">+ Add a weight band</button> }
+    </section>
+
+    <section class="pp-card pp-pp-card" aria-labelledby="coats-title">
+      <h2 id="coats-title" class="pp-card-title">Coat</h2>
+      <p class="pp-hint">Customers see each note under the choice, to pick the right one. Staff check at the shop.</p>
+      <div formArrayName="coats" class="pp-pp-rows">
+        @for (c of coats().controls; track c; let i = $index) {
+          <div class="pp-pp-coat" [formGroupName]="i">
+            <div class="pp-pp-row">
+              <strong class="pp-pp-what">{{ c.value.label }}</strong>
+              <label class="pp-pp-extra"><span>+ ₹</span>
+                <input class="pp-input" type="number" min="0" step="10" formControlName="extra" [attr.aria-label]="'Extra for ' + c.value.label + ' in rupees'"></label>
+              <span class="pp-pp-spacer"></span>
+            </div>
+            <label class="pp-sr-only" [for]="'coat-note-' + i">Note for {{ c.value.label }}</label>
+            <textarea class="pp-input" rows="2" maxlength="300" [id]="'coat-note-' + i" formControlName="note"></textarea>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="pp-card pp-pp-card pp-pp-breeds" aria-labelledby="breeds-title">
+      <h2 id="breeds-title" class="pp-card-title">Breeds · {{ breeds().length }}</h2>
+      <p class="pp-hint">The list both apps' pet forms offer. Add an extra for breeds that take longer. A breed you remove stays on the pets that have it.</p>
+      <div formArrayName="breeds" class="pp-pp-rows">
+        @for (b of breeds().controls; track b; let i = $index) {
+          <div class="pp-pp-row" [formGroupName]="i">
+            <input class="pp-input pp-pp-what" type="text" maxlength="60" formControlName="name" [attr.aria-label]="'Breed ' + (i + 1)"
+              [class.is-invalid]="b.controls['name'].invalid && b.controls['name'].touched">
+            <label class="pp-pp-extra"><span>+ ₹</span>
+              <input class="pp-input" type="number" min="0" step="10" formControlName="extra" [attr.aria-label]="'Extra for ' + (b.value.name || 'breed ' + (i + 1)) + ' in rupees'"></label>
+            @if (canEdit() && breeds().length > 1) {
+              <button class="pp-icon-btn" type="button" [attr.aria-label]="'Remove ' + (b.value.name || 'breed ' + (i + 1))" (click)="removeBreed(i)">✕</button>
+            } @else { <span class="pp-pp-spacer"></span> }
+          </div>
+        }
+      </div>
+      @if (canEdit()) { <button class="pp-link pp-small" type="button" (click)="addBreed()">+ Add a breed</button> }
+    </section>
+  </div>
+
+  @if (canEdit()) {
+    <div class="pp-editor-foot" [class.is-dirty]="form.dirty">
+      @if (form.dirty) { <span class="pp-editor-dirty">Unsaved changes (dogs and cats are saved together)</span> }
+      @else { <span class="pp-editor-note">New prices apply to new bookings, and to a pet's upcoming bookings when its details change.</span> }
+      <button class="pp-btn pp-btn-sm" type="button" [disabled]="!form.dirty" (click)="discard()">Discard</button>
+      <button class="pp-btn pp-btn-sm pp-btn-primary" type="submit" [disabled]="saving() || !form.dirty">
+        @if (saving()) { Saving… } @else { Save pet pricing }
+      </button>
+    </div>
+  } @else {
+    <p class="pp-muted pp-small">View only. Ask an Admin to change pet pricing.</p>
+  }
+</form>
+} @else {
+  <p class="pp-muted">Loading pet pricing…</p>
+}

@@ -10,6 +10,9 @@ from app.core.schemas import CamelModel
 
 PetType = Literal["dog", "cat"]
 Vaccination = Literal["up_to_date", "due_soon", "not_vaccinated", "unknown"]
+CoatType = Literal["single", "double", "triple"]
+COAT_LABELS = {"single": "Single coat", "double": "Double coat", "triple": "Triple coat"}
+MAX_WEIGHT_KG = 120
 Segment = Literal["all", "members", "new", "lapsed", "no_plan"]
 
 
@@ -21,18 +24,54 @@ def phone_digits(value: str) -> str:
 # ── Pets ──
 
 
-class PetIn(CamelModel):
+class PricedPetIn(CamelModel):
+    """Breed, weight and coat: required on every pet, because most services are priced by them (both apps send them)."""
+
+    breed_id: str
+    weight_kg: float
+    coat_type: CoatType
+
+    @field_validator("breed_id", mode="before")
+    @classmethod
+    def breed_given(cls, v):
+        if not v:
+            raise ValueError("Pick the breed.")
+        return v
+
+    @field_validator("weight_kg", mode="before")
+    @classmethod
+    def weight_given(cls, v):
+        try:
+            kg = float(v)
+        except (TypeError, ValueError):
+            raise ValueError("Enter the weight in kg.") from None
+        if not 0 < kg <= MAX_WEIGHT_KG:
+            raise ValueError(f"Enter a weight between 0.1 and {MAX_WEIGHT_KG} kg.")
+        return round(kg, 1)
+
+    @field_validator("coat_type", mode="before")
+    @classmethod
+    def coat_given(cls, v):
+        if v not in COAT_LABELS:
+            raise ValueError("Pick the coat: single, double or triple.")
+        return v
+
+
+class BreedOut(CamelModel):
+    id: str
+    pet_type: PetType
+    name: str
+
+
+class PetIn(PricedPetIn):
     """Body of POST /admin/customers/{id}/pets and PUT /admin/pets/{id}. Only the name and dog/cat are required."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(max_length=40)
     type: PetType
-    breed: str | None = Field(default=None, max_length=60)
     birth_date: dt.date | None = None
     gender: Literal["male", "female"] | None = None
-    weight_kg: float | None = None
-    coat: str | None = Field(default=None, max_length=40)
     temperament: str | None = Field(default=None, max_length=80)
     vaccination: Vaccination = "unknown"
     notes: str | None = None
@@ -52,10 +91,10 @@ class PetIn(CamelModel):
             raise ValueError("Is it a dog or a cat?")
         return v
 
-    @field_validator("birth_date", "gender", "weight_kg", mode="before")
+    @field_validator("birth_date", "gender", mode="before")
     @classmethod
     def empty_is_missing(cls, v):
-        """The form sends "" (or 0 kg) for a detail nobody filled in."""
+        """The form sends "" for a detail nobody filled in."""
         return v or None
 
     @field_validator("vaccination", mode="before")
@@ -63,7 +102,7 @@ class PetIn(CamelModel):
     def unknown_when_missing(cls, v):
         return v or "unknown"
 
-    @field_validator("breed", "coat", "temperament", "notes", "health_notes")
+    @field_validator("temperament", "notes", "health_notes")
     @classmethod
     def blank_is_missing(cls, v: str | None) -> str | None:
         return v or None
@@ -73,11 +112,12 @@ class PetOut(CamelModel):
     id: str
     name: str
     type: PetType
+    breed_id: str | None  # None, and no weight or coat, only on pets added before they were required
     breed: str | None
     birth_date: dt.date | None
     gender: Literal["male", "female"] | None
     weight_kg: float | None
-    coat: str | None
+    coat_type: CoatType | None
     temperament: str | None
     vaccination: Vaccination
     notes: str | None
@@ -265,26 +305,21 @@ class SearchResults(CamelModel):
 
 
 # ── The customer app: a customer's own pets (customer app: core/models/pet.model.ts) ──
-# The app picks size, coat and temperament from lists; the shared pet record keeps them as text the admin also edits.
+# The app picks temperament from a list; the shared pet record keeps it as text the admin also edits.
 
-AppSize = Literal["small", "medium", "large"]
-AppCoat = Literal["short", "medium", "long", "curly", "double"]
 AppTemperament = Literal["calm", "friendly", "playful", "anxious", "shy-with-strangers"]
 AppVaccination = Literal["up-to-date", "due-soon", "not-vaccinated", "unknown"]
 
 
-class AppPetIn(CamelModel):
+class AppPetIn(PricedPetIn):
     """Body of POST /pets and PUT /pets/{id} in the customer app."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
     name: str = Field(max_length=40)
     type: PetType
-    breed: str | None = Field(default=None, max_length=60)
     birth_date: dt.date | None = None
     gender: Literal["male", "female"] | None = None
-    size: AppSize | None = None
-    coat: AppCoat | None = None
     temperament: list[AppTemperament] = []
     vaccination: AppVaccination = "unknown"
     notes: str | None = Field(default=None, max_length=500)
@@ -303,7 +338,7 @@ class AppPetIn(CamelModel):
             raise ValueError("Is it a dog or a cat?")
         return v
 
-    @field_validator("birth_date", "gender", "size", "coat", mode="before")
+    @field_validator("birth_date", "gender", mode="before")
     @classmethod
     def empty_is_missing(cls, v):
         return v or None
@@ -313,7 +348,7 @@ class AppPetIn(CamelModel):
     def unknown_when_missing(cls, v):
         return v or "unknown"
 
-    @field_validator("breed", "notes")
+    @field_validator("notes")
     @classmethod
     def blank_is_missing(cls, v: str | None) -> str | None:
         return v or None
@@ -323,11 +358,12 @@ class AppPetOut(CamelModel):
     id: str
     name: str
     type: PetType
+    breed_id: str | None  # None, and no weight or coat, on pets added before they were required: the app asks for them
     breed: str | None
     birth_date: dt.date | None
     gender: Literal["male", "female"] | None
-    size: AppSize | None
-    coat: AppCoat | None
+    weight_kg: float | None
+    coat_type: CoatType | None
     temperament: list[AppTemperament]
     vaccination: AppVaccination
     notes: str | None

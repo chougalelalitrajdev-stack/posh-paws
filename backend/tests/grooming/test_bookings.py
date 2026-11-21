@@ -17,7 +17,8 @@ def test_a_phone_booking_from_draft_to_confirmed(client, shop, book):
     assert (draft["stage"], draft["date"], draft["time"], draft["stationId"]) == ("draft", None, None, None)
     assert draft["id"].startswith("PP-") and draft["bookedBy"] == "Amit J." and draft["source"] == "phone"
     assert draft["customer"]["name"] == "Ananya Desai" and draft["pet"]["name"] == "Coco" and draft["service"]["durationMinutes"] == 45
-    assert draft["bill"] == {"servicePricePaise": 120_000, "discount": None, "totalPaise": 120_000, "advancePaise": 0, "paidPaise": 0, "balancePaise": 120_000}
+    assert draft["bill"] == {"servicePricePaise": 120_000, "extras": [], "subtotalPaise": 120_000, "discount": None, "totalPaise": 120_000,
+                             "advancePaise": 0, "paidPaise": 0, "balancePaise": 120_000}  # no pet extras set
 
     url = f"{BOOKINGS}/{draft['id']}"
     assert client.post(f"{url}/confirm", headers=shop.staff).json()["detail"] == "Pick a service and a slot first."
@@ -89,12 +90,14 @@ def test_offers_on_the_bill(client, shop, book):
                 headers=shop.admin)
 
     def quote(code=None, service=None):
-        return client.post(f"{BOOKINGS}/quote", json={"customerId": shop.customer, "serviceId": service or shop.bath, "offerCode": code}, headers=shop.staff).json()
+        return client.post(f"{BOOKINGS}/quote", json={"customerId": shop.customer, "petId": shop.coco if service in (None, shop.bath) else shop.luna,
+                                                       "serviceId": service or shop.bath, "offerCode": code}, headers=shop.staff).json()
 
     automatic = quote()
     assert automatic["discount"]["label"] == "Welcome" and automatic["totalPaise"] == 110_000  # applied without a code
     with_code = quote("diwali20")
-    assert with_code["discount"] == {"kind": "offer", "label": "DIWALI20 · Diwali week", "amountPaise": 24_000, "offerId": with_code["discount"]["offerId"]}
+    assert with_code["discount"] == {"kind": "offer", "label": "DIWALI20 · Diwali week", "amountPaise": 24_000, "offerId": with_code["discount"]["offerId"],
+                                     "percent": 20}
     assert quote("NOPE")["detail"] == "There's no offer with the code NOPE."
 
     b = book("10:00", offer_code="diwali20")

@@ -66,7 +66,7 @@ export function handleBookings(r: MockRequest): unknown {
 /** The bill a phone booking would have (no advance), without saving anything. */
 function quote(body: QuoteRequest) {
   if (!db().customers.some(c => c.id === body.customerId)) throw new MockError(404, 'Customer not found.');
-  return quoteBill(body.customerId, body.serviceId, body.offerCode, false);
+  return quoteBill(body.customerId, body.petId, body.serviceId, body.offerCode, false);
 }
 
 export function find(id: string): Booking {
@@ -439,10 +439,10 @@ function saveDetails(r: MockRequest, id: string | null, d: BookingDetails): Book
 
   b.stage = 'draft';
   b.customer = { id: customer.id, name: customer.name, phone: customer.phone };
-  b.pet = { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed };
+  b.pet = { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed ?? undefined };
   b.service = { id: service.id, name: service.name, durationMinutes: service.durationMinutes };
   // Staff bookings (phone calls) take no advance.
-  b.bill = quoteBill(customer.id, service.id, d.offerCode, false, b.id);
+  b.bill = quoteBill(customer.id, pet.id, service.id, d.offerCode, false, b.id);
   b.offerCode = d.offerCode?.trim().toUpperCase() || null;
   settleMoney(b);
   b.date = d.date;
@@ -459,7 +459,7 @@ function confirm(b: Booking, by: string): Booking {
   const station = freeStation(b.date, b.time, b.service, b.id);
   if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
   // Prices are fixed now (a plan session or an offer may have changed since the draft).
-  b.bill = quoteBill(b.customer.id, b.service.id, b.offerCode, false, b.id);
+  b.bill = quoteBill(b.customer.id, b.pet!.id, b.service.id, b.offerCode, false, b.id);
   b.stationId = station;
   b.stage = 'confirmed';
   b.paymentLink = null;
@@ -483,7 +483,7 @@ function paymentLink(b: Booking, amountType: AmountType, by: string): Booking {
   if (before) {
     const station = freeStation(b.date, b.time, b.service, b.id);
     if (!station) throw new MockError(409, 'That slot was just taken. Pick another time.');
-    if (b.stage !== 'awaiting_payment') b.bill = quoteBill(b.customer.id, b.service.id, b.offerCode, false, b.id);
+    if (b.stage !== 'awaiting_payment') b.bill = quoteBill(b.customer.id, b.pet!.id, b.service.id, b.offerCode, false, b.id);
     if (!b.bill.totalPaise) throw new MockError(409, 'Nothing to pay: the plan session covers it. Confirm the booking instead.');
     type = b.stage === 'awaiting_payment' && b.paymentLink ? b.paymentLink.amountType : amountType === 'hold' ? 'hold' : 'full';
     amountPaise = type === 'hold' ? Math.min(db().settings.payments.slotHoldPaise, b.bill.totalPaise) : b.bill.totalPaise;

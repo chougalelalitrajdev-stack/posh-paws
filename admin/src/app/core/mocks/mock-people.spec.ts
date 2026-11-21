@@ -56,7 +56,7 @@ describe('mock customers, pets, subscriptions and search', () => {
   });
 
   it('edits a pet and keeps its name on bookings in step', async () => {
-    await send('PUT', `${API.pets}/p1`, { name: 'Coco Bean', type: 'dog', breed: 'Shih Tzu', vaccination: 'due_soon' });
+    await send('PUT', `${API.pets}/p1`, { name: 'Coco Bean', type: 'dog', breedId: 'dog-shih-tzu', weightKg: 6, coatType: 'double', vaccination: 'due_soon' });
     const record = await get<PetRecord>(`${API.pets}/p1`);
     expect(record.pet).toMatchObject({ name: 'Coco Bean', vaccination: 'due_soon' });
     const coco = (await get<Paged<Booking>>(API.bookings, { customerId: 'c1', pageSize: 50 })).items.filter(b => b.pet?.id === 'p1');

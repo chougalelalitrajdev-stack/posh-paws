@@ -67,6 +67,7 @@ export class ServicesComponent {
     description: ['', Validators.maxLength(MAX_DESCRIPTION)],
     imageUrl: [undefined as string | undefined],
     visible: [true],
+    petPricing: [true],
   });
 
   /** Rows for the current tab, in display order (a local copy so dragging feels instant). */
@@ -115,7 +116,7 @@ export class ServicesComponent {
     if (!(await this.okToLeave())) return;
     this.adding.set(true);
     this.selectedId.set(null);
-    this.form.reset({ name: '', priceRupees: 0, durationMinutes: 45, category: 'Bath', petType: this.view() === 'cat' ? 'cat' : 'dog', description: '', imageUrl: undefined, visible: true });
+    this.form.reset({ name: '', priceRupees: 0, durationMinutes: 45, category: 'Bath', petType: this.view() === 'cat' ? 'cat' : 'dog', description: '', imageUrl: undefined, visible: true, petPricing: true });
     this.descriptionLength.set(0);
     this.revealEditor();
   }
@@ -136,7 +137,7 @@ export class ServicesComponent {
     const v = this.form.getRawValue();
     const draft: ServiceDraft = {
       name: v.name, petType: v.petType, category: v.category, description: v.description, durationMinutes: Number(v.durationMinutes),
-      pricePaise: Math.round(Number(v.priceRupees)) * 100, imageUrl: v.imageUrl, visible: v.visible,
+      pricePaise: Math.round(Number(v.priceRupees)) * 100, imageUrl: v.imageUrl, visible: v.visible, petPricing: v.petPricing,
     };
     this.catalog.saveService(draft, this.selectedId() ?? undefined).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: saved => {
@@ -149,6 +150,11 @@ export class ServicesComponent {
       },
       error: e => this.error.set(errorMessage(e)),
     });
+  }
+
+  setPetPricing(on: boolean): void {
+    this.form.controls.petPricing.setValue(on);
+    this.form.markAsDirty();
   }
 
   toggleVisible(s: Service, visible: boolean): void {
@@ -228,14 +234,14 @@ export class ServicesComponent {
   private draftOf(s: Service): ServiceDraft {
     return {
       name: s.name, petType: s.petType, category: s.category, description: s.description,
-      durationMinutes: s.durationMinutes, pricePaise: s.pricePaise, imageUrl: s.imageUrl, visible: s.visible,
+      durationMinutes: s.durationMinutes, pricePaise: s.pricePaise, imageUrl: s.imageUrl, visible: s.visible, petPricing: s.petPricing,
     };
   }
 
   private fill(s: Service): void {
     this.form.reset({
       name: s.name, priceRupees: s.pricePaise / 100, durationMinutes: s.durationMinutes, category: s.category,
-      petType: s.petType, description: s.description, imageUrl: s.imageUrl, visible: s.visible,
+      petType: s.petType, description: s.description, imageUrl: s.imageUrl, visible: s.visible, petPricing: s.petPricing,
     });
     this.descriptionLength.set(s.description.length);
     this.error.set(null);

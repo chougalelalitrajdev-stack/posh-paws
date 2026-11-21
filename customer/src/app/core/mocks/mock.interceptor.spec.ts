@@ -61,7 +61,7 @@ describe('mockInterceptor (fake API)', () => {
       http.post<AuthResponse>(API.auth.register, { phone: '9876543210', name: 'Asha' }),
     );
     const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    const pet = await firstValueFrom(http.post<Pet>(API.pets, { type: 'dog', name: 'Bruno', temperament: [] }, { headers }));
+    const pet = await firstValueFrom(http.post<Pet>(API.pets, { type: 'dog', name: 'Bruno', breedId: 'dog-golden-retriever', weightKg: 31, coatType: 'double', temperament: [] }, { headers }));
 
     const free = (await slots(MONDAY)).find(s => s.available)!;
     const request = { serviceId: 'dog-signature-bath', petId: pet.id, date: MONDAY, time: free.time };
@@ -92,7 +92,7 @@ describe('mockInterceptor (fake API)', () => {
     beforeEach(async () => {
       const { token } = await firstValueFrom(http.post<AuthResponse>(API.auth.register, { phone: '9876543210', name: 'Asha' }));
       headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-      petId = (await post<Pet>(API.pets, { type: 'dog', name: 'Bruno', temperament: [] })).id;
+      petId = (await post<Pet>(API.pets, { type: 'dog', name: 'Bruno', breedId: 'dog-golden-retriever', weightKg: 31, coatType: 'double', temperament: [] })).id;
     });
 
     it('checks offer codes and uses the better of the member discount and the offer', async () => {

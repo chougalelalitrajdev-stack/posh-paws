@@ -41,8 +41,11 @@ One git repo, three independent apps. Each app has its own dependencies, lock fi
 Agreed with the business on 2 Nov 2026. The server computes every number below; the apps only show them.
 
 - **Two ways to book.** In the customer app the customer picks an open slot and pays an **advance** online, which confirms the booking. When a customer phones, staff book in the admin and the booking is **confirmed with no advance** (staff may still send a payment link if they want one). There is no third way: no callback requests or enquiry forms.
-- **The bill** (same in both apps): service price → at most one discount → total. Discounts don't stack; the best one wins:
-  - **Plan session:** a member with sessions left on a service their plan covers pays ₹0 and uses one session (reserved when the booking is confirmed, given back if it's cancelled, kept on a no-show).
+- **Pet details** (agreed 21 Nov 2026): every pet has a **breed** (picked from the shop's list), a **weight** (kg) and a **coat** (single, double or triple), required in both apps, because they set the price. Pets added before that must get them before their next booking.
+- **The bill** (same in both apps): service price + **the pet's extras** → at most one discount → total.
+  - **Pet extras** (admin › Catalog › Pet pricing, per dog / cat): a ₹ extra for the pet's breed, its weight band and its coat, added to every service with "Price depends on breed, weight and coat" on (off for add-ons like a nail trim). Extras of ₹0 aren't shown. If staff (or the customer) correct a pet's breed, weight or coat, that pet's upcoming bookings get the new price, with a line in the booking's Activity.
+  - Discounts don't stack; the best one wins, taken from the price for the pet (service + extras):
+  - **Plan session:** a member with sessions left on a service their plan covers pays ₹0, extras included, and uses one session (reserved when the booking is confirmed, given back if it's cancelled, kept on a no-show).
   - **Member discount:** the plan's discount % on any other service.
   - **Offer:** a live offer (code or automatic) that applies to the service, used only if it beats the member discount. Its use is counted when the booking is confirmed and given back on cancel.
 - **Advance** (app bookings): Settings › Payments hold amount (₹100), never more than the total, none when the total is ₹0. It counts toward the bill. Cancelled at least `freeCancellationHours` (24) before the slot: refunded automatically. Later, or a no-show: kept.

@@ -8,7 +8,7 @@ import { DayAvailability } from '../models/calendar.model';
 import { DashboardSummary } from '../models/dashboard.model';
 import { Paged } from '../models/paged.model';
 import { addDays, today } from '../utils/date.utils';
-import { resetDb } from './mock-db';
+import { db, resetDb } from './mock-db';
 import { mockInterceptor } from './mock.interceptor';
 
 const headers = new HttpHeaders({ Authorization: 'Bearer mock-staff:st-2' }); // Meera K., Admin
@@ -26,6 +26,8 @@ describe('mock bookings API', () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 27, 8, 0)); // Tue 27 Oct 2026, 8 am
     resetDb();
+    // These tests are about the bill's discounts; pet extras (Pet pricing) have their own test.
+    for (const p of Object.values(db().petPricing)) [...p.breeds, ...p.weightBands, ...p.coats].forEach(x => (x.extraPaise = 0));
     TestBed.configureTestingModule({ providers: [provideHttpClient(withInterceptors([mockInterceptor]))] });
     http = TestBed.inject(HttpClient);
   });

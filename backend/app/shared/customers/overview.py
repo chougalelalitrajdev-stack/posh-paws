@@ -17,7 +17,7 @@ from app.grooming.bookings.schemas import ActivityEntry
 from app.grooming.plans.models import Plan
 from app.grooming.subscriptions.models import Subscription
 from app.grooming.subscriptions.service import change_text, customer_plan
-from app.shared.customers.models import Customer, Pet
+from app.shared.customers.models import Breed, Customer, Pet
 from app.shared.customers.schemas import CustomerSummaryOut, LastVisit, NextUp, SearchResults, Visit
 from app.shared.payments.models import Payment
 
@@ -165,7 +165,7 @@ def search(db: Session, q: str, limit: int = 5) -> SearchResults:
     if len(digits) >= 3:
         found.append(Customer.phone.contains(digits))
     customers = db.scalars(select(Customer).where(or_(*found)).order_by(Customer.name).limit(limit).options(selectinload(Customer.pets)))
-    pets = db.scalars(select(Pet).where(or_(Pet.name.icontains(text, autoescape=True), Pet.breed.icontains(text, autoescape=True)))
+    pets = db.scalars(select(Pet).where(or_(Pet.name.icontains(text, autoescape=True), Pet.breed_ref.has(Breed.name.icontains(text, autoescape=True))))
                       .order_by(Pet.name).limit(limit).options(selectinload(Pet.owner)))
     by_id = [Booking.id.icontains(text, autoescape=True)] + ([Booking.id.contains(digits)] if len(digits) >= 3 else [])
     bookings = db.scalars(select(Booking).where(or_(*by_id)).order_by(Booking.created_at.desc()).limit(limit)

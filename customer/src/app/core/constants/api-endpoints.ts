@@ -13,6 +13,7 @@ export const API = {
   plans: `${api}/plans`,
   shop: `${api}/shop`,
   pets: `${api}/pets`,
+  petOptions: `${api}/pet-options`,
   slots: `${api}/slots`,
   bookings: `${api}/bookings`,
   bookingQuote: `${api}/bookings/quote`,

@@ -20,6 +20,9 @@
         <p class="pp-alert pp-alert-info pp-span">Owner: <strong>{{ foundOwner()!.name }}</strong> · {{ formatPhone(foundOwner()!.phone) }}</p>
       }
       @if (error()) { <div class="pp-alert pp-alert-error pp-span" role="alert">{{ error() }}</div> }
+      @if (pet() && !priced()) {
+        <p class="pp-alert pp-alert-info pp-span">Add {{ pet()!.name }}'s breed, weight and coat. They set the price, so the next booking needs them.</p>
+      }
 
       <div class="pp-field">
         <label class="pp-label" for="pet-name">Name</label>
@@ -33,7 +36,11 @@
       </div>
       <div class="pp-field">
         <label class="pp-label" for="pet-breed">Breed</label>
-        <input id="pet-breed" class="pp-input" type="text" autocomplete="off" formControlName="breed">
+        <select id="pet-breed" class="pp-input" formControlName="breedId" [class.is-invalid]="form.controls.breedId.invalid && form.controls.breedId.touched">
+          <option value="" disabled>Pick the breed</option>
+          @for (b of breeds(); track b.id) { <option [value]="b.id">{{ b.name }}</option> }
+        </select>
+        @if (form.controls.breedId.invalid && form.controls.breedId.touched) { <p class="pp-field-error">Pick the breed. Not listed? Pick Other.</p> }
       </div>
       <div class="pp-field">
         <label class="pp-label" for="pet-birth">Birth date <span class="pp-muted">(roughly is fine)</span></label>
@@ -47,12 +54,21 @@
       </div>
       <div class="pp-field">
         <label class="pp-label" for="pet-weight">Weight (kg)</label>
-        <input id="pet-weight" class="pp-input" type="number" min="0" step="0.5" inputmode="decimal" formControlName="weightKg">
+        <input id="pet-weight" class="pp-input" type="number" min="0.1" max="120" step="0.1" inputmode="decimal" formControlName="weightKg"
+          [class.is-invalid]="form.controls.weightKg.invalid && form.controls.weightKg.touched">
+        @if (form.controls.weightKg.invalid && form.controls.weightKg.touched) { <p class="pp-field-error">Enter the weight, 0.1 to 120 kg.</p> }
       </div>
-      <div class="pp-field">
-        <label class="pp-label" for="pet-coat">Size · coat</label>
-        <input id="pet-coat" class="pp-input" type="text" placeholder="e.g. Small · long" formControlName="coat">
-      </div>
+      <fieldset class="pp-field pp-span pp-coat-field">
+        <legend class="pp-label">Coat</legend>
+        @for (c of coats(); track c.type) {
+          <label class="pp-check pp-coat-choice">
+            <input type="radio" formControlName="coatType" [value]="c.type">
+            <span><strong>{{ c.label }}</strong>@if (c.note) { <span class="pp-hint">{{ c.note }}</span> }</span>
+          </label>
+        }
+        @if (form.controls.coatType.invalid && form.controls.coatType.touched) { <p class="pp-field-error">Pick the coat.</p> }
+        <p class="pp-hint">Breed, weight and coat set the price of most services (Catalog › Pet pricing).</p>
+      </fieldset>
       <div class="pp-field">
         <label class="pp-label" for="pet-temper">Temperament</label>
         <input id="pet-temper" class="pp-input" type="text" placeholder="e.g. Calm, shy with strangers" formControlName="temperament">

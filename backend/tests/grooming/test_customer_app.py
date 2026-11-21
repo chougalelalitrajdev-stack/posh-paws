@@ -45,21 +45,22 @@ def test_my_pets_and_how_they_read_in_the_admin(client, shop, ananya, rohan):
     assert [p["name"] for p in client.get("/api/pets", headers=ananya).json()] == ["Coco", "Luna"]
     assert client.get("/api/pets", headers=rohan).json() == []  # Rohan sees only his own (none yet)
 
-    pet = {"name": "Biscuit", "type": "dog", "breed": "Indie", "size": "small", "coat": "long", "temperament": ["calm", "shy-with-strangers"],
+    pet = {"name": "Biscuit", "type": "dog", "breedId": "dog-indie", "weightKg": 9.5, "coatType": "double", "temperament": ["calm", "shy-with-strangers"],
            "vaccination": "due-soon", "notes": "Towel-dry first."}
     made = client.post("/api/pets", json=pet, headers=ananya).json()
-    assert made | {"id": ""} == {**pet, "id": "", "birthDate": None, "gender": None}
+    assert made | {"id": ""} == {**pet, "id": "", "breed": "Indie", "birthDate": None, "gender": None}
     staff_view = client.get(f"/api/admin/pets/{made['id']}", headers=shop.staff).json()["pet"]
-    assert (staff_view["coat"], staff_view["temperament"], staff_view["vaccination"]) == ("Small · long", "Calm, Shy with strangers", "due_soon")
+    assert (staff_view["breed"], staff_view["weightKg"], staff_view["coatType"], staff_view["temperament"], staff_view["vaccination"]) == \
+        ("Indie", 9.5, "double", "Calm, Shy with strangers", "due_soon")
 
-    edited = client.put(f"/api/pets/{made['id']}", json={**pet, "coat": "double", "temperament": []}, headers=ananya).json()
-    assert (edited["size"], edited["coat"], edited["temperament"]) == ("small", "double", [])
+    edited = client.put(f"/api/pets/{made['id']}", json={**pet, "coatType": "triple", "temperament": []}, headers=ananya).json()
+    assert (edited["weightKg"], edited["coatType"], edited["temperament"]) == (9.5, "triple", [])
     assert client.put(f"/api/pets/{made['id']}", json=pet, headers=rohan).status_code == 404  # not his pet
     assert client.post("/api/pets", json={**pet, "name": " "}, headers=ananya).json()["detail"] == "Enter your pet's name."
 
 
 def test_booking_in_the_app_pays_the_advance_and_confirms(client, shop, ananya, rohan):
-    bill = client.post("/api/bookings/quote", json={"serviceId": shop.bath}, headers=ananya).json()
+    bill = client.post("/api/bookings/quote", json={"serviceId": shop.bath, "petId": shop.coco}, headers=ananya).json()
     assert (bill["totalPaise"], bill["advancePaise"]) == (120_000, 10_000)
 
     booked = client.post("/api/bookings", json=book_body(shop, notes="Coco is nervous."), headers=ananya).json()

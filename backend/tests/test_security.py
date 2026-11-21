@@ -16,7 +16,7 @@ PUBLIC = {  # the only addresses anyone may call without signing in
     ("POST", "/api/auth/otp/send"), ("POST", "/api/auth/otp/verify"), ("POST", "/api/auth/register"),
     # The customer app's public data (tests/test_public.py checks it shows nothing private).
     ("GET", "/api/services"), ("GET", "/api/plans"), ("GET", "/api/shop"), ("GET", "/api/slots"),
-    ("GET", "/api/banners"), ("GET", "/api/gallery"), ("GET", "/api/pages/{key}"), ("GET", "/api/faqs"),
+    ("GET", "/api/banners"), ("GET", "/api/gallery"), ("GET", "/api/pages/{key}"), ("GET", "/api/faqs"), ("GET", "/api/pet-options"),
 }
 
 

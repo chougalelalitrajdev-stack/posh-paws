@@ -15,7 +15,7 @@ def test_services_plans_and_shop_show_only_whats_public(client, signed_in):
 
     services = client.get("/api/services").json()
     assert services == [{"id": shown["id"], "petType": "dog", "icon": "🛁", "name": "Signature Bath", "description": "A deep cleanse.",
-                         "pricePaise": 120_000, "durationMinutes": 45, "imageUrl": None}]  # no hidden or archived ones, no internal fields
+                         "pricePaise": 120_000, "petPricing": True, "durationMinutes": 45, "imageUrl": None}]  # no hidden or archived ones, no internal fields
 
     plan = {"name": "Posh", "tagline": "For the devoted", "pricePaise": 99_900, "billing": "month", "sessionsPerPeriod": 5, "discountPercent": 10,
             "eligibleServiceIds": [shown["id"]], "featured": True, "subscribable": True, "benefits": [{"text": "5 sessions", "included": True}]}

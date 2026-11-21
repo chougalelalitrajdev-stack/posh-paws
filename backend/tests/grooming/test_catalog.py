@@ -10,7 +10,7 @@ def test_services_are_ordered_archived_and_checked(client, signed_in):
     admin, staff = signed_in("admin"), signed_in("staff")
     assert client.post(SERVICES, json=BATH, headers=staff).status_code == 403  # staff read the catalog, Admins change it
     bath = client.post(SERVICES, json=BATH, headers=admin).json()
-    assert bath | {"id": "x"} == {**BATH, "id": "x", "name": "Signature Bath", "imageUrl": None, "visible": True, "archived": False,
+    assert bath | {"id": "x"} == {**BATH, "id": "x", "name": "Signature Bath", "imageUrl": None, "visible": True, "petPricing": True, "archived": False,
                                   "sortOrder": 0, "upcomingBookings": 0}
     trim = client.post(SERVICES, json={**BATH, "name": "Nail Trim", "category": "Add-on"}, headers=admin).json()
     cat = client.post(SERVICES, json={**BATH, "name": "Cat Bath", "petType": "cat"}, headers=admin).json()

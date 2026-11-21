@@ -112,8 +112,8 @@ def pet(pet_id: str, db: Session = Depends(get_db), _: StaffUser = Depends(curre
 
 
 @pet_router.put("/{pet_id}", response_model=PetOut)
-def edit_pet(pet_id: str, body: PetIn, db: Session = Depends(get_db), _: StaffUser = Depends(current_staff)) -> Pet:
-    return service.update_pet(db, service.find_pet(db, pet_id), body)
+def edit_pet(pet_id: str, body: PetIn, db: Session = Depends(get_db), me: StaffUser = Depends(current_staff)) -> Pet:
+    return service.update_pet(db, service.find_pet(db, pet_id), body, me.name)
 
 
 @search_router.get("", response_model=SearchResults)

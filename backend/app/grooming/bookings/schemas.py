@@ -8,6 +8,7 @@ from pydantic import ConfigDict, Field, field_validator
 from app.core.dates import TIME
 from app.core.schemas import CamelModel
 from app.grooming.catalog.schemas import StationOut
+from app.grooming.pet_pricing.schemas import BillExtra
 from app.grooming.slots.schemas import TimeBlockOut
 
 Stage = Literal["draft", "awaiting_payment", "confirmed", "completed", "cancelled", "no_show"]
@@ -21,12 +22,15 @@ class BillDiscount(CamelModel):
     label: str  # "Posh plan session", "Posh member 10% off", "DIWALI20 · Diwali grooming week"
     amount_paise: int
     offer_id: str | None = None
+    percent: int | None = None  # a member or offer percentage, taken again from a new price when the pet's details change
 
 
 class BookingBill(CamelModel):
     """What the booking costs and what's been paid. Worked out here; both apps show it as is."""
 
     service_price_paise: int
+    extras: list[BillExtra] = []  # what the pet adds: its breed, weight band and coat (Catalog › Pet pricing)
+    subtotal_paise: int  # the service plus the extras: the price for this pet, before the discount
     discount: BillDiscount | None
     total_paise: int
     advance_paise: int  # asked for online when booked in the app; 0 for phone bookings
@@ -135,6 +139,7 @@ class QuoteIn(CamelModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     customer_id: str
+    pet_id: str  # the pet's breed, weight and coat change the price
     service_id: str
     offer_code: str | None = None
 
@@ -253,4 +258,5 @@ class AppQuoteIn(CamelModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     service_id: str
+    pet_id: str  # the pet's breed, weight and coat change the price
     offer_code: str | None = None

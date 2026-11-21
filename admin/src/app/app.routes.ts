@@ -73,6 +73,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/catalog/services/services.component').then(m => m.ServicesComponent),
       },
       {
+        path: 'pet-pricing',
+        title: 'Pet pricing · Posh Paws Admin',
+        loadComponent: () => import('./features/catalog/pet-pricing/pet-pricing.component').then(m => m.PetPricingComponent),
+      },
+      {
         path: 'plans',
         title: 'Membership plans · Posh Paws Admin',
         loadComponent: () => import('./features/catalog/plans/plans.component').then(m => m.PlansComponent),

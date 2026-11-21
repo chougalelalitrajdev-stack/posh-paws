@@ -2,17 +2,19 @@ import { Component, HostListener, computed, effect, inject, signal, untracked, C
 import { finalize } from 'rxjs';
 import { PetDialogService } from '../../../core/services/pet-dialog.service';
 import { PetService } from '../../../core/services/pet.service';
-import { PetDraft, PetCoat, PetGender, PetSize, PetTemperament, PetType, VaccinationStatus } from '../../../core/models/pet.model';
-import {
-  BREEDS, PET_COAT_OPTIONS, PET_GENDER_OPTIONS, PET_SIZE_OPTIONS, PET_TEMPERAMENT_OPTIONS,
-  PET_TYPE_OPTIONS, VACCINATION_OPTIONS,
-} from '../../../core/constants/pet.constants';
+import { CoatType, PetDraft, PetGender, PetTemperament, PetType, VaccinationStatus } from '../../../core/models/pet.model';
+import { PET_GENDER_OPTIONS, PET_TEMPERAMENT_OPTIONS, PET_TYPE_OPTIONS, VACCINATION_OPTIONS } from '../../../core/constants/pet.constants';
 import { ageFromBirthDate, birthDateFromAge } from '../../../core/utils/pet.utils';
 import { errorMessage } from '../../../core/utils/error.utils';
 import { ChipGroupComponent } from '../../components/chip-group/chip-group.component';
 
 const MAX_YEARS = 30;
+const MAX_KG = 120;
 
+/**
+ * Add or edit a pet in three short steps. The first asks what sets the price: dog or cat, name, breed (from the shop's list),
+ * weight and coat (each coat with the shop's note that helps pick it). The rest (age, gender, temperament, health) is optional.
+ */
 @Component({
   selector: 'pp-pet-dialog',
   imports: [ChipGroupComponent],
@@ -26,20 +28,18 @@ export class PetDialogComponent {
 
   protected readonly typeOptions = PET_TYPE_OPTIONS;
   protected readonly genderOptions = PET_GENDER_OPTIONS;
-  protected readonly sizeOptions = PET_SIZE_OPTIONS;
-  protected readonly coatOptions = PET_COAT_OPTIONS;
   protected readonly temperamentOptions = PET_TEMPERAMENT_OPTIONS;
   protected readonly vaccinationOptions = VACCINATION_OPTIONS;
   protected readonly steps = ['basics', 'about', 'care'] as const;
 
   protected type = signal<PetType | null>(null);
   protected name = signal('');
-  protected breed = signal('');
+  protected breedId = signal('');
+  protected weight = signal('');
+  protected coatType = signal<CoatType | null>(null);
   protected years = signal(0);
   protected months = signal(0);
   protected gender = signal<PetGender | null>(null);
-  protected size = signal<PetSize | null>(null);
-  protected coat = signal<PetCoat | null>(null);
   protected temperament = signal<PetTemperament[]>([]);
   protected vaccination = signal<VaccinationStatus | null>(null);
   protected notes = signal('');
@@ -47,8 +47,25 @@ export class PetDialogComponent {
   protected error = signal<string | null>(null);
 
   protected isEditing = computed(() => this.dialog.editing() !== null);
-  protected canSave = computed(() => this.type() !== null && this.name().trim().length > 0);
-  protected breedSuggestions = computed(() => BREEDS[this.type() ?? 'dog']);
+  protected weightOk = computed(() => {
+    const kg = Number(this.weight());
+    return this.weight() !== '' && kg > 0 && kg <= MAX_KG;
+  });
+  protected canSave = computed(() =>
+    this.type() !== null && this.name().trim().length > 0 && !!this.breedId() && this.weightOk() && this.coatType() !== null);
+  /** The shop's breeds for the pet type; a breed taken off the list since stays on offer for the pet that has it. */
+  protected breedOptions = computed(() => {
+    const listed = this.pets.options()?.[this.type() ?? 'dog'].breeds ?? [];
+    const p = this.dialog.editing();
+    const kept = p?.breedId && p.type === this.type() && !listed.some(b => b.id === p.breedId);
+    return kept ? [...listed, { id: p.breedId!, name: `${p.breed} (no longer listed)` }] : listed;
+  });
+  protected coatOptions = computed(() => this.pets.options()?.[this.type() ?? 'dog'].coats ?? []);
+  /** Editing a pet added before breed, weight and coat were asked for. */
+  protected missingDetails = computed(() => {
+    const p = this.dialog.editing();
+    return !!p && !(p.breedId && p.weightKg && p.coatType);
+  });
   protected ageText = computed(() => {
     const y = this.years();
     const m = this.months();
@@ -56,6 +73,7 @@ export class PetDialogComponent {
   });
 
   constructor() {
+    this.pets.loadOptions().subscribe();
     effect(() => {
       if (this.dialog.isOpen()) untracked(() => this.fillForm());
     });
@@ -96,8 +114,17 @@ export class PetDialogComponent {
     this.name.set((e.target as HTMLInputElement).value);
   }
 
+  setType(type: PetType): void {
+    this.type.set(type);
+    if (!this.breedOptions().some(b => b.id === this.breedId())) this.breedId.set(''); // a breed of the other kind
+  }
+
   onBreedChange(e: Event): void {
-    this.breed.set((e.target as HTMLInputElement).value);
+    this.breedId.set((e.target as HTMLSelectElement).value);
+  }
+
+  onWeightChange(e: Event): void {
+    this.weight.set((e.target as HTMLInputElement).value);
   }
 
   onNotesChange(e: Event): void {
@@ -105,18 +132,17 @@ export class PetDialogComponent {
   }
 
   private buildDraft(): PetDraft {
-    const breed = this.breed().trim();
     const notes = this.notes().trim();
     const birthDate = birthDateFromAge({ years: this.years(), months: this.months() });
     return {
       type: this.type()!,
       name: this.name().trim(),
+      breedId: this.breedId(),
+      weightKg: Math.round(Number(this.weight()) * 10) / 10,
+      coatType: this.coatType(),
       temperament: this.temperament(),
-      ...(breed && { breed }),
       ...(birthDate && { birthDate }),
       ...(this.gender() && { gender: this.gender()! }),
-      ...(this.size() && { size: this.size()! }),
-      ...(this.coat() && { coat: this.coat()! }),
       ...(this.vaccination() && { vaccination: this.vaccination()! }),
       ...(notes && { notes }),
     };
@@ -127,12 +153,12 @@ export class PetDialogComponent {
     const age = ageFromBirthDate(pet?.birthDate);
     this.type.set(pet?.type ?? null);
     this.name.set(pet?.name ?? '');
-    this.breed.set(pet?.breed ?? '');
+    this.breedId.set(pet?.breedId ?? '');
+    this.weight.set(pet?.weightKg?.toString() ?? '');
+    this.coatType.set(pet?.coatType ?? null);
     this.years.set(age?.years ?? 0);
     this.months.set(age?.months ?? 0);
     this.gender.set(pet?.gender ?? null);
-    this.size.set(pet?.size ?? null);
-    this.coat.set(pet?.coat ?? null);
     this.temperament.set(pet?.temperament ?? []);
     this.vaccination.set(pet?.vaccination ?? null);
     this.notes.set(pet?.notes ?? '');

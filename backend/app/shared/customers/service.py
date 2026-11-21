@@ -1,5 +1,6 @@
-"""Customers and pets: search, tabs and pages, one customer per mobile number, the staff note.
-Their numbers (visits, money, membership) come from overview.py."""
+"""Customers and pets: search, tabs and pages, one customer per mobile number, the staff note, and the breed list.
+Their numbers (visits, money, membership) come from overview.py. A marked exception: changing a pet's breed, weight or coat
+asks grooming to re-price that pet's upcoming bookings (reprice_pet below)."""
 
 import datetime as dt
 import re
@@ -10,10 +11,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.schemas import Paged
 from app.shared.customers import overview
-from app.shared.customers.models import Customer, Pet
+from app.shared.customers.models import Breed, Customer, Pet
 from app.shared.customers.schemas import (
-    AppPetIn, AppPetOut, CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOwner, PetOut, PetRecordOut, PetSummaryOut, StaffNote,
-    phone_digits,
+    AppPetIn, AppPetOut, BreedOut, CustomerIn, CustomerOut, CustomerSummaryOut, NoteIn, PetCounts, PetIn, PetOwner, PetOut, PetRecordOut, PetSummaryOut,
+    PricedPetIn, StaffNote, phone_digits,
 )
 from app.shared.customers.overview import in_segment, on_plan, sort_order
 
@@ -100,6 +101,51 @@ def save_note(db: Session, c: Customer, body: NoteIn, by: str) -> CustomerOut:
     return customer_out(db, c)
 
 
+# ── Breeds ──
+
+# A fresh shop starts with these (Catalog › Pet pricing changes them). Indie first and Other last, so everyone finds a fit.
+STARTER_BREEDS = {
+    "dog": ["Indie", "Beagle", "Boxer", "Cocker Spaniel", "Dachshund", "Dobermann", "French Bulldog", "German Shepherd", "Golden Retriever",
+            "Husky", "Labrador", "Lhasa Apso", "Maltese", "Pomeranian", "Poodle", "Pug", "Rottweiler", "Shih Tzu", "Yorkshire Terrier", "Other"],
+    "cat": ["Indie", "Bengal", "British Shorthair", "Maine Coon", "Persian", "Ragdoll", "Siamese", "Siberian", "Other"],
+}
+
+
+def starter_id(pet_type: str, name: str) -> str:
+    """dog-german-shepherd: readable ids for the starter breeds."""
+    return f"{pet_type}-{re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')}"
+
+
+def list_breeds(db: Session, pet_type: str, archived: bool = False) -> list[Breed]:
+    """One pet type's breeds in order; a fresh database gets the starter list the first time it's read."""
+    breeds = list(db.scalars(select(Breed).where(Breed.pet_type == pet_type).order_by(Breed.sort_order, Breed.name)))
+    if not breeds:
+        breeds = [Breed(id=starter_id(pet_type, name), pet_type=pet_type, name=name, sort_order=i) for i, name in enumerate(STARTER_BREEDS[pet_type])]
+        db.add_all(breeds)
+        db.commit()
+    return breeds if archived else [b for b in breeds if not b.archived]
+
+
+def breed_options(db: Session, pet_type: str) -> list[BreedOut]:
+    return [BreedOut.model_validate(b) for b in list_breeds(db, pet_type)]
+
+
+def _checked_breed(db: Session, pet_type: str, body: PricedPetIn, pet: Pet | None = None) -> None:
+    """The breed must be one of this pet type's, still on the list (a pet keeps an archived breed only while it isn't changed)."""
+    breed = next((b for b in list_breeds(db, pet_type, archived=True) if b.id == body.breed_id), None)  # also sets up a fresh shop's list
+    unchanged = pet is not None and pet.breed_id == body.breed_id and pet.type == pet_type
+    if not breed or (breed.archived and not unchanged):
+        raise HTTPException(status_code=400, detail=f"Pick a {pet_type} breed from the list.")
+
+
+def reprice_pet(db: Session, pet: Pet, before: tuple, by: str | None) -> None:
+    """After a change to breed, weight or coat, grooming re-prices the pet's upcoming bookings (the marked exception above)."""
+    if before != (pet.breed_id, pet.weight_kg, pet.coat_type):
+        from app.grooming.bookings.service import reprice_for_pet  # imported here: grooming reads shared, not the other way round
+
+        reprice_for_pet(db, pet, by)
+
+
 # ── Pets ──
 
 
@@ -108,6 +154,7 @@ def _pet_summary(p: Pet, last_groom=None) -> PetSummaryOut:
 
 
 def add_pet(db: Session, c: Customer, body: PetIn) -> Pet:
+    _checked_breed(db, body.type, body)
     pet = Pet(customer_id=c.id, **body.model_dump())
     db.add(pet)
     db.commit()
@@ -119,7 +166,7 @@ def list_pets(db: Session, q: str, pet_type: str | None, vaccination_due: bool, 
     query = select(Pet).join(Pet.owner)
     if q.strip():
         text = q.strip()
-        query = query.where(or_(Pet.name.icontains(text, autoescape=True), Pet.breed.icontains(text, autoescape=True),
+        query = query.where(or_(Pet.name.icontains(text, autoescape=True), Pet.breed_ref.has(Breed.name.icontains(text, autoescape=True)),
                                 Customer.name.icontains(text, autoescape=True)))
     if pet_type:
         query = query.where(Pet.type == pet_type)
@@ -149,38 +196,40 @@ def pet_record(db: Session, pet: Pet) -> PetRecordOut:
                         last_groom=visits[0].date if visits else None)
 
 
-def update_pet(db: Session, pet: Pet, body: PetIn) -> Pet:
-    """Bookings read the pet's record, so they show the new details too."""
+def update_pet(db: Session, pet: Pet, body: PetIn, by: str) -> Pet:
+    """Bookings read the pet's record, so they show the new details too; a new breed, weight or coat re-prices the upcoming ones."""
+    _checked_breed(db, body.type, body, pet)
+    before = (pet.breed_id, pet.weight_kg, pet.coat_type)
     for field, value in body.model_dump().items():
         setattr(pet, field, value)
+    db.flush()
+    db.expire(pet, ["breed_ref"])  # so pet.breed names the new breed
+    reprice_pet(db, pet, before, by)
     db.commit()
     return pet
 
 
 # ── The customer app: a customer's own pets ──
 
-SIZES = ("small", "medium", "large")
-COATS = ("short", "medium", "long", "curly", "double")
 TEMPERAMENTS = {"calm": "Calm", "friendly": "Friendly", "playful": "Playful", "anxious": "Anxious", "shy-with-strangers": "Shy with strangers"}
 
 
 def app_pet(p: Pet) -> AppPetOut:
-    """The shared pet record in the app's words: "Small · long" → size small, coat long; "Calm, shy with strangers" → two choices."""
-    parts = [part.strip().lower() for part in (p.coat or "").split("·")]
+    """The shared pet record in the app's words: "Calm, shy with strangers" → two choices."""
     temperament = (p.temperament or "").lower()
     return AppPetOut(
-        id=p.id, name=p.name, type=p.type, breed=p.breed, birth_date=p.birth_date, gender=p.gender,
-        size=next((x for x in parts if x in SIZES), None), coat=next((x for x in parts if x in COATS), None),
+        id=p.id, name=p.name, type=p.type, breed_id=p.breed_id, breed=p.breed, birth_date=p.birth_date, gender=p.gender,
+        weight_kg=p.weight_kg, coat_type=p.coat_type,
         temperament=[key for key, label in TEMPERAMENTS.items() if label.lower() in temperament],
         vaccination=p.vaccination.replace("_", "-"), notes=p.notes,
     )
 
 
 def _app_fields(body: AppPetIn) -> dict:
-    """The app's choices as the shared record keeps them (weight and health notes are staff's, so they stay as they are)."""
+    """The app's choices as the shared record keeps them (health notes are staff's, so they stay as they are)."""
     return {
-        "name": body.name, "type": body.type, "breed": body.breed, "birth_date": body.birth_date, "gender": body.gender,
-        "coat": " · ".join(x for x in (body.size and body.size.capitalize(), body.coat) if x) or None,
+        "name": body.name, "type": body.type, "breed_id": body.breed_id, "birth_date": body.birth_date, "gender": body.gender,
+        "weight_kg": body.weight_kg, "coat_type": body.coat_type,
         "temperament": ", ".join(TEMPERAMENTS[t] for t in body.temperament) or None,
         "vaccination": body.vaccination.replace("-", "_"), "notes": body.notes,
     }
@@ -201,6 +250,7 @@ def my_pet(db: Session, c: Customer, pet_id: str) -> Pet:
 def add_my_pet(db: Session, c: Customer, body: AppPetIn) -> AppPetOut:
     if len(c.pets) >= 10:
         raise HTTPException(status_code=409, detail="You can add up to 10 pets. Call us if you have more.")
+    _checked_breed(db, body.type, body)
     pet = Pet(customer_id=c.id, **_app_fields(body))
     db.add(pet)
     db.commit()
@@ -208,7 +258,12 @@ def add_my_pet(db: Session, c: Customer, body: AppPetIn) -> AppPetOut:
 
 
 def update_my_pet(db: Session, pet: Pet, body: AppPetIn) -> AppPetOut:
+    _checked_breed(db, body.type, body, pet)
+    before = (pet.breed_id, pet.weight_kg, pet.coat_type)
     for field, value in _app_fields(body).items():
         setattr(pet, field, value)
+    db.flush()
+    db.expire(pet, ["breed_ref"])  # so pet.breed names the new breed
+    reprice_pet(db, pet, before, f"{pet.owner.name} (in the app)")
     db.commit()
     return app_pet(pet)

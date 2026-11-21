@@ -1,16 +1,21 @@
-import { PetType, Paise } from './catalog.model';
+import { CoatType, PetType, Paise } from './catalog.model';
 
 export interface CustomerPet {
   id: string;
   name: string;
   type: PetType;
-  breed?: string;
+  /**
+   * Breed (from the list on Catalog › Pet pricing), weight and coat set the price of most services, so they're required.
+   * Only pets added before that can lack them; they must be filled in before the next booking.
+   */
+  breedId?: string | null;
+  /** The breed's name (comes with the pet; not sent). */
+  breed?: string | null;
+  weightKg?: number | null;
+  coatType?: CoatType | null;
   /** YYYY-MM-DD */
   birthDate?: string;
   gender?: 'male' | 'female';
-  weightKg?: number;
-  /** Size and coat, e.g. "Small · long". */
-  coat?: string;
   temperament?: string;
   vaccination?: 'up_to_date' | 'due_soon' | 'not_vaccinated' | 'unknown';
   /** Grooming notes staff should see before every visit. */
@@ -19,7 +24,7 @@ export interface CustomerPet {
 }
 
 /** Body of POST /admin/customers/{id}/pets and PUT /admin/pets/{id}. */
-export type PetDraft = Omit<CustomerPet, 'id'>;
+export type PetDraft = Omit<CustomerPet, 'id' | 'breed'>;
 
 /** The customer's active membership. Comes from their subscription. */
 export interface CustomerPlan {

@@ -1,4 +1,4 @@
-import { BillDiscount, Booking, BookingBill, PaymentEntry, PaymentStatus } from '../models/booking.model';
+import { BillDiscount, BillExtra, Booking, BookingBill, PaymentEntry, PaymentStatus } from '../models/booking.model';
 
 // Pure booking-money maths (no database), shared by the seed data and the booking handlers.
 // See "Booking & payment rules" in the root CLAUDE.md.
@@ -8,11 +8,12 @@ export function netPaid(payments: PaymentEntry[]): number {
   return payments.reduce((sum, p) => sum + (p.kind === 'refund' ? -p.amountPaise : p.amountPaise), 0);
 }
 
-/** A fresh bill. The advance is the hold amount, never more than the total, and none when the total is ₹0. */
-export function newBill(servicePricePaise: number, discount: BillDiscount | null, holdPaise: number | null): BookingBill {
-  const totalPaise = Math.max(0, servicePricePaise - (discount?.amountPaise ?? 0));
+/** A fresh bill: service + the pet's extras, then the discount. The advance is the hold amount, never more than the total, and none when the total is ₹0. */
+export function newBill(servicePricePaise: number, discount: BillDiscount | null, holdPaise: number | null, extras: BillExtra[] = []): BookingBill {
+  const subtotalPaise = servicePricePaise + extras.reduce((sum, e) => sum + e.amountPaise, 0);
+  const totalPaise = Math.max(0, subtotalPaise - (discount?.amountPaise ?? 0));
   const advancePaise = holdPaise && totalPaise > 0 ? Math.min(holdPaise, totalPaise) : 0;
-  return { servicePricePaise, discount, totalPaise, advancePaise, paidPaise: 0, balancePaise: totalPaise };
+  return { servicePricePaise, extras, subtotalPaise, discount, totalPaise, advancePaise, paidPaise: 0, balancePaise: totalPaise };
 }
 
 /** `PAY-1051-2` for the booking's second payment entry. */

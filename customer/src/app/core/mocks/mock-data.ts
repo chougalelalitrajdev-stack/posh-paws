@@ -1,4 +1,5 @@
 import { PlanItem, ServiceItem, ShopInfo } from '../models/catalog.model';
+import { PetOptions } from '../models/pet.model';
 import { Banner, FaqData, GalleryData, PageKey, SitePage } from '../models/content.model';
 
 // Data the fake API serves until the backend is live. It becomes the backend's seed data.
@@ -7,40 +8,40 @@ import { Banner, FaqData, GalleryData, PageKey, SitePage } from '../models/conte
 export const MOCK_OTP = '123456';
 
 export const SERVICES: ServiceItem[] = [
-  { id: 'dog-signature-bath', petType: 'dog', icon: '🛁', name: 'Signature Bath',
+  { id: 'dog-signature-bath', petType: 'dog', icon: '🛁', name: 'Signature Bath', petPricing: true,
     description: 'A deep cleanse using premium organic shampoos, blow-dry, and light fragrance. Leaves your pet fresh for days.',
     pricePaise: 120000, durationMinutes: 45 },
-  { id: 'dog-full-groom-style', petType: 'dog', icon: '✂️', name: 'Full Groom & Style',
+  { id: 'dog-full-groom-style', petType: 'dog', icon: '✂️', name: 'Full Groom & Style', petPricing: true,
     description: 'Bath, breed-specific haircut, nail trim, ear cleaning, and a finishing spritz. The complete experience.',
     pricePaise: 250000, durationMinutes: 90 },
-  { id: 'dog-royal-package', petType: 'dog', icon: '👑', name: 'Royal Package',
+  { id: 'dog-royal-package', petType: 'dog', icon: '👑', name: 'Royal Package', petPricing: true,
     description: 'Our signature full groom plus de-shedding treatment, teeth brushing, and a paw massage. The ultimate indulgence.',
     pricePaise: 450000, durationMinutes: 150 },
-  { id: 'dog-nail-trim-filing', petType: 'dog', icon: '💅', name: 'Nail Trim & Filing',
+  { id: 'dog-nail-trim-filing', petType: 'dog', icon: '💅', name: 'Nail Trim & Filing', petPricing: false,
     description: 'Precise nail clipping and filing to keep your pet comfortable and your furniture safe.',
     pricePaise: 40000, durationMinutes: 20 },
-  { id: 'dog-de-shedding-treatment', petType: 'dog', icon: '🌿', name: 'De-shedding Treatment',
+  { id: 'dog-de-shedding-treatment', petType: 'dog', icon: '🌿', name: 'De-shedding Treatment', petPricing: true,
     description: 'Specialised treatment to reduce shedding by up to 80%. Ideal for double-coat breeds during seasonal changes.',
     pricePaise: 180000, durationMinutes: 60 },
-  { id: 'dog-flea-tick-spa', petType: 'dog', icon: '🐾', name: 'Flea & Tick Spa',
+  { id: 'dog-flea-tick-spa', petType: 'dog', icon: '🐾', name: 'Flea & Tick Spa', petPricing: true,
     description: 'A medicated treatment bath that eliminates fleas and ticks using vet-approved, pet-safe solutions.',
     pricePaise: 150000, durationMinutes: 60 },
-  { id: 'cat-gentle-cat-bath', petType: 'cat', icon: '🛁', name: 'Gentle Cat Bath',
+  { id: 'cat-gentle-cat-bath', petType: 'cat', icon: '🛁', name: 'Gentle Cat Bath', petPricing: true,
     description: 'A calm, stress-free bath using fragrance-free organic formulas — ideal even for cats that dislike water.',
     pricePaise: 90000, durationMinutes: 40 },
-  { id: 'cat-full-groom-trim', petType: 'cat', icon: '✂️', name: 'Full Groom & Trim',
+  { id: 'cat-full-groom-trim', petType: 'cat', icon: '✂️', name: 'Full Groom & Trim', petPricing: true,
     description: 'Breed-specific coat trim, nail clipping, ear cleaning, and a gentle blow-dry finish.',
     pricePaise: 200000, durationMinutes: 75 },
-  { id: 'cat-nail-trim-filing', petType: 'cat', icon: '💅', name: 'Nail Trim & Filing',
+  { id: 'cat-nail-trim-filing', petType: 'cat', icon: '💅', name: 'Nail Trim & Filing', petPricing: false,
     description: 'Careful nail trimming to prevent overgrowth and scratching. Done by patient, cat-experienced groomers.',
     pricePaise: 35000, durationMinutes: 15 },
-  { id: 'cat-de-shedding-treatment', petType: 'cat', icon: '🌿', name: 'De-shedding Treatment',
+  { id: 'cat-de-shedding-treatment', petType: 'cat', icon: '🌿', name: 'De-shedding Treatment', petPricing: true,
     description: 'Reduces loose fur and hairballs with a deep-conditioning treatment. Great for long-haired breeds.',
     pricePaise: 140000, durationMinutes: 50 },
-  { id: 'cat-royale-cat-package', petType: 'cat', icon: '👑', name: 'Royale Cat Package',
+  { id: 'cat-royale-cat-package', petType: 'cat', icon: '👑', name: 'Royale Cat Package', petPricing: true,
     description: 'The full experience — bath, trim, nail filing, ear cleaning, de-shed, and a calming paw massage.',
     pricePaise: 350000, durationMinutes: 120 },
-  { id: 'cat-flea-tick-spa', petType: 'cat', icon: '🐾', name: 'Flea & Tick Spa',
+  { id: 'cat-flea-tick-spa', petType: 'cat', icon: '🐾', name: 'Flea & Tick Spa', petPricing: true,
     description: 'Medicated, vet-approved treatment that safely eliminates fleas and ticks while being gentle on your cat.',
     pricePaise: 120000, durationMinutes: 50 },
 ];
@@ -188,4 +189,26 @@ export const FAQS: FaqData = {
     { id: 'faq-8', groupId: 'fg-pets', question: 'Is my pet safe with anxious handling?', answer: 'We follow a fear-free approach and move at your pet’s pace.' },
     { id: 'faq-9', groupId: 'fg-pets', question: 'Do you need vaccination records?', answer: 'Yes, please share them before the first visit.' },
   ],
+};
+
+/** GET /pet-options: the shop's breeds and coats, as the backend starts with (Catalog › Pet pricing in the admin edits them). */
+const breeds = (type: string, names: string[]) => names.map(name => ({ id: `${type}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`, name }));
+export const PET_OPTIONS: PetOptions = {
+  dog: {
+    breeds: breeds('dog', ['Indie', 'Beagle', 'Boxer', 'Cocker Spaniel', 'Dachshund', 'Dobermann', 'French Bulldog', 'German Shepherd', 'Golden Retriever',
+      'Husky', 'Labrador', 'Lhasa Apso', 'Maltese', 'Pomeranian', 'Poodle', 'Pug', 'Rottweiler', 'Shih Tzu', 'Yorkshire Terrier', 'Other']),
+    coats: [
+      { type: 'single', label: 'Single coat', note: 'One layer of hair, often silky or curly, that sheds little. For example Poodle, Maltese, Yorkshire Terrier.' },
+      { type: 'double', label: 'Double coat', note: 'A soft, fluffy undercoat under the outer hair; sheds a lot, more in some seasons. For example Labrador, Golden Retriever, German Shepherd, Pomeranian, Husky.' },
+      { type: 'triple', label: 'Triple coat', note: 'An extra-thick, heavy coat in layers that mats easily and takes long to dry. For example Samoyed, Chow Chow.' },
+    ],
+  },
+  cat: {
+    breeds: breeds('cat', ['Indie', 'Bengal', 'British Shorthair', 'Maine Coon', 'Persian', 'Ragdoll', 'Siamese', 'Siberian', 'Other']),
+    coats: [
+      { type: 'single', label: 'Single coat', note: 'Short, sleek hair with little or no undercoat. For example Siamese, Bengal.' },
+      { type: 'double', label: 'Double coat', note: 'A dense undercoat under the outer hair. For example British Shorthair, Persian.' },
+      { type: 'triple', label: 'Triple coat', note: 'A long, heavy coat in layers. For example Siberian, Maine Coon.' },
+    ],
+  },
 };

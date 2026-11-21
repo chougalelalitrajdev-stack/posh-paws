@@ -23,6 +23,8 @@ from app.grooming.catalog.models import Service, Station
 from app.grooming.catalog.schemas import ICONS, StationOut
 from app.grooming.offers.models import Offer
 from app.grooming.offers.service import status_of
+from app.grooming.pet_pricing.schemas import BillExtra
+from app.grooming.pet_pricing.service import extras_for
 from app.grooming.slots.models import TimeBlock
 from app.grooming.slots.service import blocks_on, free_station, held_range, load_day, load_days, opening_span
 from app.grooming.subscriptions.service import active_membership, sessions_left, use_session
@@ -55,9 +57,11 @@ def balance(b: Booking) -> int:
 def booking_out(b: Booking) -> BookingOut:
     bill = None
     if b.price_paise is not None:
-        discount = BillDiscount(kind=b.discount_kind, label=b.discount_label, amount_paise=b.discount_paise, offer_id=b.offer_id) if b.discount_kind else None
-        bill = BookingBill(service_price_paise=b.price_paise, discount=discount, total_paise=b.total_paise, advance_paise=b.advance_paise,
-                           paid_paise=paid(b), balance_paise=balance(b))
+        discount = BillDiscount(kind=b.discount_kind, label=b.discount_label, amount_paise=b.discount_paise, offer_id=b.offer_id,
+                                percent=b.discount_percent) if b.discount_kind else None
+        extras = [BillExtra.model_validate(e) for e in b.extras or []]
+        bill = BookingBill(service_price_paise=b.price_paise, extras=extras, subtotal_paise=b.price_paise + sum(e.amount_paise for e in extras),
+                           discount=discount, total_paise=b.total_paise, advance_paise=b.advance_paise, paid_paise=paid(b), balance_paise=balance(b))
     return BookingOut(
         id=b.id, created_at=b.created_at, source=b.source, stage=b.stage, payment_status=b.payment_status,
         customer=BookingCustomer.model_validate(b.customer), pet=BookingPet.model_validate(b.pet) if b.pet else None,
@@ -126,10 +130,9 @@ def calendar(db: Session, start: dt.date, days: int) -> CalendarOut:
 # ── The bill ──
 
 
-def _offer_discount(db: Session, customer_id: str, service: Service, code: str | None, exclude_booking_id: str | None,
+def _offer_discount(db: Session, customer_id: str, service: Service, price: int, code: str | None, exclude_booking_id: str | None,
                     in_app: bool = False) -> BillDiscount | None:
-    """What an offer takes off this service for this customer. A typed code that can't be used is refused with the reason."""
-    price = service.price_paise
+    """What an offer takes off `price` (the price for this pet) for this customer. A typed code that can't be used is refused with the reason."""
     # The offers on this customer's other bookings (one entry per booking; None where no offer was used).
     theirs = list(db.scalars(select(Booking.offer_id).where(
         Booking.customer_id == customer_id, Booking.id != exclude_booking_id, Booking.stage.in_(COUNTED))))
@@ -149,8 +152,9 @@ def _offer_discount(db: Session, customer_id: str, service: Service, code: str |
         return None
 
     def discount(o: Offer) -> BillDiscount:
-        amount = (price * o.value + 50) // 100 if o.discount_type == "percent" else min(o.value, price)  # percent rounds half up
-        return BillDiscount(kind="offer", label=f"{o.code} · {o.title}" if o.code else o.title, amount_paise=amount, offer_id=o.id)
+        percent = o.value if o.discount_type == "percent" else None
+        amount = (price * percent + 50) // 100 if percent else min(o.value, price)  # percent rounds half up
+        return BillDiscount(kind="offer", label=f"{o.code} · {o.title}" if o.code else o.title, amount_paise=amount, offer_id=o.id, percent=percent)
 
     if code:
         o = db.scalar(select(Offer).where(Offer.code == code.upper()))
@@ -164,45 +168,57 @@ def _offer_discount(db: Session, customer_id: str, service: Service, code: str |
     return max(automatic, key=lambda d: d.amount_paise, default=None)
 
 
-def _bill(db: Session, price: int, discount: BillDiscount | None, with_advance: bool) -> BookingBill:
-    total = max(0, price - (discount.amount_paise if discount else 0))
+def _bill(db: Session, service_price: int, extras: list[BillExtra], discount: BillDiscount | None, with_advance: bool) -> BookingBill:
+    subtotal = service_price + sum(e.amount_paise for e in extras)
+    total = max(0, subtotal - (discount.amount_paise if discount else 0))
     hold = get_section(db, "payments").slot_hold_paise if with_advance else 0
     # The advance is the hold amount, never more than the total, and none when the total is ₹0.
     advance = min(hold, total) if total else 0
-    return BookingBill(service_price_paise=price, discount=discount, total_paise=total, advance_paise=advance, balance_paise=total)
+    return BookingBill(service_price_paise=service_price, extras=extras, subtotal_paise=subtotal, discount=discount, total_paise=total,
+                       advance_paise=advance, balance_paise=total)
 
 
-def quote_bill(db: Session, customer_id: str, service: Service, offer_code: str | None, with_advance: bool,
+def quote_bill(db: Session, customer_id: str, service: Service, pet: Pet, offer_code: str | None, with_advance: bool,
                exclude_booking_id: str | None = None) -> BookingBill:
-    """Service price → at most one discount → total. Discounts don't stack: a plan session (₹0) if the member has one left for
-    this service, otherwise the better of the member discount and an offer. `with_advance` = booked in the customer app."""
-    price = service.price_paise
+    """Service price + what the pet adds (breed, weight, coat) → at most one discount → total. Discounts don't stack: a plan session
+    (covers everything, ₹0) if the member has one left for this service, otherwise the better of the member discount and an offer,
+    both taken from the price for this pet. `with_advance` = booked in the customer app."""
+    extras = extras_for(db, pet, service)
+    price = service.price_paise + sum(e.amount_paise for e in extras)
     member = active_membership(db, customer_id)
     if member and service.id in member.plan.eligible_service_ids and (sessions_left(member) is None or sessions_left(member) > 0):
         # No count in the label: the bill is kept, and a count would go stale.
-        return _bill(db, price, BillDiscount(kind="session", label=f"{member.plan.name} plan session", amount_paise=price), with_advance)
+        return _bill(db, service.price_paise, extras, BillDiscount(kind="session", label=f"{member.plan.name} plan session", amount_paise=price),
+                     with_advance)
     options: list[BillDiscount] = []
     if member and member.plan.discount_percent:
         percent = member.plan.discount_percent
-        options.append(BillDiscount(kind="membership", label=f"{member.plan.name} member {percent}% off", amount_paise=(price * percent + 50) // 100))
-    if offer := _offer_discount(db, customer_id, service, offer_code, exclude_booking_id, in_app=with_advance):
+        options.append(BillDiscount(kind="membership", label=f"{member.plan.name} member {percent}% off", amount_paise=(price * percent + 50) // 100,
+                                    percent=percent))
+    if offer := _offer_discount(db, customer_id, service, price, offer_code, exclude_booking_id, in_app=with_advance):
         options.append(offer)
-    return _bill(db, price, max(options, key=lambda d: d.amount_paise, default=None), with_advance)
+    return _bill(db, service.price_paise, extras, max(options, key=lambda d: d.amount_paise, default=None), with_advance)
 
 
 def quote(db: Session, body: QuoteIn) -> BookingBill:
-    if not db.get(Customer, body.customer_id):
+    customer = db.get(Customer, body.customer_id)
+    if not customer:
         raise HTTPException(status_code=404, detail="Customer not found.")
     service = db.get(Service, body.service_id)
     if not service:
         raise HTTPException(status_code=404, detail="Service not found.")
-    return quote_bill(db, body.customer_id, service, body.offer_code, with_advance=False)
+    pet = next((p for p in customer.pets if p.id == body.pet_id), None)
+    if not pet:
+        raise HTTPException(status_code=400, detail="Pick one of the customer's pets.")
+    return quote_bill(db, body.customer_id, service, pet, body.offer_code, with_advance=False)
 
 
 def _apply_bill(b: Booking, bill: BookingBill) -> None:
     d = bill.discount
     b.price_paise, b.total_paise, b.advance_paise = bill.service_price_paise, bill.total_paise, bill.advance_paise
-    b.discount_kind, b.discount_label, b.discount_paise, b.offer_id = (d.kind, d.label, d.amount_paise, d.offer_id) if d else (None, None, 0, None)
+    b.extras = [e.model_dump() for e in bill.extras] or None
+    b.discount_kind, b.discount_label, b.discount_paise, b.offer_id, b.discount_percent = (
+        (d.kind, d.label, d.amount_paise, d.offer_id, d.percent) if d else (None, None, 0, None, None))
 
 
 def _reserve(db: Session, b: Booking) -> None:
@@ -311,7 +327,7 @@ def save_details(db: Session, booking_id: str | None, body: BookingDetailsIn, by
     b.customer, b.pet = customer, pet
     b.service_id, b.service_name, b.duration_minutes = service.id, service.name, service.duration_minutes
     # Phone bookings take no advance.
-    _apply_bill(b, quote_bill(db, customer.id, service, body.offer_code, with_advance=False, exclude_booking_id=b.id))
+    _apply_bill(b, quote_bill(db, customer.id, service, pet, body.offer_code, with_advance=False, exclude_booking_id=b.id))
     b.offer_code, b.date, b.time = body.offer_code, body.date, body.time
     settle(b)
     when = f" · {short_date(body.date)} {body.time}" if body.date and body.time else " · slot not picked yet"
@@ -331,7 +347,7 @@ def confirm(db: Session, b: Booking, by: str) -> BookingOut:
     if not station:
         raise HTTPException(status_code=409, detail=TAKEN)
     # An offer may have changed since the draft was saved.
-    _apply_bill(b, quote_bill(db, b.customer_id, service, b.offer_code, with_advance=False, exclude_booking_id=b.id))
+    _apply_bill(b, quote_bill(db, b.customer_id, service, b.pet, b.offer_code, with_advance=False, exclude_booking_id=b.id))
     _hold(b, station, day.rules.buffer_minutes)
     b.stage = "confirmed"
     _reserve(db, b)
@@ -430,7 +446,7 @@ def payment_link(db: Session, b: Booking, amount_type: str, by: str) -> BookingO
         if not station:
             raise HTTPException(status_code=409, detail=TAKEN)
         if b.stage != "awaiting_payment":
-            _apply_bill(b, quote_bill(db, b.customer_id, service, b.offer_code, with_advance=False, exclude_booking_id=b.id))
+            _apply_bill(b, quote_bill(db, b.customer_id, service, b.pet, b.offer_code, with_advance=False, exclude_booking_id=b.id))
         if not b.total_paise:
             raise HTTPException(status_code=409, detail="Nothing to pay: the plan session covers it. Confirm the booking instead."
                                 if b.discount_kind == "session" else "Nothing to pay on this booking. Confirm it instead.")
@@ -542,8 +558,19 @@ def _bookable_service(db: Session, service_id: str) -> Service:
     return service
 
 
+def _app_pet(db: Session, c: Customer, pet_id: str, service: Service) -> Pet:
+    """One of the customer's own pets, of the kind the service is for."""
+    pet = db.get(Pet, pet_id)
+    if not pet or pet.customer_id != c.id:
+        raise HTTPException(status_code=404, detail="Pet not found.")
+    if service.pet_type != pet.type:
+        raise HTTPException(status_code=400, detail=f"{service.name} is for {service.pet_type}s.")
+    return pet
+
+
 def app_quote(db: Session, c: Customer, body: AppQuoteIn) -> BookingBill:
-    return quote_bill(db, c.id, _bookable_service(db, body.service_id), body.offer_code, with_advance=True)
+    service = _bookable_service(db, body.service_id)
+    return quote_bill(db, c.id, service, _app_pet(db, c, body.pet_id, service), body.offer_code, with_advance=True)
 
 
 def book_in_app(db: Session, c: Customer, body: AppBookingIn) -> AppBookingOut:
@@ -552,11 +579,7 @@ def book_in_app(db: Session, c: Customer, body: AppBookingIn) -> AppBookingOut:
     if settings.production and not get_section(db, "payments").provider:
         raise HTTPException(status_code=503, detail="Online booking opens soon. Please call us to book.")
     service = _bookable_service(db, body.service_id)
-    pet = db.get(Pet, body.pet_id)
-    if not pet or pet.customer_id != c.id:
-        raise HTTPException(status_code=404, detail="Pet not found.")
-    if service.pet_type != pet.type:
-        raise HTTPException(status_code=400, detail=f"{service.name} is for {service.pet_type}s.")
+    pet = _app_pet(db, c, body.pet_id, service)
     upcoming = db.scalar(select(func.count()).select_from(Booking).where(
         Booking.customer_id == c.id, Booking.stage.in_(("awaiting_payment", "confirmed")), Booking.date >= today()))
     if upcoming >= UPCOMING_LIMIT:
@@ -565,7 +588,7 @@ def book_in_app(db: Session, c: Customer, body: AppBookingIn) -> AppBookingOut:
     station = free_station(day, body.time, service, service.duration_minutes, customer=True)
     if not station:
         raise HTTPException(status_code=409, detail=APP_TAKEN)
-    bill = quote_bill(db, c.id, service, body.offer_code, with_advance=True)
+    bill = quote_bill(db, c.id, service, pet, body.offer_code, with_advance=True)
 
     number = db.scalar(select(BOOKING_NUMBER.next_value()))
     b = Booking(id=f"PP-{number}", source="app", stage="confirmed", customer_id=c.id, customer=c, pet_id=pet.id, pet=pet,
@@ -607,3 +630,38 @@ def cancel_in_app(db: Session, b: Booking) -> AppBookingOut:
         raise HTTPException(status_code=409, detail="This booking can't be cancelled any more.")
     cancel(db, b, "Cancelled by the customer in the app.", None)
     return app_booking_out(b, _icon(db, b))
+
+
+# ── When a pet's breed, weight or coat change ──
+
+REPRICED = ("draft", "awaiting_payment", "confirmed")
+
+
+def _discount_again(db: Session, b: Booking, price: int) -> int:
+    """The booking's discount, taken from a new price: a plan session still covers everything, a percentage is taken again,
+    a flat offer stays (never more than the price)."""
+    if b.discount_kind == "session":
+        return price
+    if b.discount_percent is not None:
+        return (price * b.discount_percent + 50) // 100
+    offer = db.get(Offer, b.offer_id) if b.offer_id else None
+    return min(offer.value if offer else b.discount_paise, price)
+
+
+def reprice_for_pet(db: Session, pet: Pet, by: str | None) -> None:
+    """Staff (or the customer) corrected the pet: its bookings that haven't happened yet get the price for the pet as it is now,
+    with an Activity line. The service's own price and the discount stay as booked; payments already made still count."""
+    rows = db.scalars(select(Booking).where(
+        Booking.pet_id == pet.id, Booking.stage.in_(REPRICED), Booking.price_paise.is_not(None), or_(Booking.date.is_(None), Booking.date >= today())))
+    for b in rows:
+        service = db.get(Service, b.service_id)
+        if not service or service.pet_type != pet.type or not (pet.priced or not service.pet_pricing):
+            continue
+        extras = [e.model_dump() for e in extras_for(db, pet, service)]
+        before = b.total_paise
+        price = b.price_paise + sum(e["amount_paise"] for e in extras)
+        b.extras, b.discount_paise = extras or None, _discount_again(db, b, price)
+        b.total_paise = max(0, price - b.discount_paise)
+        settle(b)
+        if b.total_paise != before:
+            log(b, "details", "Price updated", f"{pet.name}'s breed, weight or coat changed: {inr(before)} → {inr(b.total_paise)}.", by)

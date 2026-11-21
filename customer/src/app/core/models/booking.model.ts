@@ -13,9 +13,19 @@ export interface BillDiscount {
   amountPaise: Paise;
 }
 
+/** A line the pet adds to the bill: "Golden Retriever", "25–40 kg", "Double coat". */
+export interface BillExtra {
+  label: string;
+  amountPaise: Paise;
+}
+
 /** The bill, worked out by the server. Same shape in the admin app. */
 export interface BookingBill {
   servicePricePaise: Paise;
+  /** What the pet's breed, weight and coat add (only extras above ₹0). */
+  extras: BillExtra[];
+  /** Service + extras: the price for this pet, before the discount. */
+  subtotalPaise: Paise;
   discount: BillDiscount | null;
   totalPaise: Paise;
   /** Paid online to confirm an app booking; counts toward the total. */
@@ -70,6 +80,8 @@ export interface BookingRequest {
 /** Body of POST /bookings/quote: the bill before booking (needs login, as plans and offers depend on the customer). */
 export interface QuoteRequest {
   serviceId: string;
+  /** The pet's breed, weight and coat change the price. */
+  petId: string;
   offerCode?: string;
 }
 

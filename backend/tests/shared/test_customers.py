@@ -7,12 +7,14 @@ from app.shared.customers.models import Pet
 
 CUSTOMERS = "/api/admin/customers"
 PETS = "/api/admin/pets"
+DOG = {"breedId": "dog-indie", "weightKg": 12, "coatType": "double"}  # breed, weight and coat are required on every pet
+CAT = {"breedId": "cat-indie", "weightKg": 4, "coatType": "single"}
 
 
 def add(client, headers, name, phone, *pets):
     c = client.post(CUSTOMERS, json={"name": name, "phone": phone}, headers=headers).json()
     for pet_name, kind in pets:
-        client.post(f"{CUSTOMERS}/{c['id']}/pets", json={"name": pet_name, "type": kind}, headers=headers)
+        client.post(f"{CUSTOMERS}/{c['id']}/pets", json={"name": pet_name, "type": kind, **(DOG if kind == "dog" else CAT)}, headers=headers)
     return c
 
 
@@ -76,19 +78,25 @@ def test_pets_belong_to_a_customer(client, signed_in, db):
     staff = signed_in("staff")
     owner = add(client, staff, "Ananya Desai", "9822041763")
     url = f"{CUSTOMERS}/{owner['id']}/pets"
-    coco = client.post(url, json={"name": "Coco", "type": "dog", "breed": " Shih Tzu ", "birthDate": "2022-06-01", "weightKg": 6,
-                                  "vaccination": "due_soon", "notes": "Towel-dry first."}, headers=staff).json()
-    luna = client.post(url, json={"name": "Luna", "type": "cat", "breed": "", "birthDate": "", "gender": "", "weightKg": 0, "vaccination": ""}, headers=staff).json()
-    assert coco["breed"] == "Shih Tzu" and coco["birthDate"] == "2022-06-01"
-    assert (luna["breed"], luna["birthDate"], luna["gender"], luna["weightKg"], luna["vaccination"]) == (None, None, None, None, "unknown")
+    coco = client.post(url, json={"name": "Coco", "type": "dog", "breedId": "dog-shih-tzu", "birthDate": "2022-06-01", "weightKg": "6.25",
+                                  "coatType": "double", "vaccination": "due_soon", "notes": "Towel-dry first."}, headers=staff).json()
+    luna = client.post(url, json={"name": "Luna", "type": "cat", **CAT, "birthDate": "", "gender": "", "vaccination": ""}, headers=staff).json()
+    assert (coco["breed"], coco["breedId"], coco["weightKg"], coco["coatType"], coco["birthDate"]) == ("Shih Tzu", "dog-shih-tzu", 6.2, "double", "2022-06-01")
+    assert (luna["breed"], luna["birthDate"], luna["gender"], luna["vaccination"]) == ("Indie", None, None, "unknown")
     assert [p["name"] for p in client.get(f"{CUSTOMERS}/{owner['id']}", headers=staff).json()["pets"]] == ["Coco", "Luna"]
 
     def detail(body):
         return client.post(url, json=body, headers=staff).json()["detail"]
 
-    assert detail({"name": " ", "type": "dog"}) == "Enter the pet's name."
-    assert detail({"name": "Rex", "type": "rabbit"}) == "Is it a dog or a cat?"
-    assert client.post(f"{CUSTOMERS}/nope/pets", json={"name": "Rex", "type": "dog"}, headers=staff).status_code == 404
+    assert detail({"name": " ", "type": "dog", **DOG}) == "Enter the pet's name."
+    assert detail({"name": "Rex", "type": "rabbit", **DOG}) == "Is it a dog or a cat?"
+    # Breed (from the list, of the right kind), weight and coat are required.
+    assert detail({"name": "Rex", "type": "dog", **DOG, "breedId": ""}) == "Pick the breed."
+    assert detail({"name": "Rex", "type": "dog", **DOG, "breedId": "cat-persian"}) == "Pick a dog breed from the list."
+    assert detail({"name": "Rex", "type": "dog", **DOG, "weightKg": 0}) == "Enter a weight between 0.1 and 120 kg."
+    assert detail({"name": "Rex", "type": "dog", **DOG, "weightKg": ""}) == "Enter the weight in kg."
+    assert detail({"name": "Rex", "type": "dog", **DOG, "coatType": "fluffy"}) == "Pick the coat: single, double or triple."
+    assert client.post(f"{CUSTOMERS}/nope/pets", json={"name": "Rex", "type": "dog", **DOG}, headers=staff).status_code == 404
 
     # The pets list searches the pet, its breed and its owner.
     other = add(client, staff, "Rohan Mehta", "9765430981", ("Bruno", "dog"))
@@ -100,8 +108,8 @@ def test_pets_belong_to_a_customer(client, signed_in, db):
 
     record = client.get(f"{PETS}/{coco['id']}", headers=staff).json()
     assert record["owner"]["name"] == "Ananya Desai" and record["visits"] == [] and record["lastGroom"] is None
-    renamed = client.put(f"{PETS}/{coco['id']}", json={"name": "Coco Chanel", "type": "dog"}, headers=staff).json()
-    assert renamed["name"] == "Coco Chanel" and renamed["breed"] is None  # the form sends every detail; an empty one is cleared
+    renamed = client.put(f"{PETS}/{coco['id']}", json={"name": "Coco Chanel", "type": "dog", **DOG}, headers=staff).json()
+    assert renamed["name"] == "Coco Chanel" and renamed["breed"] == "Indie" and renamed["birthDate"] is None  # the form sends every detail; an empty one is cleared
     assert other["id"] != owner["id"]
 
     # The database itself refuses a pet whose owner doesn't exist (the foreign key).

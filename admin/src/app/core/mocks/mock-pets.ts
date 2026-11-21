@@ -60,11 +60,11 @@ function record(id: string): PetRecord {
 }
 
 function update(id: string, body: PetDraft): CustomerPet {
-  const { owner } = findPet(id);
-  const updated: CustomerPet = { id, ...cleanPet(body) };
+  const { owner, pet } = findPet(id);
+  const updated: CustomerPet = { id, ...cleanPet(body, pet) };
   owner.pets = owner.pets.map(p => (p.id === id ? updated : p));
   // Keep the copies on bookings in step.
-  for (const b of db().bookings.filter(x => x.pet?.id === id)) b.pet = { id, name: updated.name, type: updated.type, breed: updated.breed };
+  for (const b of db().bookings.filter(x => x.pet?.id === id)) b.pet = { id, name: updated.name, type: updated.type, breed: updated.breed ?? undefined };
   save();
   return updated;
 }

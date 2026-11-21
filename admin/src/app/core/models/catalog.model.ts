@@ -18,6 +18,8 @@ export interface Service {
   imageUrl?: string;
   /** Shown in the customer app. Hidden services can still be booked by staff. */
   visible: boolean;
+  /** The pet's breed, weight and coat extras (Catalog › Pet pricing) are added to the price. Off for add-ons like a nail trim. */
+  petPricing: boolean;
   /** Archived services are gone from the app and from new bookings. */
   archived: boolean;
   /** Position within its pet type (0 = first). */
@@ -27,7 +29,42 @@ export interface Service {
 }
 
 /** Body of POST /admin/services and PUT /admin/services/{id}. */
-export type ServiceDraft = Pick<Service, 'name' | 'petType' | 'category' | 'description' | 'durationMinutes' | 'pricePaise' | 'imageUrl' | 'visible'>;
+export type ServiceDraft = Pick<Service, 'name' | 'petType' | 'category' | 'description' | 'durationMinutes' | 'pricePaise' | 'imageUrl' | 'visible' | 'petPricing'>;
+
+// ── Pet pricing (Catalog › Pet pricing): what a pet's breed, weight and coat add to services that have petPricing on ──
+
+export type CoatType = 'single' | 'double' | 'triple';
+
+/** A weight band; upToKg null is the last one, everything above the band before. */
+export interface WeightBand {
+  upToKg: number | null;
+  extraPaise: Paise;
+}
+
+export interface CoatPrice {
+  type: CoatType;
+  /** "Double coat" */
+  label: string;
+  /** Shown to customers under the choice, to help them pick. */
+  note: string;
+  extraPaise: Paise;
+}
+
+/** A breed on the list; id is null for one added before saving. */
+export interface BreedPrice {
+  id: string | null;
+  name: string;
+  extraPaise: Paise;
+}
+
+export interface PetTypePricing {
+  breeds: BreedPrice[];
+  weightBands: WeightBand[];
+  coats: CoatPrice[];
+}
+
+/** GET and PUT /admin/pet-pricing. */
+export type PetPricing = Record<PetType, PetTypePricing>;
 
 /** What a station can do: every service, every dog or cat service, or the chosen ones. */
 export type StationScope = 'all' | 'dogs' | 'cats' | 'some';

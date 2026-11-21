@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { Observable, catchError, finalize, of, switchMap, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { VACCINATION } from '../../../core/constants/pet.constants';
+import { COAT_LABELS, VACCINATION } from '../../../core/constants/pet.constants';
 import { SOURCES } from '../../../core/constants/status.constants';
 import { ActivityEntry, Booking } from '../../../core/models/booking.model';
 import { Customer } from '../../../core/models/customer.model';
@@ -54,6 +54,7 @@ export class BookingDetailComponent {
   protected readonly useMocks = environment.useMocks;
   protected readonly sources = SOURCES;
   protected readonly vaccination = VACCINATION;
+  protected readonly coatLabels = COAT_LABELS;
   protected readonly formatPhone = formatPhone;
   protected readonly telLink = telLink;
   protected readonly whenLabel = whenLabel;

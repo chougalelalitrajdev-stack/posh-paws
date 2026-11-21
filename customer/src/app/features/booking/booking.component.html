@@ -87,7 +87,7 @@
                       <span class="bk-option-desc">{{ svc.description }}</span>
                       <span class="bk-option-meta">{{ svc.durationMinutes | duration }}</span>
                     </span>
-                    <span class="bk-option-price">{{ svc.pricePaise | inr }}</span>
+                    <span class="bk-option-price">@if (svc.petPricing) { <small>From </small> }{{ svc.pricePaise | inr }}</span>
                   </button>
                 } @empty {
                   <p class="bk-muted">Loading services…</p>
@@ -150,7 +150,7 @@
                     <span class="bk-option-body">
                       <span class="bk-option-name">{{ p.name }}</span>
                       <span class="bk-option-meta">
-                        {{ p.breed ?? (p.type === 'dog' ? 'Dog' : 'Cat') }}@if (petAgeLabel(p.birthDate)) { · {{ petAgeLabel(p.birthDate) }} }
+                        {{ petDetails(p) }}@if (petAgeLabel(p.birthDate)) { · {{ petAgeLabel(p.birthDate) }} }
                       </span>
                     </span>
                   </button>
@@ -166,6 +166,15 @@
                   }
                 }
               </div>
+
+              @if (selectedPet(); as sp) {
+                @if (!isPriced(sp)) {
+                  <div class="pp-dialog-note bk-pet-details">
+                    Add {{ sp.name }}'s breed, weight and coat to see the price.
+                    <button class="bk-link" type="button" (click)="completePet()">Add details</button>
+                  </div>
+                }
+              }
 
               <button class="btn-pp-outline w-100 justify-content-center" type="button" (click)="addPet()">+ Add a {{ petType() }}</button>
 

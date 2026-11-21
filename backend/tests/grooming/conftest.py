@@ -23,8 +23,9 @@ def shop(client, signed_in):
     bath = post("/services", {"name": "Signature Bath", "petType": "dog", "category": "Bath", "durationMinutes": 45, "pricePaise": 120_000})
     cat_bath = post("/services", {"name": "Gentle Cat Bath", "petType": "cat", "category": "Bath", "durationMinutes": 40, "pricePaise": 90_000})
     ananya = post("/customers", {"name": "Ananya Desai", "phone": "9822041763"})
-    coco = post(f"/customers/{ananya['id']}/pets", {"name": "Coco", "type": "dog"})
-    luna = post(f"/customers/{ananya['id']}/pets", {"name": "Luna", "type": "cat"})
+    # A fresh shop has no pet extras, so these bills are the service prices.
+    coco = post(f"/customers/{ananya['id']}/pets", {"name": "Coco", "type": "dog", "breedId": "dog-indie", "weightKg": 8, "coatType": "single"})
+    luna = post(f"/customers/{ananya['id']}/pets", {"name": "Luna", "type": "cat", "breedId": "cat-indie", "weightKg": 4, "coatType": "single"})
     return SimpleNamespace(admin=admin, staff=staff, bath=bath["id"], cat_bath=cat_bath["id"], customer=ananya["id"], coco=coco["id"],
                            luna=luna["id"], tomorrow=today() + timedelta(days=1))
 

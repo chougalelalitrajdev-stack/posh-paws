@@ -38,4 +38,5 @@ export const API = {
   settings: `${api}/settings`,
   team: `${api}/team`,
   stations: `${api}/stations`,
+  petPricing: `${api}/pet-pricing`,
 };

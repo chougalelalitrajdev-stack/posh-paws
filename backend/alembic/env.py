@@ -23,6 +23,7 @@ import app.core.rate_limit  # noqa: E402,F401
 import app.grooming.bookings.models  # noqa: E402,F401
 import app.grooming.catalog.models  # noqa: E402,F401
 import app.grooming.offers.models  # noqa: E402,F401
+import app.grooming.pet_pricing.models  # noqa: E402,F401
 import app.grooming.plans.models  # noqa: E402,F401
 import app.grooming.slots.models  # noqa: E402,F401
 import app.grooming.subscriptions.models  # noqa: E402,F401

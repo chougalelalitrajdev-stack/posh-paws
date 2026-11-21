@@ -52,11 +52,14 @@
         <button class="pp-btn pp-btn-sm" type="button" (click)="dialog.set(r.pet)">Edit</button>
       </div>
 
+      @if (!isPriced(r.pet)) {
+        <p class="pp-alert pp-alert-info">Add {{ r.pet.name }}'s breed, weight and coat (Edit). They set the price, so the next booking needs them.</p>
+      }
       <dl class="pp-record-facts">
         <div><dt>Age</dt><dd>{{ petAge(r.pet.birthDate) || '—' }}</dd></div>
         <div><dt>Gender</dt><dd class="pp-capital">{{ r.pet.gender ?? '—' }}</dd></div>
         <div><dt>Weight</dt><dd>{{ r.pet.weightKg ? r.pet.weightKg + ' kg' : '—' }}</dd></div>
-        <div><dt>Size · coat</dt><dd>{{ r.pet.coat ?? '—' }}</dd></div>
+        <div><dt>Coat</dt><dd>{{ r.pet.coatType ? coatLabels[r.pet.coatType] : '—' }}</dd></div>
         <div><dt>Temperament</dt><dd>{{ r.pet.temperament ?? '—' }}</dd></div>
         <div><dt>Vaccination</dt><dd>{{ vaccination[r.pet.vaccination ?? 'unknown'].label }}</dd></div>
       </dl>

@@ -28,6 +28,7 @@ class ServiceIn(CamelModel):
     price_paise: int
     image_url: str | None = None
     visible: bool = True
+    pet_pricing: bool = True  # breed, weight and coat extras are added to the price
 
     @field_validator("name")
     @classmethod
@@ -83,6 +84,7 @@ class ServiceOut(CamelModel):
     price_paise: int
     image_url: str | None
     visible: bool
+    pet_pricing: bool
     archived: bool
     sort_order: int
     # Upcoming bookings for the service: counted once bookings live in the backend (Module 5).
@@ -145,6 +147,7 @@ class PublicServiceOut(CamelModel):
     icon: str = ""  # from the category
     name: str
     description: str
-    price_paise: int
+    price_paise: int  # the starting price; with pet_pricing the pet's breed, weight and coat can add to it ("from ₹1,200")
+    pet_pricing: bool
     duration_minutes: int
     image_url: str | None

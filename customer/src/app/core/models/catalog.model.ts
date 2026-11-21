@@ -9,7 +9,9 @@ export interface ServiceItem {
   icon: string;
   name: string;
   description: string;
+  /** The starting price; with petPricing the pet's breed, weight and coat can add to it ("From ₹1,200"). */
   pricePaise: Paise;
+  petPricing: boolean;
   durationMinutes: number;
   /** The service's photo (Catalog › Services in the admin), when it has one. */
   imageUrl?: string | null;

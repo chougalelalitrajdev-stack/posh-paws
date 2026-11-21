@@ -8,6 +8,6 @@ export const environment = {
   // Add an area when its backend module is done (backend/PLAN.md).
   liveApi: [
     '/auth', '/services', '/plans', '/shop', '/banners', '/gallery', '/pages', '/faqs',
-    '/slots', '/pets', '/bookings', '/subscriptions',
+    '/slots', '/pets', '/pet-options', '/bookings', '/subscriptions',
   ],
 };

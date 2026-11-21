@@ -5,9 +5,10 @@ import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { EMPTY, Observable, catchError, filter, finalize, map, of, switchMap, tap } from 'rxjs';
 import { SOURCES } from '../../../core/constants/status.constants';
+import { isPriced, petDetails } from '../../../core/constants/pet.constants';
 import { AmountType, Booking, BookingBill, BookingDetails } from '../../../core/models/booking.model';
 import { DayAvailability } from '../../../core/models/calendar.model';
-import { PetType, Service } from '../../../core/models/catalog.model';
+import { Service } from '../../../core/models/catalog.model';
 import { Customer, CustomerPet, CustomerPlan } from '../../../core/models/customer.model';
 import { AlertService } from '../../../core/services/alert.service';
 import { BookingService } from '../../../core/services/booking.service';
@@ -15,7 +16,6 @@ import { CatalogService } from '../../../core/services/catalog.service';
 import { SettingsService } from '../../../core/services/settings.service';
 import { TemplateService } from '../../../core/services/template.service';
 import { CustomerService } from '../../../core/services/customer.service';
-import { PetService } from '../../../core/services/pet.service';
 import { formatPhone, whatsappLink } from '../../../core/utils/contact.utils';
 import { formatDuration, monthYear, shortDate, today } from '../../../core/utils/date.utils';
 import { errorMessage } from '../../../core/utils/error.utils';
@@ -28,6 +28,7 @@ import { StatusPillComponent } from '../../../shared/components/status-pill/stat
 import { DurationPipe } from '../../../shared/pipes/duration.pipe';
 import { InrPipe } from '../../../shared/pipes/inr.pipe';
 import { BillComponent } from '../../../shared/components/bill/bill.component';
+import { PetDialogComponent } from '../../pets/pet-dialog/pet-dialog.component';
 import { BookingStepComponent } from './booking-step/booking-step.component';
 
 type Step = 1 | 2 | 3 | 4;
@@ -40,7 +41,7 @@ type Step = 1 | 2 | 3 | 4;
   selector: 'pp-new-booking',
   imports: [
     RouterLink, ReactiveFormsModule, PageHeaderComponent, StatusPillComponent,
-    SlotPickerComponent, BookingStepComponent, BillComponent, IconComponent, InrPipe, DurationPipe,
+    SlotPickerComponent, BookingStepComponent, BillComponent, IconComponent, InrPipe, DurationPipe, PetDialogComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './new-booking.component.html',
@@ -49,7 +50,6 @@ type Step = 1 | 2 | 3 | 4;
 export class NewBookingComponent {
   private bookingService = inject(BookingService);
   private customerService = inject(CustomerService);
-  private petService = inject(PetService);
   private alert = inject(AlertService);
   private fb = inject(NonNullableFormBuilder);
   protected catalog = inject(CatalogService);
@@ -66,6 +66,7 @@ export class NewBookingComponent {
   protected readonly linkHours = this.settings.linkHours;
   protected readonly rulesNote = this.settings.rulesNote;
   protected readonly formatPhone = formatPhone;
+  protected readonly isPriced = isPriced;
 
   protected step = signal<Step>(1);
   protected source = signal<Booking | null>(null);
@@ -78,8 +79,8 @@ export class NewBookingComponent {
   protected newName = this.fb.control('', Validators.required);
   protected lookup = signal<'idle' | 'searching' | 'not-found'>('idle');
   protected petId = signal<string | null>(null);
-  protected addingPet = signal(false);
-  protected petForm = this.fb.group({ name: ['', Validators.required], type: ['dog' as PetType], breed: [''] });
+  /** The pet dialog: undefined = closed, null = add a pet, a pet = fill in its breed, weight and coat. */
+  protected petDialog = signal<CustomerPet | null | undefined>(undefined);
 
   // Steps 2–4
   protected serviceId = signal<string | null>(null);
@@ -173,7 +174,8 @@ export class NewBookingComponent {
   private quoteQuery = computed(() => {
     const c = this.customer();
     const s = this.serviceId();
-    return c && s ? { customerId: c.id, serviceId: s, offerCode: this.offerCode() } : null;
+    const p = this.pet();
+    return c && s && p && isPriced(p) ? { customerId: c.id, petId: p.id, serviceId: s, offerCode: this.offerCode() } : null;
   });
   /** The service whose slots step 3 shows; null outside step 3. */
   private slotService = computed(() => (this.step() === 3 ? this.service()?.id ?? null : null));
@@ -223,7 +225,7 @@ export class NewBookingComponent {
   }
 
   protected petLine(p: CustomerPet): string {
-    return [p.breed ?? (p.type === 'dog' ? 'Dog' : 'Cat'), p.gender].filter(Boolean).join(' · ');
+    return [petDetails(p), p.gender, isPriced(p) ? '' : 'needs breed, weight and coat'].filter(Boolean).join(' · ');
   }
 
   protected memberPrice(s: Service): number {
@@ -272,19 +274,14 @@ export class NewBookingComponent {
     this.lookup.set('idle');
   }
 
-  addPet(): void {
+  /** A pet added, or its breed, weight and coat filled in, in the pet dialog. */
+  onPetSaved(saved: CustomerPet): void {
     const c = this.customer();
-    if (!c || this.petForm.invalid) {
-      this.petForm.markAllAsTouched();
-      return;
-    }
-    const { name, type, breed } = this.petForm.getRawValue();
-    this.run(this.petService.add(c.id, { name: name.trim(), type, ...(breed.trim() && { breed: breed.trim() }) }).pipe(tap(pet => {
-      this.customer.set({ ...c, pets: [...c.pets, pet] });
-      this.petId.set(pet.id);
-      this.addingPet.set(false);
-      this.petForm.reset({ name: '', type: 'dog', breed: '' });
-    })));
+    if (!c) return;
+    const known = c.pets.some(p => p.id === saved.id);
+    this.customer.set({ ...c, pets: known ? c.pets.map(p => (p.id === saved.id ? saved : p)) : [...c.pets, saved] });
+    this.petId.set(saved.id);
+    this.petDialog.set(undefined);
   }
 
   continueFromPet(): void {
@@ -361,7 +358,7 @@ export class NewBookingComponent {
     this.customer.set(c);
     this.customerIsNew.set(isNew);
     if (!c.pets.some(p => p.id === this.petId())) this.petId.set(c.pets.length === 1 ? c.pets[0].id : null);
-    this.addingPet.set(c.pets.length === 0);
+    if (!c.pets.length) this.petDialog.set(null); // a customer with no pets starts by adding one
   }
 
   /** Continues a draft: the booking, then its customer. */
@@ -434,7 +431,7 @@ export class NewBookingComponent {
     this.newName.reset('');
     this.lookup.set('idle');
     this.petId.set(null);
-    this.addingPet.set(false);
+    this.petDialog.set(undefined);
     this.serviceId.set(null);
     this.date.set(null);
     this.time.set(null);

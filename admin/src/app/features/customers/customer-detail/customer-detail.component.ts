@@ -8,6 +8,7 @@ import { Customer, CustomerPet } from '../../../core/models/customer.model';
 import { Payment } from '../../../core/models/payment.model';
 import { PLAN_CHANGE_ROLES } from '../../../core/constants/app.constants';
 import { PAYMENT_STATES } from '../../../core/constants/status.constants';
+import { isPriced, petDetails } from '../../../core/constants/pet.constants';
 import { AlertService } from '../../../core/services/alert.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CustomerService } from '../../../core/services/customer.service';
@@ -139,7 +140,7 @@ export class CustomerDetailComponent {
   }
 
   protected petLine(p: CustomerPet): string {
-    return [p.breed ?? (p.type === 'dog' ? 'Dog' : 'Cat'), petAge(p.birthDate), p.gender, p.weightKg ? `${p.weightKg} kg` : ''].filter(Boolean).join(' · ');
+    return [petDetails(p), petAge(p.birthDate), p.gender, isPriced(p) ? '' : 'needs breed, weight and coat'].filter(Boolean).join(' · ');
   }
 
   protected lastGroom(p: CustomerPet): string {

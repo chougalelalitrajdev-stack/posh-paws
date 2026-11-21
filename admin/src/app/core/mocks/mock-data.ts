@@ -1,6 +1,6 @@
 import { ActivityEntry, AmountType, BillDiscount, Booking, BookingSource, BookingStage, PaymentEntry, PaymentMethod, PaymentStatus } from '../models/booking.model';
 import { SlotChanges } from '../models/calendar.model';
-import { Station } from '../models/catalog.model';
+import { PetPricing, PetType, Station } from '../models/catalog.model';
 import { GalleryPhoto } from '../models/gallery.model';
 import { Faq, FaqGroup, PageSection, SitePage } from '../models/page.model';
 import { Settings } from '../models/settings.model';
@@ -29,34 +29,34 @@ export const STAFF: StaffUser[] = [
 
 /** Catalog seed: the same services as the customer app (Catalog › Services edits them). */
 export const SERVICES: StoredService[] = [
-  { id: 'dog-signature-bath', petType: 'dog', name: 'Signature Bath', category: 'Bath', pricePaise: 120000, durationMinutes: 45, sortOrder: 0, visible: true, archived: false,
+  { id: 'dog-signature-bath', petType: 'dog', name: 'Signature Bath', category: 'Bath', pricePaise: 120000, durationMinutes: 45, sortOrder: 0, visible: true, petPricing: true, archived: false,
     description: 'A deep cleanse using premium organic shampoos, blow-dry, and light fragrance. Leaves your pet fresh for days.' },
-  { id: 'dog-full-groom-style', petType: 'dog', name: 'Full Groom & Style', category: 'Haircut', pricePaise: 250000, durationMinutes: 90, sortOrder: 1, visible: true, archived: false,
+  { id: 'dog-full-groom-style', petType: 'dog', name: 'Full Groom & Style', category: 'Haircut', pricePaise: 250000, durationMinutes: 90, sortOrder: 1, visible: true, petPricing: true, archived: false,
     description: 'Bath, breed-specific haircut, nail trim, ear cleaning, and a finishing spritz. The complete experience.' },
-  { id: 'dog-royal-package', petType: 'dog', name: 'Royal Package', category: 'Package', pricePaise: 450000, durationMinutes: 150, sortOrder: 2, visible: true, archived: false,
+  { id: 'dog-royal-package', petType: 'dog', name: 'Royal Package', category: 'Package', pricePaise: 450000, durationMinutes: 150, sortOrder: 2, visible: true, petPricing: true, archived: false,
     description: 'Our signature full groom plus de-shedding treatment, teeth brushing, and a paw massage. The ultimate indulgence.' },
-  { id: 'dog-nail-trim-filing', petType: 'dog', name: 'Nail Trim & Filing', category: 'Add-on', pricePaise: 40000, durationMinutes: 20, sortOrder: 3, visible: true, archived: false,
+  { id: 'dog-nail-trim-filing', petType: 'dog', name: 'Nail Trim & Filing', category: 'Add-on', pricePaise: 40000, durationMinutes: 20, sortOrder: 3, visible: true, petPricing: false, archived: false,
     description: 'Precise nail clipping and filing to keep your pet comfortable and your furniture safe.' },
-  { id: 'dog-de-shedding-treatment', petType: 'dog', name: 'De-shedding Treatment', category: 'Treatment', pricePaise: 180000, durationMinutes: 60, sortOrder: 4, visible: true, archived: false,
+  { id: 'dog-de-shedding-treatment', petType: 'dog', name: 'De-shedding Treatment', category: 'Treatment', pricePaise: 180000, durationMinutes: 60, sortOrder: 4, visible: true, petPricing: true, archived: false,
     description: 'Specialised treatment to reduce shedding by up to 80%. Ideal for double-coat breeds during seasonal changes.' },
-  { id: 'dog-flea-tick-spa', petType: 'dog', name: 'Flea & Tick Spa', category: 'Treatment', pricePaise: 150000, durationMinutes: 60, sortOrder: 5, visible: true, archived: false,
+  { id: 'dog-flea-tick-spa', petType: 'dog', name: 'Flea & Tick Spa', category: 'Treatment', pricePaise: 150000, durationMinutes: 60, sortOrder: 5, visible: true, petPricing: true, archived: false,
     description: 'A medicated treatment bath that eliminates fleas and ticks using vet-approved, pet-safe solutions.' },
-  { id: 'cat-gentle-cat-bath', petType: 'cat', name: 'Gentle Cat Bath', category: 'Bath', pricePaise: 90000, durationMinutes: 40, sortOrder: 0, visible: true, archived: false,
+  { id: 'cat-gentle-cat-bath', petType: 'cat', name: 'Gentle Cat Bath', category: 'Bath', pricePaise: 90000, durationMinutes: 40, sortOrder: 0, visible: true, petPricing: true, archived: false,
     description: 'A calm, stress-free bath using fragrance-free organic formulas — ideal even for cats that dislike water.' },
-  { id: 'cat-full-groom-trim', petType: 'cat', name: 'Full Groom & Trim', category: 'Haircut', pricePaise: 200000, durationMinutes: 75, sortOrder: 1, visible: true, archived: false,
+  { id: 'cat-full-groom-trim', petType: 'cat', name: 'Full Groom & Trim', category: 'Haircut', pricePaise: 200000, durationMinutes: 75, sortOrder: 1, visible: true, petPricing: true, archived: false,
     description: 'Breed-specific coat trim, nail clipping, ear cleaning, and a gentle blow-dry finish.' },
-  { id: 'cat-nail-trim-filing', petType: 'cat', name: 'Nail Trim & Filing', category: 'Add-on', pricePaise: 35000, durationMinutes: 15, sortOrder: 2, visible: true, archived: false,
+  { id: 'cat-nail-trim-filing', petType: 'cat', name: 'Nail Trim & Filing', category: 'Add-on', pricePaise: 35000, durationMinutes: 15, sortOrder: 2, visible: true, petPricing: false, archived: false,
     description: 'Careful nail trimming to prevent overgrowth and scratching. Done by patient, cat-experienced groomers.' },
-  { id: 'cat-de-shedding-treatment', petType: 'cat', name: 'De-shedding Treatment', category: 'Treatment', pricePaise: 140000, durationMinutes: 50, sortOrder: 3, visible: true, archived: false,
+  { id: 'cat-de-shedding-treatment', petType: 'cat', name: 'De-shedding Treatment', category: 'Treatment', pricePaise: 140000, durationMinutes: 50, sortOrder: 3, visible: true, petPricing: true, archived: false,
     description: 'Reduces loose fur and hairballs with a deep-conditioning treatment. Great for long-haired breeds.' },
-  { id: 'cat-royale-cat-package', petType: 'cat', name: 'Royale Cat Package', category: 'Package', pricePaise: 350000, durationMinutes: 120, sortOrder: 4, visible: true, archived: false,
+  { id: 'cat-royale-cat-package', petType: 'cat', name: 'Royale Cat Package', category: 'Package', pricePaise: 350000, durationMinutes: 120, sortOrder: 4, visible: true, petPricing: true, archived: false,
     description: 'The full experience — bath, trim, nail filing, ear cleaning, de-shed, and a calming paw massage.' },
-  { id: 'cat-flea-tick-spa', petType: 'cat', name: 'Flea & Tick Spa', category: 'Treatment', pricePaise: 120000, durationMinutes: 50, sortOrder: 5, visible: true, archived: false,
+  { id: 'cat-flea-tick-spa', petType: 'cat', name: 'Flea & Tick Spa', category: 'Treatment', pricePaise: 120000, durationMinutes: 50, sortOrder: 5, visible: true, petPricing: true, archived: false,
     description: 'Medicated, vet-approved treatment that safely eliminates fleas and ticks while being gentle on your cat.' },
   // Archived (Services › Archived in the design)
-  { id: 'dog-teeth-cleaning', petType: 'dog', name: 'Teeth Cleaning', category: 'Add-on', pricePaise: 50000, durationMinutes: 20, sortOrder: 6, visible: false, archived: true,
+  { id: 'dog-teeth-cleaning', petType: 'dog', name: 'Teeth Cleaning', category: 'Add-on', pricePaise: 50000, durationMinutes: 20, sortOrder: 6, visible: false, petPricing: false, archived: true,
     description: 'Gentle brushing with enzymatic pet toothpaste for fresher breath.' },
-  { id: 'cat-paw-balm', petType: 'cat', name: 'Paw Balm Treatment', category: 'Add-on', pricePaise: 30000, durationMinutes: 15, sortOrder: 6, visible: false, archived: true,
+  { id: 'cat-paw-balm', petType: 'cat', name: 'Paw Balm Treatment', category: 'Add-on', pricePaise: 30000, durationMinutes: 15, sortOrder: 6, visible: false, petPricing: false, archived: true,
     description: 'Moisturising balm for dry, cracked paw pads.' },
 ];
 
@@ -127,57 +127,57 @@ export function seedCustomers(): StoredCustomer[] {
     ({ id, name, phone, customerSince: daysAgoIso(sinceDaysAgo), ...extra, pets });
   return [
     c('c1', 'Ananya Desai', '9822041763', 970, { email: 'ananya.desai@example.com', area: 'Viman Nagar, Pune', staffNote: { text: 'Prefers evening slots and WhatsApp over calls. Coco gets anxious with dryers; towel-dry first.', by: 'Meera K.', at: daysAgoIso(29) } }, [
-      { id: 'p1', name: 'Coco', type: 'dog', breed: 'Shih Tzu', birthDate: '2022-06-01', gender: 'female', weightKg: 6, coat: 'Small · long', temperament: 'Anxious', vaccination: 'up_to_date', notes: 'Anxious with hair dryers; towel-dry first and keep the room quiet.', healthNotes: 'No known allergies.' },
-      { id: 'p2', name: 'Pepper', type: 'dog', breed: 'Indie', birthDate: '2024-04-10', gender: 'male', weightKg: 14, coat: 'Medium · short', temperament: 'Playful', vaccination: 'due_soon', notes: 'Loves treats; wriggles during nail trims.', healthNotes: 'Rabies booster due soon.' },
+      { id: 'p1', name: 'Coco', type: 'dog', breedId: 'dog-shih-tzu', breed: 'Shih Tzu', weightKg: 6, coatType: 'double', birthDate: '2022-06-01', gender: 'female', temperament: 'Anxious', vaccination: 'up_to_date', notes: 'Anxious with hair dryers; towel-dry first and keep the room quiet.', healthNotes: 'No known allergies.' },
+      { id: 'p2', name: 'Pepper', type: 'dog', breedId: 'dog-indie', breed: 'Indie', weightKg: 14, coatType: 'double', birthDate: '2024-04-10', gender: 'male', temperament: 'Playful', vaccination: 'due_soon', notes: 'Loves treats; wriggles during nail trims.', healthNotes: 'Rabies booster due soon.' },
     ]),
     c('c2', 'Priya Sharma', '9876543210', 730, { email: 'priya.s@example.com', area: 'Koregaon Park, Pune' }, [
-      { id: 'p3', name: 'Bruno', type: 'dog', breed: 'Golden Retriever', birthDate: '2023-02-14', gender: 'male', weightKg: 31, coat: 'Large · double', temperament: 'Calm, friendly', vaccination: 'up_to_date', notes: 'Royal Package regular. Likes the paw massage.', healthNotes: 'Mild skin sensitivity, use oatmeal shampoo.' },
+      { id: 'p3', name: 'Bruno', type: 'dog', breedId: 'dog-golden-retriever', breed: 'Golden Retriever', weightKg: 31, coatType: 'double', birthDate: '2023-02-14', gender: 'male', temperament: 'Calm, friendly', vaccination: 'up_to_date', notes: 'Royal Package regular. Likes the paw massage.', healthNotes: 'Mild skin sensitivity, use oatmeal shampoo.' },
     ]),
     c('c3', 'Rohan Mehta', '9765430981', 650, { area: 'Baner, Pune' }, [
-      { id: 'p4', name: 'Luna', type: 'cat', breed: 'Persian', birthDate: '2024-01-05', gender: 'female', weightKg: 4, coat: 'Small · long', temperament: 'Calm, shy with strangers', vaccination: 'up_to_date', notes: 'Sensitive ears. Calm, but shy with strangers; let her settle before drying.' },
+      { id: 'p4', name: 'Luna', type: 'cat', breedId: 'cat-persian', breed: 'Persian', weightKg: 4, coatType: 'double', birthDate: '2024-01-05', gender: 'female', temperament: 'Calm, shy with strangers', vaccination: 'up_to_date', notes: 'Sensitive ears. Calm, but shy with strangers; let her settle before drying.' },
     ]),
     c('c4', 'Neha Kulkarni', '9850766124', 480, {}, [
-      { id: 'p5', name: 'Tiger', type: 'dog', breed: 'Indie', birthDate: '2021-09-01', gender: 'male', coat: 'Medium · short', vaccination: 'unknown' },
+      { id: 'p5', name: 'Tiger', type: 'dog', breedId: 'dog-indie', breed: 'Indie', weightKg: 18, coatType: 'double', birthDate: '2021-09-01', gender: 'male', vaccination: 'unknown' },
     ]),
     c('c5', 'Aditi Nair', '9923450876', 440, { area: 'Kalyani Nagar, Pune' }, [
-      { id: 'p6', name: 'Mia', type: 'cat', breed: 'Siamese', birthDate: '2020-05-01', gender: 'female', weightKg: 3.5, coat: 'Small · short', temperament: 'Vocal', vaccination: 'up_to_date', notes: 'Hisses at first, settles in five minutes.', healthNotes: 'On a kidney-care diet.' },
+      { id: 'p6', name: 'Mia', type: 'cat', breedId: 'cat-siamese', breed: 'Siamese', weightKg: 3.5, coatType: 'single', birthDate: '2020-05-01', gender: 'female', temperament: 'Vocal', vaccination: 'up_to_date', notes: 'Hisses at first, settles in five minutes.', healthNotes: 'On a kidney-care diet.' },
     ]),
     c('c6', 'Sameer Khan', '9881230457', 850, { email: 'sameer.k@example.com' }, [
-      { id: 'p7', name: 'Rocky', type: 'dog', breed: 'German Shepherd', birthDate: '2019-03-01', gender: 'male', weightKg: 36, coat: 'Large · double', temperament: 'Calm', vaccination: 'up_to_date', notes: 'Needs help on and off the table (hips).', healthNotes: 'Mild hip dysplasia.' },
-      { id: 'p8', name: 'Kaju', type: 'dog', breed: 'Pug', birthDate: '2023-12-01', gender: 'male', coat: 'Small · short', vaccination: 'up_to_date' },
+      { id: 'p7', name: 'Rocky', type: 'dog', breedId: 'dog-german-shepherd', breed: 'German Shepherd', weightKg: 36, coatType: 'double', birthDate: '2019-03-01', gender: 'male', temperament: 'Calm', vaccination: 'up_to_date', notes: 'Needs help on and off the table (hips).', healthNotes: 'Mild hip dysplasia.' },
+      { id: 'p8', name: 'Kaju', type: 'dog', breedId: 'dog-pug', breed: 'Pug', weightKg: 8, coatType: 'double', birthDate: '2023-12-01', gender: 'male', vaccination: 'up_to_date' },
     ]),
     c('c7', 'Karan Joshi', '9890411220', 136, {}, [
-      { id: 'p9', name: 'Max', type: 'dog', breed: 'Beagle', birthDate: '2025-06-01', gender: 'male', weightKg: 10, coat: 'Medium · short', temperament: 'Playful', vaccination: 'not_vaccinated', notes: 'First groom was a while ago.', healthNotes: 'Puppy vaccinations pending, ask before booking.' },
+      { id: 'p9', name: 'Max', type: 'dog', breedId: 'dog-beagle', breed: 'Beagle', weightKg: 10, coatType: 'double', birthDate: '2025-06-01', gender: 'male', temperament: 'Playful', vaccination: 'not_vaccinated', notes: 'First groom was a while ago.', healthNotes: 'Puppy vaccinations pending, ask before booking.' },
     ]),
     c('c8', 'Isha Patil', '9730018862', 600, {}, [
-      { id: 'p10', name: 'Bella', type: 'dog', breed: 'Pomeranian', birthDate: '2022-01-01', gender: 'female', coat: 'Small · double', vaccination: 'up_to_date' },
+      { id: 'p10', name: 'Bella', type: 'dog', breedId: 'dog-pomeranian', breed: 'Pomeranian', weightKg: 3, coatType: 'double', birthDate: '2022-01-01', gender: 'female', vaccination: 'up_to_date' },
     ]),
     c('c9', 'Arjun Mehta', '9822177310', 630, {}, [
-      { id: 'p11', name: 'Oreo', type: 'cat', breed: 'Maine Coon', birthDate: '2023-04-01', gender: 'male', coat: 'Large · long', vaccination: 'up_to_date', notes: 'Mats behind the ears.' },
+      { id: 'p11', name: 'Oreo', type: 'cat', breedId: 'cat-maine-coon', breed: 'Maine Coon', weightKg: 7.5, coatType: 'triple', birthDate: '2023-04-01', gender: 'male', vaccination: 'up_to_date', notes: 'Mats behind the ears.' },
     ]),
     c('c10', 'Vikram Rao', '9970122845', 540, {}, [
-      { id: 'p12', name: 'Leo', type: 'dog', breed: 'Labrador', birthDate: '2022-08-01', gender: 'male', coat: 'Large · short', vaccination: 'up_to_date' },
+      { id: 'p12', name: 'Leo', type: 'dog', breedId: 'dog-labrador', breed: 'Labrador', weightKg: 30, coatType: 'double', birthDate: '2022-08-01', gender: 'male', vaccination: 'up_to_date' },
     ]),
     c('c11', 'Farah Shaikh', '9890155532', 270, { area: 'Wanowrie, Pune' }, [
-      { id: 'p13', name: 'Mochi', type: 'cat', breed: 'Persian', birthDate: '2024-02-01', gender: 'female', coat: 'Long', vaccination: 'up_to_date' },
+      { id: 'p13', name: 'Mochi', type: 'cat', breedId: 'cat-persian', breed: 'Persian', weightKg: 4, coatType: 'double', birthDate: '2024-02-01', gender: 'female', vaccination: 'up_to_date' },
     ]),
     c('c12', 'Dev Malhotra', '9819044781', 11, {}, [
-      { id: 'p14', name: 'Bolt', type: 'dog', breed: 'Indie', birthDate: '2024-07-01', gender: 'male', coat: 'Medium · short', vaccination: 'unknown' },
+      { id: 'p14', name: 'Bolt', type: 'dog', breedId: 'dog-indie', breed: 'Indie', weightKg: 16, coatType: 'double', birthDate: '2024-07-01', gender: 'male', vaccination: 'unknown' },
     ]),
     c('c13', 'Kavya Iyer', '9867011223', 715, {}, [
-      { id: 'p15', name: 'Pumpkin', type: 'cat', breed: 'Ragdoll', birthDate: '2022-10-01', gender: 'female', coat: 'Long', vaccination: 'up_to_date' },
+      { id: 'p15', name: 'Pumpkin', type: 'cat', breedId: 'cat-ragdoll', breed: 'Ragdoll', weightKg: 5.5, coatType: 'single', birthDate: '2022-10-01', gender: 'female', vaccination: 'up_to_date' },
     ]),
     c('c14', 'Meghna Rao', '9833022110', 545, {}, [
-      { id: 'p16', name: 'Zoe', type: 'dog', breed: 'Shih Tzu', birthDate: '2023-03-01', gender: 'female', coat: 'Small · long', vaccination: 'up_to_date' },
+      { id: 'p16', name: 'Zoe', type: 'dog', breedId: 'dog-shih-tzu', breed: 'Shih Tzu', weightKg: 6, coatType: 'double', birthDate: '2023-03-01', gender: 'female', vaccination: 'up_to_date' },
     ]),
     c('c15', 'Rahul Verma', '9920033441', 700, {}, [
-      { id: 'p17', name: 'Simba', type: 'dog', breed: 'Labrador', birthDate: '2021-01-01', gender: 'male', coat: 'Large · short', vaccination: 'up_to_date' },
+      { id: 'p17', name: 'Simba', type: 'dog', breedId: 'dog-labrador', breed: 'Labrador', weightKg: 32, coatType: 'double', birthDate: '2021-01-01', gender: 'male', vaccination: 'up_to_date' },
     ]),
     c('c16', 'Sneha Joshi', '9819900112', 437, {}, [
-      { id: 'p18', name: 'Daisy', type: 'dog', breed: 'Beagle', birthDate: '2023-05-01', gender: 'female', coat: 'Medium · short', vaccination: 'up_to_date' },
+      { id: 'p18', name: 'Daisy', type: 'dog', breedId: 'dog-beagle', breed: 'Beagle', weightKg: 11, coatType: 'double', birthDate: '2023-05-01', gender: 'female', vaccination: 'up_to_date' },
     ]),
     c('c17', 'Nisha Kapoor', '9811177665', 3, {}, [
-      { id: 'p19', name: 'Sheru', type: 'dog', breed: 'Indie', gender: 'male', vaccination: 'unknown' },
+      { id: 'p19', name: 'Sheru', type: 'dog', breedId: 'dog-indie', breed: 'Indie', gender: 'male', vaccination: 'unknown' },
     ]),
   ];
 }
@@ -303,7 +303,7 @@ export function seedBookings(customers: StoredCustomer[], now = new Date()): Boo
       stage: s.stage,
       paymentStatus: 'unpaid',
       customer: { id: customer.id, name: customer.name, phone: customer.phone },
-      pet: { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed },
+      pet: { id: pet.id, name: pet.name, type: pet.type, breed: pet.breed ?? undefined },
       service: service ? { id: service.id, name: service.name, durationMinutes: service.durationMinutes } : null,
       date,
       time: s.time ?? null,
@@ -562,3 +562,33 @@ export function seedTemplates(): Omit<MessageTemplate, 'trigger'>[] {
     t('win_back', 'Membership', 'Win back', 'Hi {customer_name}, we miss you at Posh Paws!\nYour {plan} plan has ended. Reply here and we\'ll restart it, or book a visit any time.', false),
   ];
 }
+
+/** Catalog › Pet pricing, as the backend's demo seed: the starter breeds, weight bands, coats with their notes, and demo extras. */
+const BREEDS: Record<PetType, [string, number][]> = {
+  dog: [['Indie', 0], ['Beagle', 0], ['Boxer', 0], ['Cocker Spaniel', 0], ['Dachshund', 0], ['Dobermann', 0], ['French Bulldog', 0], ['German Shepherd', 10000],
+    ['Golden Retriever', 10000], ['Husky', 0], ['Labrador', 0], ['Lhasa Apso', 0], ['Maltese', 0], ['Pomeranian', 0], ['Poodle', 20000], ['Pug', 0],
+    ['Rottweiler', 0], ['Shih Tzu', 10000], ['Yorkshire Terrier', 0], ['Other', 0]],
+  cat: [['Indie', 0], ['Bengal', 0], ['British Shorthair', 0], ['Maine Coon', 15000], ['Persian', 15000], ['Ragdoll', 0], ['Siamese', 0], ['Siberian', 0], ['Other', 0]],
+};
+const breedId = (type: PetType, name: string) => `${type}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
+export const PET_PRICING: PetPricing = {
+  dog: {
+    breeds: BREEDS.dog.map(([name, extraPaise]) => ({ id: breedId('dog', name), name, extraPaise })),
+    weightBands: [{ upToKg: 10, extraPaise: 0 }, { upToKg: 25, extraPaise: 15000 }, { upToKg: 40, extraPaise: 30000 }, { upToKg: null, extraPaise: 50000 }],
+    coats: [
+      { type: 'single', label: 'Single coat', extraPaise: 0, note: 'One layer of hair, often silky or curly, that sheds little. For example Poodle, Maltese, Yorkshire Terrier.' },
+      { type: 'double', label: 'Double coat', extraPaise: 15000, note: 'A soft, fluffy undercoat under the outer hair; sheds a lot, more in some seasons. For example Labrador, Golden Retriever, German Shepherd, Pomeranian, Husky.' },
+      { type: 'triple', label: 'Triple coat', extraPaise: 25000, note: 'An extra-thick, heavy coat in layers that mats easily and takes long to dry. For example Samoyed, Chow Chow.' },
+    ],
+  },
+  cat: {
+    breeds: BREEDS.cat.map(([name, extraPaise]) => ({ id: breedId('cat', name), name, extraPaise })),
+    weightBands: [{ upToKg: 4, extraPaise: 0 }, { upToKg: 7, extraPaise: 10000 }, { upToKg: null, extraPaise: 20000 }],
+    coats: [
+      { type: 'single', label: 'Single coat', extraPaise: 0, note: 'Short, sleek hair with little or no undercoat. For example Siamese, Bengal.' },
+      { type: 'double', label: 'Double coat', extraPaise: 10000, note: 'A dense undercoat under the outer hair. For example British Shorthair, Persian.' },
+      { type: 'triple', label: 'Triple coat', extraPaise: 20000, note: 'A long, heavy coat in layers. For example Siberian, Maine Coon.' },
+    ],
+  },
+};

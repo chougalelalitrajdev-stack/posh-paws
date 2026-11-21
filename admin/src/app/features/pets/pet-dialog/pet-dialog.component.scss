@@ -1,0 +1,7 @@
+// Coat: three choices, each with the note that helps pick it.
+.pp-coat-field { margin: 0; padding: 0; border: 0; gap: var(--space-2); .pp-hint { margin: 0; } }
+.pp-coat-choice {
+  align-items: flex-start;
+  input { margin-top: var(--space-1); flex-shrink: 0; }
+  > span { display: flex; flex-direction: column; }
+}

@@ -8,7 +8,7 @@ import { Pet, PetDraft } from '../models/pet.model';
 import { NewUserProfile, User } from '../models/user.model';
 import { minutesOfDay, slotStart, timeFromMinutes, toIsoDate } from '../utils/date.utils';
 import { readJson, writeJson } from '../utils/storage.utils';
-import { BANNERS, FAQS, GALLERY, MOCK_OTP, OFFERS, PAGES, PLANS, PLAN_RULES, SERVICES, SHOP } from './mock-data';
+import { BANNERS, FAQS, GALLERY, MOCK_OTP, OFFERS, PAGES, PET_OPTIONS, PLANS, PLAN_RULES, SERVICES, SHOP } from './mock-data';
 
 // ─────────────────────────────────────────────────────────────
 //  TEMPORARY fake backend. While environment.useMocks is true it answers
@@ -90,6 +90,7 @@ function route(req: HttpRequest<any>, path: string): unknown {
     return page;
   }
   if (method === 'GET' && path === '/slots') return slotsFor(param('date'), serviceById(param('serviceId')).durationMinutes);
+  if (method === 'GET' && path === '/pet-options') return PET_OPTIONS;
 
   // Logged in
   const user = currentUser(req);
@@ -149,15 +150,25 @@ function userFromToken(token: string): User | undefined {
 
 const petsOf = (user: User) => readJson<Pet[]>(KEYS.pets(user.id), []);
 
+/** As the server checks it: breed (from the shop's list), weight and coat are required, as they set the price. */
+function checkedPet(draft: PetDraft): Omit<Pet, 'id'> {
+  if (!draft.name?.trim()) throw new MockError(422, 'Enter your pet’s name.');
+  const breed = PET_OPTIONS[draft.type]?.breeds.find(b => b.id === draft.breedId);
+  if (!breed) throw new MockError(400, `Pick a ${draft.type} breed from the list.`);
+  if (!(Number(draft.weightKg) > 0 && Number(draft.weightKg) <= 120)) throw new MockError(422, 'Enter a weight between 0.1 and 120 kg.');
+  if (!draft.coatType) throw new MockError(422, 'Pick the coat: single, double or triple.');
+  return { ...draft, name: draft.name.trim(), breed: breed.name };
+}
+
 function createPet(user: User, draft: PetDraft): Pet {
-  const pet: Pet = { ...draft, id: crypto.randomUUID() };
+  const pet: Pet = { ...checkedPet(draft), id: crypto.randomUUID() };
   writeJson(KEYS.pets(user.id), [...petsOf(user), pet]);
   return pet;
 }
 
 function updatePet(user: User, id: string, pet: Pet): Pet {
   if (!petsOf(user).some(p => p.id === id)) throw new MockError(404, 'Pet not found.');
-  const saved = { ...pet, id };
+  const saved = { ...checkedPet(pet), id };
   writeJson(KEYS.pets(user.id), petsOf(user).map(p => (p.id === id ? saved : p)));
   return saved;
 }
@@ -252,8 +263,9 @@ function quote(user: User, req: QuoteRequest): BookingBill {
     discount = [member, offer].filter(d => d !== null).sort((a, b) => b.amountPaise - a.amountPaise)[0] ?? null;
   }
   const totalPaise = Math.max(0, price - (discount?.amountPaise ?? 0));
+  // The demo doesn't price breed, weight and coat: the backend adds those extras (Catalog › Pet pricing).
   return {
-    servicePricePaise: price, discount, totalPaise,
+    servicePricePaise: price, extras: [], subtotalPaise: price, discount, totalPaise,
     advancePaise: totalPaise ? Math.min(SHOP.advancePaise, totalPaise) : 0,
     paidPaise: 0, balancePaise: totalPaise,
   };

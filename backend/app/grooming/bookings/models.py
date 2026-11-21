@@ -3,7 +3,7 @@
 import datetime as dt
 
 from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Sequence, String, Text
-from sqlalchemy.dialects.postgresql import TSRANGE, ExcludeConstraint, Range
+from sqlalchemy.dialects.postgresql import JSONB, TSRANGE, ExcludeConstraint, Range
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -60,10 +60,13 @@ class Booking(Base):
     held: Mapped[Range[dt.datetime] | None] = mapped_column(TSRANGE)
 
     # The bill, worked out when the details are saved and fixed when the booking is confirmed. Money is paise.
-    price_paise: Mapped[int | None]
+    price_paise: Mapped[int | None]  # the service's price when booked
+    # What the pet added (breed, weight band, coat): [{"label": "Double coat", "amount_paise": 15000}]. Fixed with the price.
+    extras: Mapped[list[dict] | None] = mapped_column(JSONB(none_as_null=True))
     discount_kind: Mapped[str | None] = mapped_column(String(10))  # session | membership | offer
     discount_label: Mapped[str | None] = mapped_column(String(120))
     discount_paise: Mapped[int] = mapped_column(default=0)
+    discount_percent: Mapped[int | None]  # member or offer percentage, to take from a new price if the pet's details change
     offer_id: Mapped[str | None] = mapped_column(ForeignKey("offers.id"))
     total_paise: Mapped[int | None]
     advance_paise: Mapped[int] = mapped_column(default=0)  # asked for online when booked in the app

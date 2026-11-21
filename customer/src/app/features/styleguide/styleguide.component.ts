@@ -57,8 +57,8 @@ export class StyleguideComponent {
   protected readonly slot = signal<string | null>('14:00');
 
   protected readonly bill: BookingBill = {
-    servicePricePaise: 120000, discount: { kind: 'offer', label: 'FRIEND200 · Refer a friend', amountPaise: 20000 },
-    totalPaise: 100000, advancePaise: 10000, paidPaise: 10000, balancePaise: 90000,
+    servicePricePaise: 120000, extras: [{ label: 'Double coat', amountPaise: 15000 }], subtotalPaise: 135000,
+    discount: { kind: 'offer', label: 'FRIEND200 · Refer a friend', amountPaise: 20000 }, totalPaise: 115000, advancePaise: 10000, paidPaise: 10000, balancePaise: 105000,
   };
   protected readonly billPayments: PaymentEntry[] = [{ id: 'p1', kind: 'advance', amountPaise: 10000, method: 'online', at: new Date().toISOString() }];
 

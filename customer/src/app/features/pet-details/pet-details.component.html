@@ -17,7 +17,12 @@
         }
       </div>
 
-      @if (isSparse()) {
+      @if (needsDetails()) {
+        <div class="pp-dialog-note pet-nudge">
+          Add {{ pet.name }}'s breed, weight and coat. They set the price, so we need them before the next booking.
+          <button class="pet-nudge-btn" type="button" (click)="edit()">Add details →</button>
+        </div>
+      } @else if (isSparse()) {
         <div class="pp-dialog-note pet-nudge">
           {{ pet.name }}'s profile is mostly empty. Adding a few details helps our groomers prepare.
           <button class="pet-nudge-btn" type="button" (click)="edit()">Complete profile →</button>

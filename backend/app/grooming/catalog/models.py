@@ -3,7 +3,7 @@
 import datetime as dt
 from uuid import uuid4
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, String, Text, false, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, String, Text, false, func, true
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,6 +26,8 @@ class Service(Base):
     # A link to the photo. Until real photo storage (Module 8) the admin's demo upload sends the photo itself (a data URL).
     image_url: Mapped[str | None] = mapped_column(Text)
     visible: Mapped[bool] = mapped_column(Boolean, default=True)  # shown in the customer app
+    # The price depends on the pet: the breed, weight and coat extras (Catalog › Pet pricing) are added. Off for add-ons like a nail trim.
+    pet_pricing: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     sort_order: Mapped[int]  # position within its pet type, 0 = first
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

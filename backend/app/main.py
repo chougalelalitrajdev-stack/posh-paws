@@ -9,6 +9,7 @@ from app.core.config import production_problems, settings
 from app.core.errors import add_error_handlers
 from app.grooming.bookings import routes as booking_routes
 from app.grooming.catalog import routes as catalog_routes
+from app.grooming.pet_pricing import routes as pet_pricing_routes
 from app.grooming.dashboard import routes as dashboard_routes
 from app.grooming.money import routes as money_routes
 from app.grooming.offers import routes as offer_routes
@@ -58,6 +59,7 @@ app.include_router(settings_routes.week_router, prefix="/api")
 app.include_router(template_routes.router, prefix="/api")
 app.include_router(catalog_routes.router, prefix="/api")
 app.include_router(catalog_routes.station_router, prefix="/api")
+app.include_router(pet_pricing_routes.router, prefix="/api")
 app.include_router(plan_routes.router, prefix="/api")
 app.include_router(offer_routes.router, prefix="/api")
 app.include_router(customer_routes.router, prefix="/api")
@@ -78,6 +80,7 @@ app.include_router(upload_routes.router, prefix="/api")
 app.include_router(customer_login_routes.router, prefix="/api")
 app.include_router(catalog_routes.public_router, prefix="/api")
 app.include_router(plan_routes.public_router, prefix="/api")
+app.include_router(pet_pricing_routes.public_router, prefix="/api")
 app.include_router(settings_routes.shop_router, prefix="/api")
 app.include_router(slot_routes.public_router, prefix="/api")
 app.include_router(content_routes.public_router, prefix="/api")

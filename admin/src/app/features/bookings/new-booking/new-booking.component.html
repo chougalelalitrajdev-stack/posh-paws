@@ -31,36 +31,22 @@
                   @if (p.notes) { <span class="pp-choice-note">{{ p.notes }}</span> }
                 </button>
               }
-              @if (!addingPet()) {
-                <button class="pp-choice pp-choice-add" type="button" (click)="addingPet.set(true)">+ Add a pet</button>
-              }
+              <button class="pp-choice pp-choice-add" type="button" (click)="petDialog.set(null)">+ Add a pet</button>
             </div>
           </div>
 
-          @if (addingPet()) {
-            <form class="pp-inline-form" [formGroup]="petForm" (ngSubmit)="addPet()" novalidate>
-              <div class="pp-field">
-                <label class="pp-label" for="pet-name">Pet's name</label>
-                <input id="pet-name" class="pp-input" type="text" formControlName="name" autocomplete="off">
+          @if (pet(); as p) {
+            @if (!isPriced(p)) {
+              <div class="pp-alert pp-alert-info pp-found">
+                <span>Add {{ p.name }}'s breed, weight and coat first. They set the price.</span>
+                <button class="pp-btn pp-btn-sm" type="button" (click)="petDialog.set(p)">Add details</button>
               </div>
-              <div class="pp-field">
-                <label class="pp-label" for="pet-type">Dog or cat</label>
-                <select id="pet-type" class="pp-input" formControlName="type"><option value="dog">Dog</option><option value="cat">Cat</option></select>
-              </div>
-              <div class="pp-field">
-                <label class="pp-label" for="pet-breed">Breed <span class="pp-muted">(optional)</span></label>
-                <input id="pet-breed" class="pp-input" type="text" formControlName="breed" autocomplete="off">
-              </div>
-              <div class="pp-inline-actions">
-                <button class="pp-btn pp-btn-primary" type="submit" [disabled]="busy()">Save pet</button>
-                @if (c.pets.length) { <button class="pp-btn pp-btn-ghost" type="button" (click)="addingPet.set(false)">Cancel</button> }
-              </div>
-            </form>
+            }
           }
 
           @if (error()) { <div class="pp-alert pp-alert-error" role="alert">{{ error() }}</div> }
           <div class="pp-step-actions">
-            <button class="pp-btn pp-btn-primary" type="button" [disabled]="!pet()" (click)="continueFromPet()">Continue</button>
+            <button class="pp-btn pp-btn-primary" type="button" [disabled]="!pet() || !isPriced(pet()!)" (click)="continueFromPet()">Continue</button>
           </div>
         } @else {
           <form class="pp-inline-form" (submit)="$event.preventDefault(); findCustomer()" novalidate>
@@ -104,6 +90,7 @@
             }
           </p>
         }
+        <p class="pp-step-note">Prices before {{ pet()?.name ?? 'the pet' }}'s breed, weight and coat extras (Pet pricing); the bill in step 4 has the exact price.</p>
         <div class="pp-services" role="radiogroup" aria-label="Service">
           @for (s of services(); track s.id) {
             <button class="pp-choice pp-service" type="button" role="radio" [class.active]="serviceId() === s.id" [attr.aria-checked]="serviceId() === s.id" (click)="serviceId.set(s.id)">
@@ -251,4 +238,8 @@
       </section>
     </aside>
   </div>
+}
+
+@if (petDialog() !== undefined && customer(); as c) {
+  <pp-pet-dialog [pet]="petDialog() ?? null" [owner]="{ id: c.id, name: c.name, phone: c.phone }" (closed)="petDialog.set(undefined)" (saved)="onPetSaved($event)" />
 }

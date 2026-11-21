@@ -69,3 +69,4 @@
 .pp-svc-placeholder { min-height: 60px; border: 1.5px dashed var(--pp-border-strong); border-radius: var(--radius); background: var(--pp-surface); }
 .pp-svc-empty { text-align: center; color: var(--pp-muted); }
 
+.pp-svc-switch { flex-direction: row; align-items: center; gap: var(--space-3); > span { display: flex; flex-direction: column; } .pp-hint { margin: 0; } }

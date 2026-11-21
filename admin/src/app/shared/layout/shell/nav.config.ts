@@ -34,6 +34,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Catalog',
     items: [
       { label: 'Services', icon: 'scissors', path: '/services' },
+      { label: 'Pet pricing', icon: 'paw', path: '/pet-pricing' },
       { label: 'Membership plans', icon: 'tag', path: '/plans' },
       { label: 'Offers', icon: 'percent', path: '/offers' },
     ],

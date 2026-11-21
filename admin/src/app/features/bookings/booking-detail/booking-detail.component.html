@@ -96,7 +96,8 @@
           <dl class="pp-facts">
             <div><dt>Breed</dt><dd>{{ b.pet.breed ?? '—' }}</dd></div>
             <div><dt>Age</dt><dd>{{ petAge(petInfo()?.birthDate) || '—' }}</dd></div>
-            <div><dt>Coat</dt><dd>{{ petInfo()?.coat ?? '—' }}</dd></div>
+            <div><dt>Weight</dt><dd>{{ petInfo()?.weightKg ? petInfo()!.weightKg + ' kg' : '—' }}</dd></div>
+            <div><dt>Coat</dt><dd>{{ petInfo()?.coatType ? coatLabels[petInfo()!.coatType!] : '—' }}</dd></div>
             <div><dt>Vaccination</dt><dd>{{ vaccination[petInfo()?.vaccination ?? 'unknown'].label }}</dd></div>
           </dl>
           @if (petInfo()?.notes) {

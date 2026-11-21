@@ -17,11 +17,14 @@ from app.grooming.bookings.models import Booking, BookingActivity
 from app.grooming.bookings.service import settle
 from app.grooming.catalog.models import Service, Station
 from app.grooming.offers.models import Offer
+from app.grooming.pet_pricing.models import PetPricing
+from app.grooming.pet_pricing.service import stored
 from app.grooming.plans.models import Plan
 from app.grooming.subscriptions.models import PlanChange, Subscription
 from app.shared.content.models import Banner, Faq, GalleryPhoto, SitePage
 from app.shared.content.service import faq_data, gallery, list_pages
 from app.shared.customers.models import Customer, Pet
+from app.shared.customers.service import list_breeds, starter_id
 from app.shared.payments.models import Payment, PaymentLink
 from app.shared.staff.models import StaffUser
 from app.shared.staff.service import create_staff
@@ -118,50 +121,57 @@ def _demo_offers() -> list[Offer]:
     ]
 
 
-# (id, name, phone, customer for this many days, email, area) and their pets (id, name, type, breed, born, gender, kg, coat,
+# (id, name, phone, customer for this many days, email, area) and their pets (id, name, type, breed, born, gender, kg, coat type,
 # temperament, vaccination, notes, health notes), as in the admin's demo.
 DEMO_CUSTOMERS = [
     ("c1", "Ananya Desai", "9822041763", 970, "ananya.desai@example.com", "Viman Nagar, Pune", [
-        ("p1", "Coco", "dog", "Shih Tzu", "2022-06-01", "female", 6, "Small · long", "Anxious", "up_to_date",
+        ("p1", "Coco", "dog", "Shih Tzu", "2022-06-01", "female", 6, "double", "Anxious", "up_to_date",
          "Anxious with hair dryers; towel-dry first and keep the room quiet.", "No known allergies."),
-        ("p2", "Pepper", "dog", "Indie", "2024-04-10", "male", 14, "Medium · short", "Playful", "due_soon",
+        ("p2", "Pepper", "dog", "Indie", "2024-04-10", "male", 14, "double", "Playful", "due_soon",
          "Loves treats; wriggles during nail trims.", "Rabies booster due soon."),
     ]),
     ("c2", "Priya Sharma", "9876543210", 730, "priya.s@example.com", "Koregaon Park, Pune", [
-        ("p3", "Bruno", "dog", "Golden Retriever", "2023-02-14", "male", 31, "Large · double", "Calm, friendly", "up_to_date",
+        ("p3", "Bruno", "dog", "Golden Retriever", "2023-02-14", "male", 31, "double", "Calm, friendly", "up_to_date",
          "Royal Package regular. Likes the paw massage.", "Mild skin sensitivity, use oatmeal shampoo."),
     ]),
     ("c3", "Rohan Mehta", "9765430981", 650, None, "Baner, Pune", [
-        ("p4", "Luna", "cat", "Persian", "2024-01-05", "female", 4, "Small · long", "Calm, shy with strangers", "up_to_date",
+        ("p4", "Luna", "cat", "Persian", "2024-01-05", "female", 4, "double", "Calm, shy with strangers", "up_to_date",
          "Sensitive ears. Calm, but shy with strangers; let her settle before drying.", None),
     ]),
     ("c4", "Neha Kulkarni", "9850766124", 480, None, None, [
-        ("p5", "Tiger", "dog", "Indie", "2021-09-01", "male", None, "Medium · short", None, "unknown", None, None),
+        ("p5", "Tiger", "dog", "Indie", "2021-09-01", "male", 18, "double", None, "unknown", None, None),
     ]),
     ("c5", "Aditi Nair", "9923450876", 440, None, "Kalyani Nagar, Pune", [
-        ("p6", "Mia", "cat", "Siamese", "2020-05-01", "female", 3.5, "Small · short", "Vocal", "up_to_date",
+        ("p6", "Mia", "cat", "Siamese", "2020-05-01", "female", 3.5, "single", "Vocal", "up_to_date",
          "Hisses at first, settles in five minutes.", "On a kidney-care diet."),
     ]),
     ("c6", "Sameer Khan", "9881230457", 850, "sameer.k@example.com", None, [
-        ("p7", "Rocky", "dog", "German Shepherd", "2019-03-01", "male", 36, "Large · double", "Calm", "up_to_date",
+        ("p7", "Rocky", "dog", "German Shepherd", "2019-03-01", "male", 36, "double", "Calm", "up_to_date",
          "Needs help on and off the table (hips).", "Mild hip dysplasia."),
-        ("p8", "Kaju", "dog", "Pug", "2023-12-01", "male", None, "Small · short", None, "up_to_date", None, None),
+        ("p8", "Kaju", "dog", "Pug", "2023-12-01", "male", 8, "double", None, "up_to_date", None, None),
     ]),
     ("c7", "Karan Joshi", "9890411220", 136, None, None, [
-        ("p9", "Max", "dog", "Beagle", "2025-06-01", "male", 10, "Medium · short", "Playful", "not_vaccinated",
+        ("p9", "Max", "dog", "Beagle", "2025-06-01", "male", 10, "double", "Playful", "not_vaccinated",
          "First groom was a while ago.", "Puppy vaccinations pending, ask before booking."),
     ]),
-    ("c8", "Isha Patil", "9730018862", 600, None, None, [("p10", "Bella", "dog", "Pomeranian", "2022-01-01", "female", None, "Small · double", None, "up_to_date", None, None)]),
-    ("c9", "Arjun Mehta", "9822177310", 630, None, None, [("p11", "Oreo", "cat", "Maine Coon", "2023-04-01", "male", None, "Large · long", None, "up_to_date", "Mats behind the ears.", None)]),
-    ("c10", "Vikram Rao", "9970122845", 540, None, None, [("p12", "Leo", "dog", "Labrador", "2022-08-01", "male", None, "Large · short", None, "up_to_date", None, None)]),
-    ("c11", "Farah Shaikh", "9890155532", 270, None, "Wanowrie, Pune", [("p13", "Mochi", "cat", "Persian", "2024-02-01", "female", None, "Long", None, "up_to_date", None, None)]),
-    ("c12", "Dev Malhotra", "9819044781", 11, None, None, [("p14", "Bolt", "dog", "Indie", "2024-07-01", "male", None, "Medium · short", None, "unknown", None, None)]),
-    ("c13", "Kavya Iyer", "9867011223", 715, None, None, [("p15", "Pumpkin", "cat", "Ragdoll", "2022-10-01", "female", None, "Long", None, "up_to_date", None, None)]),
-    ("c14", "Meghna Rao", "9833022110", 545, None, None, [("p16", "Zoe", "dog", "Shih Tzu", "2023-03-01", "female", None, "Small · long", None, "up_to_date", None, None)]),
-    ("c15", "Rahul Verma", "9920033441", 700, None, None, [("p17", "Simba", "dog", "Labrador", "2021-01-01", "male", None, "Large · short", None, "up_to_date", None, None)]),
-    ("c16", "Sneha Joshi", "9819900112", 437, None, None, [("p18", "Daisy", "dog", "Beagle", "2023-05-01", "female", None, "Medium · short", None, "up_to_date", None, None)]),
+    ("c8", "Isha Patil", "9730018862", 600, None, None, [("p10", "Bella", "dog", "Pomeranian", "2022-01-01", "female", 3, "double", None, "up_to_date", None, None)]),
+    ("c9", "Arjun Mehta", "9822177310", 630, None, None, [("p11", "Oreo", "cat", "Maine Coon", "2023-04-01", "male", 7.5, "triple", None, "up_to_date", "Mats behind the ears.", None)]),
+    ("c10", "Vikram Rao", "9970122845", 540, None, None, [("p12", "Leo", "dog", "Labrador", "2022-08-01", "male", 30, "double", None, "up_to_date", None, None)]),
+    ("c11", "Farah Shaikh", "9890155532", 270, None, "Wanowrie, Pune", [("p13", "Mochi", "cat", "Persian", "2024-02-01", "female", 4, "double", None, "up_to_date", None, None)]),
+    ("c12", "Dev Malhotra", "9819044781", 11, None, None, [("p14", "Bolt", "dog", "Indie", "2024-07-01", "male", 16, "double", None, "unknown", None, None)]),
+    ("c13", "Kavya Iyer", "9867011223", 715, None, None, [("p15", "Pumpkin", "cat", "Ragdoll", "2022-10-01", "female", 5.5, "single", None, "up_to_date", None, None)]),
+    ("c14", "Meghna Rao", "9833022110", 545, None, None, [("p16", "Zoe", "dog", "Shih Tzu", "2023-03-01", "female", 6, "double", None, "up_to_date", None, None)]),
+    ("c15", "Rahul Verma", "9920033441", 700, None, None, [("p17", "Simba", "dog", "Labrador", "2021-01-01", "male", 32, "double", None, "up_to_date", None, None)]),
+    ("c16", "Sneha Joshi", "9819900112", 437, None, None, [("p18", "Daisy", "dog", "Beagle", "2023-05-01", "female", 11, "double", None, "up_to_date", None, None)]),
     ("c17", "Nisha Kapoor", "9811177665", 3, None, None, [("p19", "Sheru", "dog", "Indie", None, "male", None, None, None, "unknown", None, None)]),
 ]
+
+
+# Pet pricing extras in rupees: weight bands (as in pet_pricing.service.BANDS), single / double / triple coat, and breeds that cost more.
+DEMO_PET_PRICING = {
+    "dog": ([0, 150, 300, 500], [0, 150, 250], {"Poodle": 200, "Shih Tzu": 100, "Golden Retriever": 100, "German Shepherd": 100}),
+    "cat": ([0, 100, 200], [0, 100, 200], {"Persian": 150, "Maine Coon": 150}),
+}
 
 
 def _demo_customers() -> list[Customer]:
@@ -169,8 +179,8 @@ def _demo_customers() -> list[Customer]:
     for cid, name, phone, days, email, area, pets in DEMO_CUSTOMERS:
         since = now() - timedelta(days=days)
         c = Customer(id=cid, name=name, phone=phone, email=email, area=area, customer_since=since, pets=[
-            Pet(id=pid, name=pname, type=kind, breed=breed, birth_date=date.fromisoformat(born) if born else None, gender=gender,
-                weight_kg=kg, coat=coat, temperament=temperament, vaccination=vaccination, notes=notes, health_notes=health,
+            Pet(id=pid, name=pname, type=kind, breed_id=starter_id(kind, breed), birth_date=date.fromisoformat(born) if born else None,
+                gender=gender, weight_kg=kg, coat_type=coat, temperament=temperament, vaccination=vaccination, notes=notes, health_notes=health,
                 created_at=since + timedelta(minutes=i))  # in the order they were added
             for i, (pid, pname, kind, breed, born, gender, kg, coat, temperament, vaccination, notes, health) in enumerate(pets)
         ])
@@ -433,7 +443,8 @@ def seed() -> None:
             positions = {"dog": 0, "cat": 0}
             for sid, pet, name, category, rupees, minutes, description in DEMO_SERVICES:
                 db.add(Service(id=sid, pet_type=pet, name=name, category=category, price_paise=rupees * 100, duration_minutes=minutes,
-                               description=description, visible=sid not in ARCHIVED, archived=sid in ARCHIVED, sort_order=positions[pet]))
+                               description=description, visible=sid not in ARCHIVED, archived=sid in ARCHIVED, sort_order=positions[pet],
+                               pet_pricing=category != "Add-on"))
                 positions[pet] += 1
             print(f"Added {len(DEMO_SERVICES)} services.")
         if _empty(db, Station):
@@ -443,6 +454,17 @@ def seed() -> None:
         if _empty(db, Plan):
             db.add_all(_demo_plans())
             print("Added 3 membership plans.")
+        if _empty(db, PetPricing):
+            list_breeds(db, "dog"), list_breeds(db, "cat")  # the starter breeds, which the demo pets use
+            for pet_type, (bands, coats, breeds) in DEMO_PET_PRICING.items():
+                value = stored(db, pet_type)
+                for band, rupees in zip(value.weight_bands, bands):
+                    band.extra_paise = rupees * 100
+                for coat, rupees in zip(("single", "double", "triple"), coats):
+                    value.coats[coat].extra_paise = rupees * 100
+                value.breed_extras = {starter_id(pet_type, name): rupees * 100 for name, rupees in breeds.items()}
+                db.add(PetPricing(pet_type=pet_type, value=value.model_dump(mode="json"), updated_by="Meera K."))
+            print("Added demo pet pricing (weight, coat and breed extras).")
         if _empty(db, Customer):
             db.add_all(_demo_customers())
             print(f"Added {len(DEMO_CUSTOMERS)} customers and their pets.")

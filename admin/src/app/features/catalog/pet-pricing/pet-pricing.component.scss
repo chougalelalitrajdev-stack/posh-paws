@@ -1,0 +1,16 @@
+:host { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pp-pp { display: flex; flex-direction: column; gap: var(--space-4); }
+// Weight and coat side by side on wide screens, breeds below across the page.
+.pp-pp-grid { display: grid; gap: var(--space-4); align-items: start; @media (min-width: 1200px) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pp-pp-card { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; .pp-hint, .pp-card-title { margin: 0; } }
+.pp-pp-breeds { grid-column: 1 / -1; }
+.pp-pp-breeds .pp-pp-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-2) var(--space-5); }
+
+.pp-pp-rows { display: flex; flex-direction: column; gap: var(--space-2); }
+// What it is · + ₹ extra · remove
+.pp-pp-row { display: grid; grid-template-columns: minmax(0, 1fr) 128px var(--tap-target-min); align-items: center; gap: var(--space-2); }
+.pp-pp-what { display: flex; align-items: center; gap: var(--space-2); font-size: var(--fs-sm); min-width: 0; white-space: nowrap; }
+.pp-pp-kg { width: 76px; }
+.pp-pp-extra { display: flex; align-items: center; gap: var(--space-1); font-size: var(--fs-sm); color: var(--pp-muted); white-space: nowrap; .pp-input { min-width: 0; } }
+.pp-pp-coat { display: flex; flex-direction: column; gap: var(--space-2); }

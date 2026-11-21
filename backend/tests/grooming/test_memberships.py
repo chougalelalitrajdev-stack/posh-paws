@@ -45,7 +45,8 @@ def join(db, shop, plans):
 
 
 def quote(client, shop, service=None, code=None):
-    return client.post(f"{BOOKINGS}/quote", json={"customerId": shop.customer, "serviceId": service or shop.bath, "offerCode": code},
+    return client.post(f"{BOOKINGS}/quote", json={"customerId": shop.customer, "petId": shop.luna if service == shop.cat_bath else shop.coco,
+                                            "serviceId": service or shop.bath, "offerCode": code},
                        headers=shop.staff).json()
 
 
@@ -136,7 +137,8 @@ def test_customer_numbers_come_from_bookings_payments_and_memberships(client, sh
     upcoming = book("11:00")
 
     rohan = client.post("/api/admin/customers", json={"name": "Rohan Mehta", "phone": "9765430981"}, headers=shop.staff).json()
-    rex = client.post(f"/api/admin/customers/{rohan['id']}/pets", json={"name": "Rex", "type": "dog"}, headers=shop.staff).json()
+    rex = client.post(f"/api/admin/customers/{rohan['id']}/pets", json={"name": "Rex", "type": "dog", "breedId": "dog-indie", "weightKg": 20, "coatType": "double"},
+                      headers=shop.staff).json()
     details = {"customerId": rohan["id"], "petId": rex["id"], "serviceId": shop.bath, "date": str(shop.tomorrow), "time": "15:00"}
     old = client.post(BOOKINGS, json=details, headers=shop.staff).json()
     old_booking = db.get(Booking, old["id"])

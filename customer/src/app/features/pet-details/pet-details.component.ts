@@ -3,11 +3,8 @@ import { Router, RouterLink } from '@angular/router';
 import { PetDialogService } from '../../core/services/pet-dialog.service';
 import { PetService } from '../../core/services/pet.service';
 import { VaccinationStatus } from '../../core/models/pet.model';
-import {
-  PET_COAT_OPTIONS, PET_EMOJI, PET_GENDER_OPTIONS, PET_SIZE_OPTIONS, PET_TEMPERAMENT_OPTIONS,
-  VACCINATION_OPTIONS,
-} from '../../core/constants/pet.constants';
-import { optionLabel, petAgeLabel } from '../../core/utils/pet.utils';
+import { COAT_LABELS, PET_EMOJI, PET_GENDER_OPTIONS, PET_TEMPERAMENT_OPTIONS, VACCINATION_OPTIONS } from '../../core/constants/pet.constants';
+import { isPriced, optionLabel, petAgeLabel } from '../../core/utils/pet.utils';
 
 const VACCINATION_ICON: Record<VaccinationStatus, string> = {
   'up-to-date': '✓',
@@ -38,8 +35,10 @@ export class PetDetailsComponent {
 
   protected age = computed(() => petAgeLabel(this.pet()?.birthDate));
   protected gender = computed(() => optionLabel(PET_GENDER_OPTIONS, this.pet()?.gender));
-  protected size = computed(() => optionLabel(PET_SIZE_OPTIONS, this.pet()?.size));
-  protected coat = computed(() => optionLabel(PET_COAT_OPTIONS, this.pet()?.coat));
+  protected weight = computed(() => (this.pet()?.weightKg ? `${this.pet()!.weightKg} kg` : undefined));
+  protected coat = computed(() => (this.pet()?.coatType ? COAT_LABELS[this.pet()!.coatType!] : undefined));
+  /** Added before breed, weight and coat were asked for: they're needed before the next booking. */
+  protected needsDetails = computed(() => { const p = this.pet(); return !!p && !isPriced(p); });
   protected vaccination = computed(() => optionLabel(VACCINATION_OPTIONS, this.pet()?.vaccination));
   protected temperament = computed(() =>
     (this.pet()?.temperament ?? []).map(t => optionLabel(PET_TEMPERAMENT_OPTIONS, t) ?? t),
@@ -49,14 +48,14 @@ export class PetDetailsComponent {
     [
       { label: 'Gender', value: this.gender() },
       { label: 'Age', value: this.age() },
-      { label: 'Size', value: this.size() },
+      { label: 'Weight', value: this.weight() },
       { label: 'Coat', value: this.coat() },
     ].filter(f => !!f.value),
   );
 
   protected isSparse = computed(() => {
     const p = this.pet();
-    return !!p && !p.breed && this.facts().length === 0 && !p.vaccination && p.temperament.length === 0 && !p.notes;
+    return !!p && !this.needsDetails() && !p.gender && !p.birthDate && !p.vaccination && p.temperament.length === 0 && !p.notes;
   });
 
   book(): void {

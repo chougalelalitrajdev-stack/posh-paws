@@ -150,15 +150,22 @@ function saveNote(c: StoredCustomer, text: string, by: string): Customer {
   return toCustomer(c);
 }
 
-export function cleanPet(body: PetDraft): PetDraft {
+/** Checks a pet as the server does: breed (from Catalog › Pet pricing), weight and coat are required, as they set the price. */
+export function cleanPet(body: PetDraft, before?: CustomerPet): Omit<CustomerPet, 'id'> {
   const name = body.name?.trim();
   if (!name) throw new MockError(400, 'Enter the pet’s name.');
   if (body.type !== 'dog' && body.type !== 'cat') throw new MockError(400, 'Is it a dog or a cat?');
+  if (!body.breedId) throw new MockError(400, 'Pick the breed.');
+  const listed = db().petPricing[body.type].breeds.find(b => b.id === body.breedId);
+  const kept = before?.breedId === body.breedId && before.type === body.type; // a breed taken off the list stays on the pet that has it
+  if (!listed && !kept) throw new MockError(400, `Pick a ${body.type} breed from the list.`);
+  const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
+  if (!(weightKg > 0 && weightKg <= 120)) throw new MockError(400, 'Enter a weight between 0.1 and 120 kg.');
+  if (!body.coatType || !['single', 'double', 'triple'].includes(body.coatType)) throw new MockError(400, 'Pick the coat: single, double or triple.');
   const text = (v?: string) => v?.trim() || undefined;
   return {
-    name, type: body.type,
-    breed: text(body.breed), birthDate: body.birthDate || undefined, gender: body.gender || undefined,
-    weightKg: body.weightKg ? Number(body.weightKg) : undefined, coat: text(body.coat), temperament: text(body.temperament),
+    name, type: body.type, breedId: body.breedId, breed: listed?.name ?? before?.breed, weightKg, coatType: body.coatType,
+    birthDate: body.birthDate || undefined, gender: body.gender || undefined, temperament: text(body.temperament),
     vaccination: body.vaccination || 'unknown', notes: text(body.notes), healthNotes: text(body.healthNotes),
   };
 }

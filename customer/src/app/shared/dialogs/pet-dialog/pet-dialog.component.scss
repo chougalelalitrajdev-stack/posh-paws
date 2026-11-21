@@ -96,3 +96,38 @@
   font-size: var(--fs-sm);
   color: var(--pp-accent-dark);
 }
+
+.pet-hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--pp-muted);
+
+  &.is-error { color: var(--pp-accent-dark); }
+}
+
+// Coat: three choices, each with the shop's note that helps pick the right one.
+.pet-coats { border: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.pet-coat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1.5px solid var(--pp-border);
+  border-radius: var(--radius-lg);
+  background: var(--pp-bg);
+  color: var(--pp-text);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+
+  span { font-size: var(--fs-xs); color: var(--pp-muted); }
+  &:hover { border-color: var(--pp-primary); }
+
+  &.active {
+    border-color: var(--pp-primary);
+    background: var(--pp-primary-light);
+    strong { color: var(--pp-primary-dark); }
+  }
+}

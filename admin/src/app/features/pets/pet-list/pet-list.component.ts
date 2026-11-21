@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, ElementRef, computed, inject, input
 import { RouterLink } from '@angular/router';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap, tap } from 'rxjs';
-import { VACCINATION } from '../../../core/constants/pet.constants';
+import { COAT_LABELS, VACCINATION, isPriced } from '../../../core/constants/pet.constants';
 import { CustomerPet } from '../../../core/models/customer.model';
 import { Paged } from '../../../core/models/paged.model';
 import { PetCounts, PetFilters, PetRecord, PetSummary } from '../../../core/models/pet.model';
@@ -35,6 +35,8 @@ export class PetListComponent {
   readonly petParam = input<string>(undefined, { alias: 'pet' });
 
   protected readonly vaccination = VACCINATION;
+  protected readonly coatLabels = COAT_LABELS;
+  protected readonly isPriced = isPriced;
   protected readonly petAge = petAge;
   protected readonly shortDate = shortDate;
 

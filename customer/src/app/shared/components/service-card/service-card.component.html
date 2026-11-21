@@ -8,7 +8,7 @@
   <p class="svc-desc">{{ service().description }}</p>
 
   <div class="svc-meta">
-    <span class="svc-price">{{ service().pricePaise | inr }}</span>
+    <span class="svc-price">@if (service().petPricing) { <small>From </small> }{{ service().pricePaise | inr }}</span>
     <span class="svc-duration">{{ service().durationMinutes | duration }}</span>
   </div>
 

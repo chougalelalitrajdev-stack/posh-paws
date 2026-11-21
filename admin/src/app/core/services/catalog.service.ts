@@ -3,21 +3,26 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, finalize, forkJoin, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { API } from '../constants/api-endpoints';
 import { withoutErrorAlert } from '../interceptors/error.interceptor';
-import { PetType, Service, ServiceDraft, Station, StationDraft } from '../models/catalog.model';
+import { BreedPrice, CoatPrice, PetPricing, PetType, Service, ServiceDraft, Station, StationDraft } from '../models/catalog.model';
 
-/** Services and stations, loaded once and shared by every screen; Catalog › Services and Availability › Stations edit them. */
+/**
+ * Services, stations and pet pricing (breeds, weight bands, coats), loaded once and shared by every screen;
+ * Catalog › Services, Catalog › Pet pricing and Availability › Stations edit them.
+ */
 @Injectable({ providedIn: 'root' })
 export class CatalogService {
   private http = inject(HttpClient);
 
   private readonly _services = signal<Service[]>([]);
   private readonly _stations = signal<Station[]>([]);
+  private readonly _petPricing = signal<PetPricing | null>(null);
   private loaded = false;
   private loading$: Observable<void> | null = null;
 
   /** Every service, archived ones included, in display order. */
   readonly services = this._services.asReadonly();
   readonly stations = this._stations.asReadonly();
+  readonly petPricing = this._petPricing.asReadonly();
 
   /** Loads once: later calls complete straight away, and calls while loading share one request. */
   load(): Observable<void> {
@@ -32,6 +37,21 @@ export class CatalogService {
   /** Bookable services for a pet type (not archived), in display order. */
   servicesFor(petType: PetType): Service[] {
     return this._services().filter(s => s.petType === petType && !s.archived);
+  }
+
+  /** The breeds a pet of this type can have, in list order (the pet forms' dropdown). */
+  breedsFor(petType: PetType): BreedPrice[] {
+    return this._petPricing()?.[petType].breeds ?? [];
+  }
+
+  /** Single, double and triple coat with the note that helps choose. */
+  coatsFor(petType: PetType): CoatPrice[] {
+    return this._petPricing()?.[petType].coats ?? [];
+  }
+
+  /** Saves both pet types' breeds and extras (Catalog › Pet pricing shows errors itself). */
+  savePetPricing(doc: PetPricing): Observable<PetPricing> {
+    return this.http.put<PetPricing>(API.petPricing, doc, { context: withoutErrorAlert() }).pipe(tap(saved => this._petPricing.set(saved)));
   }
 
   stationName(id: string | null): string {
@@ -81,10 +101,15 @@ export class CatalogService {
   }
 
   private fetch(): Observable<void> {
-    return forkJoin({ services: this.http.get<Service[]>(API.services), stations: this.http.get<Station[]>(API.stations) }).pipe(
-      tap(({ services, stations }) => {
+    return forkJoin({
+      services: this.http.get<Service[]>(API.services),
+      stations: this.http.get<Station[]>(API.stations),
+      petPricing: this.http.get<PetPricing>(API.petPricing),
+    }).pipe(
+      tap(({ services, stations, petPricing }) => {
         this._services.set(services);
         this._stations.set(stations);
+        this._petPricing.set(petPricing);
         this.loaded = true;
       }),
       map(() => undefined),

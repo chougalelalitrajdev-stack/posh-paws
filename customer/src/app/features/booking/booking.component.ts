@@ -14,7 +14,7 @@ import { MembershipService } from '../../core/services/membership.service';
 import { PetDialogService } from '../../core/services/pet-dialog.service';
 import { PetType } from '../../core/models/pet.model';
 import { PET_EMOJI } from '../../core/constants/pet.constants';
-import { petAgeLabel } from '../../core/utils/pet.utils';
+import { isPriced, petAgeLabel, petDetails } from '../../core/utils/pet.utils';
 import { errorMessage } from '../../core/utils/error.utils';
 import { PetService } from '../../core/services/pet.service';
 import { DateStripComponent } from '../../shared/components/date-strip/date-strip.component';
@@ -74,6 +74,8 @@ export class BookingComponent {
   protected readonly dates = upcomingDates(BOOKING_WINDOW_DAYS);
   protected readonly petEmoji = PET_EMOJI;
   protected readonly petAgeLabel = petAgeLabel;
+  protected readonly petDetails = petDetails;
+  protected readonly isPriced = isPriced;
   protected readonly dateLabel = dateLabel;
   protected readonly dateLongLabel = dateLongLabel;
   protected readonly timeRangeLabel = timeRangeLabel;
@@ -124,7 +126,7 @@ export class BookingComponent {
     switch (this.step()) {
       case 'service': return !!this.selectedService();
       case 'slot': return !!this.date() && !!this.time() && !this.slotsLoading();
-      case 'pet': return !!this.selectedPet();
+      case 'pet': return !!this.selectedPet() && isPriced(this.selectedPet()!);
       case 'review': return !!this.bill();
       case 'payment': return !this.submitting();
       default: return false;
@@ -137,8 +139,9 @@ export class BookingComponent {
   /** The bill is asked for from the review step on (the customer is logged in by then). */
   private quoteQuery = computed(() => {
     const serviceId = this.selectedService()?.id;
-    return serviceId && (this.step() === 'review' || this.step() === 'payment') ? { serviceId, offerCode: this.offerCode() || undefined } : null;
-  }, { equal: (a, b) => a?.serviceId === b?.serviceId && a?.offerCode === b?.offerCode });
+    const petId = this.selectedPet()?.id;
+    return serviceId && petId && (this.step() === 'review' || this.step() === 'payment') ? { serviceId, petId, offerCode: this.offerCode() || undefined } : null;
+  }, { equal: (a, b) => a?.serviceId === b?.serviceId && a?.petId === b?.petId && a?.offerCode === b?.offerCode });
 
   constructor() {
     effect(() => {
@@ -212,6 +215,12 @@ export class BookingComponent {
 
   addPet(): void {
     this.petDialog.open();
+  }
+
+  /** A pet added before breed, weight and coat were asked for: fill them in to see the price. */
+  completePet(): void {
+    const pet = this.selectedPet();
+    if (pet) this.petDialog.open(pet);
   }
 
   bookAnother(): void {

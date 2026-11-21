@@ -1,4 +1,7 @@
-import { BillDiscount, Booking, BookingBill, PaymentEntry, PaymentMethod } from '../models/booking.model';
+import { COAT_LABELS, isPriced } from '../constants/pet.constants';
+import { BillDiscount, BillExtra, Booking, BookingBill, PaymentEntry, PaymentMethod } from '../models/booking.model';
+import { Service } from '../models/catalog.model';
+import { CustomerPet } from '../models/customer.model';
 import { Offer } from '../models/offer.model';
 import { Subscription } from '../models/subscription.model';
 import { slotStart } from '../utils/date.utils';
@@ -51,16 +54,39 @@ function offerDiscount(customerId: string, serviceId: string, price: number, cod
  * The bill for a service: a plan session (₹0) if the member has one left for it, otherwise the better of
  * the member discount and an offer (they don't stack). `withAdvance` = booked in the customer app.
  */
-export function quoteBill(customerId: string, serviceId: string, offerCode: string | null | undefined, withAdvance: boolean, excludeBookingId?: string): BookingBill {
+/** What the pet adds to a service with pet pricing on: its breed, weight band and coat (Catalog › Pet pricing), only extras above ₹0. */
+export function petExtras(pet: CustomerPet, service: Pick<Service, 'petPricing'>): BillExtra[] {
+  if (!service.petPricing) return [];
+  if (!isPriced(pet)) throw new MockError(400, `Add ${pet.name}'s breed, weight and coat first. They set the price.`);
+  const p = db().petPricing[pet.type];
+  const extras: BillExtra[] = [];
+  const breed = p.breeds.find(b => b.id === pet.breedId);
+  if (breed?.extraPaise) extras.push({ label: breed.name, amountPaise: breed.extraPaise });
+  const i = p.weightBands.findIndex(b => b.upToKg === null || pet.weightKg! <= b.upToKg);
+  const band = p.weightBands[i];
+  if (band?.extraPaise) {
+    const before = p.weightBands[i - 1]?.upToKg;
+    const label = i === 0 ? `Up to ${band.upToKg} kg` : band.upToKg === null ? `Over ${before} kg` : `${before}–${band.upToKg} kg`;
+    extras.push({ label, amountPaise: band.extraPaise });
+  }
+  const coat = p.coats.find(c => c.type === pet.coatType);
+  if (coat?.extraPaise) extras.push({ label: COAT_LABELS[coat.type], amountPaise: coat.extraPaise });
+  return extras;
+}
+
+export function quoteBill(customerId: string, petId: string, serviceId: string, offerCode: string | null | undefined, withAdvance: boolean, excludeBookingId?: string): BookingBill {
   const service = db().services.find(s => s.id === serviceId);
   if (!service) throw new MockError(404, 'Service not found.');
-  const price = service.pricePaise;
+  const pet = db().customers.find(c => c.id === customerId)?.pets.find(p => p.id === petId);
+  if (!pet) throw new MockError(400, 'Pick one of the customer’s pets.');
+  const extras = petExtras(pet, service);
+  const price = service.pricePaise + extras.reduce((sum, e) => sum + e.amountPaise, 0); // the price for this pet
   const member = membership(customerId);
   const hold = withAdvance ? db().settings.payments.slotHoldPaise : null;
 
   if (member && member.plan.eligibleServiceIds.includes(serviceId) && member.left > 0) {
     // No count in the label: the bill is kept, and a count would go stale.
-    return newBill(price, { kind: 'session', label: `${member.plan.name} plan session`, amountPaise: price }, hold);
+    return newBill(service.pricePaise, { kind: 'session', label: `${member.plan.name} plan session`, amountPaise: price }, hold, extras);
   }
   const options: BillDiscount[] = [];
   if (member && member.plan.discountPercent > 0) {
@@ -69,7 +95,7 @@ export function quoteBill(customerId: string, serviceId: string, offerCode: stri
   const offer = offerDiscount(customerId, serviceId, price, offerCode, excludeBookingId);
   if (offer) options.push(offer);
   const best = options.sort((a, b) => b.amountPaise - a.amountPaise)[0] ?? null;
-  return newBill(price, best, hold);
+  return newBill(service.pricePaise, best, hold, extras);
 }
 
 /** A confirmed booking uses its plan session and its offer. */

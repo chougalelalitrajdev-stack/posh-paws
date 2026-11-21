@@ -50,7 +50,7 @@ backend/
 │   ├── seed.py          demo data for your own Mac (python -m app.seed), with the admin demo's ids
 │   ├── shared/          used by every module: customers & pets, customer login, staff & roles, payments, settings, message templates,
 │   │                    content (banners, gallery, pages, FAQs), uploads (photos)
-│   ├── grooming/        catalog (services + stations), plans, offers, slots, bookings, subscriptions (memberships),
+│   ├── grooming/        catalog (services + stations), pet_pricing (breed, weight and coat extras), plans, offers, slots, bookings, subscriptions (memberships),
 │   │                    money (the Payments page), dashboard (Today)
 │   ├── shop/            (later)
 │   └── vet/             (later)
@@ -70,7 +70,7 @@ app/grooming/bookings/
 └── routes.py     the endpoints
 ```
 
-A request flows **route → service → database**. Routes stay thin: they validate input with a schema, call a service and return a schema. Rules live in services, so they can be tested without HTTP. A module may use `shared/` and `core/`, never another module (the store doesn't import grooming). Shared code doesn't read modules either, with two marked exceptions where a screen must show everything: `shared/customers/overview.py` (a customer's visits, money, membership, activity, and the top-bar search) and a holiday's "bookings to move" in `shared/settings/service.py`. The store and vet add their numbers in those same two places.
+A request flows **route → service → database**. Routes stay thin: they validate input with a schema, call a service and return a schema. Rules live in services, so they can be tested without HTTP. A module may use `shared/` and `core/`, never another module (the store doesn't import grooming). Shared code doesn't read modules either, with three marked exceptions: two where a screen must show everything, `shared/customers/overview.py` (a customer's visits, money, membership, activity, and the top-bar search) and a holiday's "bookings to move" in `shared/settings/service.py`; and `reprice_pet` in `shared/customers/service.py`, which asks grooming to re-price a pet's upcoming bookings when its breed, weight or coat change. The store and vet add their numbers in those same places.
 
 ## Adding a topic (example: grooming bookings)
 

@@ -71,6 +71,11 @@
           <label class="pp-label" for="svc-pet">For</label>
           <select id="svc-pet" class="pp-input" formControlName="petType"><option value="dog">Dogs</option><option value="cat">Cats</option></select>
         </div>
+        <div class="pp-field pp-span pp-svc-switch">
+          <pp-switch label="Price depends on breed, weight and coat" [checked]="form.controls.petPricing.value" [disabled]="!canEdit()" (checkedChange)="setPetPricing($event)" />
+          <span><strong>Price depends on breed, weight and coat</strong>
+            <span class="pp-hint">The pet's extras from <a routerLink="/pet-pricing">Pet pricing</a> are added to this price. Turn off for add-ons like a nail trim.</span></span>
+        </div>
         @if (selected(); as svc) {
           <div class="pp-field pp-span">
             <span class="pp-label">Done at</span>

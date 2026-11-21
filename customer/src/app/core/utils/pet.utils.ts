@@ -1,4 +1,5 @@
-import { PetOption } from '../models/pet.model';
+import { COAT_LABELS } from '../constants/pet.constants';
+import { Pet, PetOption } from '../models/pet.model';
 import { toIsoDate } from './date.utils';
 
 export interface PetAge {
@@ -32,4 +33,14 @@ export function petAgeLabel(birthDate: string | undefined): string {
 /** The label for a stored option value, e.g. 'shy-with-strangers' -> 'Shy with strangers'. */
 export function optionLabel<T extends string>(options: PetOption<T>[], value: T | undefined): string | undefined {
   return options.find(o => o.value === value)?.label;
+}
+
+/** Breed, weight and coat are filled in, so the pet can be priced and booked. */
+export function isPriced(p: Pet): boolean {
+  return !!(p.breedId && p.weightKg && p.coatType);
+}
+
+/** "Golden Retriever · 31 kg · Double coat", or what's known so far. */
+export function petDetails(p: Pet): string {
+  return [p.breed ?? (p.type === 'dog' ? 'Dog' : 'Cat'), p.weightKg ? `${p.weightKg} kg` : '', p.coatType ? COAT_LABELS[p.coatType] : ''].filter(Boolean).join(' · ');
 }

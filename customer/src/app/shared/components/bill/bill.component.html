@@ -1,6 +1,12 @@
 @let b = bill();
 <dl class="pp-bill">
   <div class="pp-bill-row"><dt>Service</dt><dd>{{ b.servicePricePaise | inr }}</dd></div>
+  @if (b.extras.length) {
+    @for (e of b.extras; track e.label) {
+      <div class="pp-bill-row"><dt>{{ e.label }}</dt><dd>+{{ e.amountPaise | inr }}</dd></div>
+    }
+    <div class="pp-bill-row"><dt>Price for your pet</dt><dd>{{ b.subtotalPaise | inr }}</dd></div>
+  }
   @if (b.discount; as d) {
     <div class="pp-bill-row is-discount"><dt>{{ d.label }}</dt><dd>−{{ d.amountPaise | inr }}</dd></div>
   }

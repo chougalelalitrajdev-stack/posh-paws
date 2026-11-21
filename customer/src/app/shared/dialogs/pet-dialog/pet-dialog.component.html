@@ -19,7 +19,10 @@
       @if (dialog.step() === 'basics') {
         <div class="pp-sheet-header">
           <div class="pp-sheet-title">{{ isEditing() ? 'Edit pet' : 'Add a pet' }}</div>
-          <p class="pp-sheet-sub">Start with the basics — you can add more later.</p>
+          <p class="pp-sheet-sub">
+            @if (missingDetails()) { Add {{ name() }}'s breed, weight and coat. They set the price, so we need them before the next booking. }
+            @else { Start with the basics — you can add more later. }
+          </p>
         </div>
 
         <form class="pp-sheet-body" (submit)="$event.preventDefault(); save()">
@@ -32,7 +35,7 @@
                   type="button"
                   [class.active]="type() === opt.value"
                   [attr.aria-pressed]="type() === opt.value"
-                  (click)="type.set(opt.value)"
+                  (click)="setType(opt.value)"
                 >
                   <span class="pet-type-emoji">{{ opt.value === 'dog' ? '🐶' : '🐱' }}</span>
                   {{ opt.label }}
@@ -54,12 +57,41 @@
             />
           </div>
 
+          @if (type()) {
+            <div class="pet-field">
+              <label class="pp-label" for="pet-breed">Breed <span class="required-dot">*</span></label>
+              <select id="pet-breed" class="pp-input" (change)="onBreedChange($event)">
+                <option value="" disabled [selected]="!breedId()">Pick the breed</option>
+                @for (b of breedOptions(); track b.id) { <option [value]="b.id" [selected]="b.id === breedId()">{{ b.name }}</option> }
+              </select>
+              <p class="pet-hint">Not listed? Pick Other.</p>
+            </div>
+
+            <div class="pet-field">
+              <label class="pp-label" for="pet-weight">Weight in kg <span class="required-dot">*</span></label>
+              <input id="pet-weight" class="pp-input" type="number" inputmode="decimal" min="0.1" max="120" step="0.1" placeholder="e.g. 12"
+                [value]="weight()" (input)="onWeightChange($event)" />
+              @if (weight() && !weightOk()) { <p class="pet-hint is-error">Enter a weight between 0.1 and 120 kg.</p> }
+            </div>
+
+            <fieldset class="pet-field pet-coats">
+              <legend class="pp-label">Coat <span class="required-dot">*</span></legend>
+              @for (c of coatOptions(); track c.type) {
+                <button class="pet-coat" type="button" [class.active]="coatType() === c.type" [attr.aria-pressed]="coatType() === c.type" (click)="coatType.set(c.type)">
+                  <strong>{{ c.label }}</strong>
+                  @if (c.note) { <span>{{ c.note }}</span> }
+                </button>
+              }
+              <p class="pet-hint">Not sure? Pick the closest. We check at the shop and tell you if the price changes.</p>
+            </fieldset>
+          }
+
           @if (error()) { <p class="pet-error" role="alert">{{ error() }}</p> }
 
           <button class="btn-pp-primary w-100 justify-content-center" type="submit" [disabled]="!canSave() || submitting()">
             @if (submitting()) { Saving… } @else { {{ isEditing() ? 'Save changes' : 'Save pet' }} }
           </button>
-          <button class="btn-pp-outline w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="dialog.goTo('about')">
+          <button class="btn-pp-outline w-100 justify-content-center" type="button" [disabled]="submitting() || !canSave()" (click)="dialog.goTo('about')">
             Add more details →
           </button>
           <button class="btn-pp-ghost w-100 justify-content-center" type="button" [disabled]="submitting()" (click)="close()">Cancel</button>
@@ -74,23 +106,6 @@
         </div>
 
         <div class="pp-sheet-body">
-          <div class="pet-field">
-            <label class="pp-label" for="pet-breed">Breed</label>
-            <input
-              id="pet-breed"
-              class="pp-input"
-              type="text"
-              list="pet-breed-list"
-              autocomplete="off"
-              placeholder="Start typing or pick one"
-              [value]="breed()"
-              (input)="onBreedChange($event)"
-            />
-            <datalist id="pet-breed-list">
-              @for (b of breedSuggestions(); track b) { <option [value]="b"></option> }
-            </datalist>
-          </div>
-
           <div class="pet-field">
             <div class="pp-label">Age <span class="pet-age-text">· {{ ageText() }}</span></div>
             <div class="pet-steppers">
@@ -125,16 +140,6 @@
         </div>
 
         <div class="pp-sheet-body">
-          <div class="pet-field">
-            <div class="pp-label">Size</div>
-            <pp-chip-group [options]="sizeOptions" [(value)]="size" />
-          </div>
-
-          <div class="pet-field">
-            <div class="pp-label">Coat</div>
-            <pp-chip-group [options]="coatOptions" [(value)]="coat" />
-          </div>
-
           <div class="pet-field">
             <div class="pp-label">Temperament <span class="pet-age-text">· pick any</span></div>
             <pp-chip-group [options]="temperamentOptions" [multiple]="true" [(values)]="temperament" />
